@@ -93,7 +93,7 @@ contains
    !
    implicit none
    !
-   integer n, itb, ib, stat, ifreq, iok, ibdr
+   integer n, itb, ib, stat, ifreq, iok, ibdr, nmq
    real*4  :: x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
    logical :: ok
    !
@@ -115,6 +115,10 @@ contains
    nbnd      = 0
    ntbnd     = 0
    itbndlast = 1
+   !
+   ! Incoming infragravity wave time series present (from bzifile or the zi variable in netbndbzsbzifile)
+   !
+   bziwaves  = .false.
    !
    if (netbndbzsbzifile(1:4) /= 'none') then    ! FEWS compatible Netcdf water level time-series input
       !
@@ -202,6 +206,8 @@ contains
       if (bzifile(1:4) /= 'none') then
          !
          ! Incoming infragravity waves
+         !
+         bziwaves = .true.
          !
          allocate(zsi_bnd(nbnd,ntbnd))
          allocate(zsit_bnd(nbnd))
@@ -319,9 +325,23 @@ contains
             !
             read(500,*)x_bdr(ibdr), y_bdr(ibdr), x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
             !
-            ! Find grid cell that contains the internal point
+            ! Find active grid cell that contains the internal point (quadtree index converted to SFINCS index)
             !
-            index_zsi_bdr(ibdr) = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            index_zsi_bdr(ibdr) = 0
+            !
+            nmq = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            !
+            if (nmq > 0) then
+               index_zsi_bdr(ibdr) = index_sfincs_in_quadtree(nmq)
+            endif
+            !
+            if (index_zsi_bdr(ibdr) <= 0) then
+               !
+               write(logstr,'(a,i0,a)')'Error ! Internal point of downstream river boundary point ', ibdr, &
+                  ' in bdr file is not in an active grid cell !'
+               call stop_sfincs(trim(logstr), 1)
+               !
+            endif
             !
             ! Water level difference between internal point and downstream boundary
             !
@@ -830,11 +850,11 @@ contains
       !
       zst_bnd(ib) = zstb
       !
-      if (bzifile(1:4) /= 'none') then
+      if (bziwaves) then
          !
          ! Incoming infragravity waves
          !
-         zsit_bnd(ib) = zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
+         zsit_bnd(ib) =zsi_bnd(ib, itb0) + (zsi_bnd(ib, itb1) - zsi_bnd(ib, itb0))*tbfac
          !
       endif
        !
@@ -870,7 +890,7 @@ contains
    real*4 zs0smooth
    logical :: has_bzi
    !
-   has_bzi = (bzifile(1:4) /= 'none')
+   has_bzi = bziwaves
    !
    ! Set water level in all boundary points on grid
    ! This loop is all done on the CPU
@@ -1354,8 +1374,15 @@ contains
    !
    integer :: nmq
    !
+   nm = 0
+   !
    nmq = find_quadtree_cell_by_index(n, m, iref)
-   nm = index_sfincs_in_quadtree(nmq) 
+   !
+   if (nmq > 0) then
+      !
+      nm = index_sfincs_in_quadtree(nmq)
+      !
+   endif
    !
    end function
    

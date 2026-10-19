@@ -348,7 +348,7 @@ contains
       !
       do it = 1, ntwnd         
          read(500,*)twnd(it),wndmag(it),wnddir(it)
-         wnddir(it) = pi*(270.0 - wnddir(it))/180 - rotation ! Convert to cartesian, where the wind is blowing to and include grid rotation
+         wnddir(it) = pi*(270.0 - wnddir(it))/180 ! Convert to cartesian, where the wind is blowing to (rotation added later)
       enddo
       !
       close(500)
@@ -387,20 +387,37 @@ contains
       !
    endif   
    !
-   ! Determine Cd coefficients
+   ! Determine Cd coefficients. Below the first and above the last breakpoint the drag coefficient is kept constant.
    !
    do iw = 1, 1000
+      !
       wnd = iw*0.1
-      do icd = 1, cd_nr - 1
-         cdval(iw) = cd_val(icd)
-         if (wnd>=cd_wnd(icd) .and. wnd<cd_wnd(icd + 1)) then
-            cdval(iw) = cd_val(icd) + (wnd - cd_wnd(icd))*(cd_val(icd + 1) - cd_val(icd))/(cd_wnd(icd + 1) - cd_wnd(icd))
-            exit
-         elseif (wnd>=cd_wnd(cd_nr)) then  
-            cdval(iw) = cd_val(cd_nr)
-            exit
-         endif
-      enddo   
+      !
+      if (wnd <= cd_wnd(1)) then
+         !
+         cdval(iw) = cd_val(1)
+         !
+      elseif (wnd >= cd_wnd(cd_nr)) then
+         !
+         cdval(iw) = cd_val(cd_nr)
+         !
+      else
+         !
+         cdval(iw) = cd_val(cd_nr)
+         !
+         do icd = 1, cd_nr - 1
+            !
+            if (wnd >= cd_wnd(icd) .and. wnd < cd_wnd(icd + 1)) then
+               !
+               cdval(iw) = cd_val(icd) + (wnd - cd_wnd(icd))*(cd_val(icd + 1) - cd_val(icd))/(cd_wnd(icd + 1) - cd_wnd(icd))
+               exit
+               !
+            endif
+            !
+         enddo
+         !
+      endif
+      !
    enddo
    !
    ! Now apply wind, pressure and rain enhancement factors: factor_wind, factor_pres, factor_precip (default all set to 1.0)
@@ -785,7 +802,7 @@ contains
             !
          else
             !
-            cd = cdval(int(vmag * 10) + 1)
+            cd = cdval(min(int(vmag * 10) + 1, 1000))
             !
          endif
          !
@@ -951,7 +968,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/amuv_dy) + 1
+         iy = floor((yul - y)/amuv_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -960,14 +977,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/amuv_dx) + 1
+         ix = floor((x - xll)/amuv_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1)*amuv_dx)) / amuv_dx
          !
-         if (iy<=1 .or. iy>=amuv_nrows .or. ix<=0 .or. ix>=amuv_ncols) then
+         if (iy<1 .or. iy>=amuv_nrows .or. ix<1 .or. ix>=amuv_ncols) then
             !
             ! Point outside rectangular amu/amv grid, this should really produce an error ...
             !
@@ -1018,7 +1035,7 @@ contains
             !
          else
             !
-            cd = cdval(int(vmag*10)+1)
+            cd = cdval(min(int(vmag*10)+1, 1000))
             !
          endif
          !
@@ -1131,7 +1148,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y) / amp_dy) + 1
+         iy = floor((yul - y) / amp_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -1140,14 +1157,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll) / amp_dx) + 1
+         ix = floor((x - xll) / amp_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1) * amp_dx)) / amp_dx
          !
-         if (iy <= 1 .or. iy >= amp_nrows .or. ix <= 0 .or. ix >= amp_ncols) then
+         if (iy < 1 .or. iy >= amp_nrows .or. ix < 1 .or. ix >= amp_ncols) then
             !
             ! Point outside rectangular amp grid
             !
@@ -1272,7 +1289,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/ampr_dy) + 1
+         iy = floor((yul - y)/ampr_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -1281,14 +1298,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/ampr_dx) + 1
+         ix = floor((x - xll)/ampr_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1)*ampr_dx)) / ampr_dx
          !
-         if (iy<=1 .or. iy>=ampr_nrows .or. ix<=0 .or. ix>=ampr_ncols) then
+         if (iy<1 .or. iy>=ampr_nrows .or. ix<1 .or. ix>=ampr_ncols) then
             !
             ! Point outside rectangular ampr grid
             !
@@ -1567,62 +1584,90 @@ contains
    !
    implicit none
    !
-   integer itw, nm
+   integer itw, nm, it0, it1
    !
    real*8                           :: t, twu, twv
    !
    real*4 cd, vmag, vdir, dr0, dr1, twfac
    !
-   do itw = itwndlast, ntwnd ! Loop in time
-      !
-      if (twnd(itw)>t) then
-         !
-         twfac  = (t - twnd(itw - 1)) / (twnd(itw) - twnd(itw - 1))
-         !
-         vmag = wndmag(itw - 1) * (1.0 - twfac) + wndmag(itw) * twfac
-         dr0  = modulo(wnddir(itw - 1), 2 * pi)
-         dr1  = modulo(wnddir(itw ),    2 * pi)
-         if (dr1 > dr0 + pi) then
-             dr0 = dr0 + 2 * pi
-         elseif (dr0 > dr1 + pi) then    
-             dr1 = dr1 + 2 * pi
-         endif
-         vdir = dr0 * (1.0 - twfac) + dr1 * twfac
-         !
-         cd = cdval(int(vmag * 10) + 1)
-         !
-         twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
-         twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
-         !
-         !$omp parallel &
-         !$omp private ( nm ) &
-         !$omp shared ( tauwu,tauwv )
-         !$omp do
-         !$acc parallel, present( tauwu, tauwv )
-         !$acc loop independent gang vector
-         do nm = 1, np
-            tauwu(nm) = twu
-            tauwv(nm) = twv
-         enddo   
-         !$acc end parallel
-         !$omp end do
-         !$omp end parallel
-         !
-         itwndlast = itw - 1
-         !
-         if (store_wind) then
-             !
-             windu = vmag * cos(vdir)
-             windv = vmag * sin(vdir)
-             !
-         endif
-         !   
-         exit
-         !
-       endif
-   enddo
+   ! Find the two times around t. Before the first and after the last time in the file the first or last value is used.
    !
-   end subroutine   
+   if (t <= twnd(1)) then
+      !
+      it0   = 1
+      it1   = 1
+      twfac = 0.0
+      !
+   elseif (t >= twnd(ntwnd)) then
+      !
+      it0   = ntwnd
+      it1   = ntwnd
+      twfac = 0.0
+      !
+   else
+      !
+      do itw = max(itwndlast, 2), ntwnd ! Loop in time
+         !
+         if (twnd(itw) > t) then
+            exit
+         endif
+         !
+      enddo
+      !
+      it0       = itw - 1
+      it1       = itw
+      twfac     = (t - twnd(it0)) / (twnd(it1) - twnd(it0))
+      itwndlast = it0
+      !
+   endif
+   !
+   vmag = wndmag(it0) * (1.0 - twfac) + wndmag(it1) * twfac
+   !
+   ! Include grid rotation here rather than when reading the wnd file, because for quadtree
+   ! models the rotation is only known after the quadtree file has been read
+   !
+   dr0  = modulo(wnddir(it0) - rotation, 2 * pi)
+   dr1  = modulo(wnddir(it1) - rotation, 2 * pi)
+   !
+   if (dr1 > dr0 + pi) then
+      !
+      dr0 = dr0 + 2 * pi
+      !
+   elseif (dr0 > dr1 + pi) then
+      !
+      dr1 = dr1 + 2 * pi
+      !
+   endif
+   !
+   vdir = dr0 * (1.0 - twfac) + dr1 * twfac
+   !
+   cd = cdval(min(int(vmag * 10) + 1, 1000))
+   !
+   twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
+   twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
+   !
+   !$omp parallel &
+   !$omp private ( nm ) &
+   !$omp shared ( tauwu,tauwv )
+   !$omp do
+   !$acc parallel, present( tauwu, tauwv )
+   !$acc loop independent gang vector
+   do nm = 1, np
+      tauwu(nm) = twu
+      tauwv(nm) = twv
+   enddo
+   !$acc end parallel
+   !$omp end do
+   !$omp end parallel
+   !
+   if (store_wind) then
+      !
+      windu = vmag * cos(vdir)
+      windv = vmag * sin(vdir)
+      !
+   endif
+   !
+   end subroutine
 
    subroutine update_precipitation_from_timeseries(t, dt)
    !
@@ -1645,17 +1690,34 @@ contains
    real*4  :: twfac
    real*4  :: ptmp
    !
-   do itp = itprcplast, ntprcp ! Loop in time
-      if (tprcpt(itp) > t) then          
-         exit
-      endif
-   enddo
+   ! Before the first and after the last time in the file the first or last value is used
    !
-   itp = max(min(itp, ntprcp), 1)
+   if (t <= tprcpt(1)) then
+      !
+      ptmp = tprcpv(1)
+      !
+   elseif (t >= tprcpt(ntprcp)) then
+      !
+      ptmp = tprcpv(ntprcp)
+      !
+   else
+      !
+      do itp = max(itprcplast, 2), ntprcp ! Loop in time
+         !
+         if (tprcpt(itp) > t) then
+            exit
+         endif
+         !
+      enddo
+      !
+      twfac = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
+      ptmp  = tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac
+      !
+      itprcplast = itp - 1
+      !
+   endif
    !
-   twfac  = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
-   !
-   ptmp = (tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac) / (1000 * 3600) ! rain in m/s
+   ptmp = ptmp / (1000 * 3600) ! rain in m/s
    !
    !$omp parallel &
    !$omp private ( nm )
@@ -1675,9 +1737,7 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   itprcplast = itp - 1
-   !
-   end subroutine   
+   end subroutine
 
    
    subroutine update_meteo_fields(t)
