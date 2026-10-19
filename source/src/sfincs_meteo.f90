@@ -1645,17 +1645,34 @@ contains
    real*4  :: twfac
    real*4  :: ptmp
    !
-   do itp = itprcplast, ntprcp ! Loop in time
-      if (tprcpt(itp) > t) then          
-         exit
-      endif
-   enddo
+   ! Before the first and after the last time in the file the first or last value is used
    !
-   itp = max(min(itp, ntprcp), 1)
+   if (t <= tprcpt(1)) then
+      !
+      ptmp = tprcpv(1)
+      !
+   elseif (t >= tprcpt(ntprcp)) then
+      !
+      ptmp = tprcpv(ntprcp)
+      !
+   else
+      !
+      do itp = max(itprcplast, 2), ntprcp ! Loop in time
+         !
+         if (tprcpt(itp) > t) then
+            exit
+         endif
+         !
+      enddo
+      !
+      twfac = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
+      ptmp  = tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac
+      !
+      itprcplast = itp - 1
+      !
+   endif
    !
-   twfac  = (t - tprcpt(itp - 1)) / (tprcpt(itp) - tprcpt(itp - 1))
-   !
-   ptmp = (tprcpv(itp - 1) * (1.0 - twfac) + tprcpv(itp) * twfac) / (1000 * 3600) ! rain in m/s
+   ptmp = ptmp / (1000 * 3600) ! rain in m/s
    !
    !$omp parallel &
    !$omp private ( nm )
@@ -1675,9 +1692,7 @@ contains
    !$omp end do
    !$omp end parallel
    !
-   itprcplast = itp - 1
-   !
-   end subroutine   
+   end subroutine
 
    
    subroutine update_meteo_fields(t)
