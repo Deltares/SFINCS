@@ -997,6 +997,7 @@ module snapwave_infragravity
     !
     !$omp parallel do &
     !$omp&   private(itheta, k1, k2, gam, dSxx, Sxx_cons, &
+    !$omp&           gamma_fac_br_transition, transition_factor, &
     !$omp&           cgprev, Eprev, Eprev_ig, Sxxprev, Hprev) &
     !$omp&   schedule(static)
     do k = 1, no_nodes
