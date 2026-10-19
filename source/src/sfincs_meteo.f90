@@ -968,7 +968,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/amuv_dy) + 1
+         iy = floor((yul - y)/amuv_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -977,14 +977,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/amuv_dx) + 1
+         ix = floor((x - xll)/amuv_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1)*amuv_dx)) / amuv_dx
          !
-         if (iy<=1 .or. iy>=amuv_nrows .or. ix<=0 .or. ix>=amuv_ncols) then
+         if (iy<1 .or. iy>=amuv_nrows .or. ix<1 .or. ix>=amuv_ncols) then
             !
             ! Point outside rectangular amu/amv grid, this should really produce an error ...
             !
@@ -1148,7 +1148,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y) / amp_dy) + 1
+         iy = floor((yul - y) / amp_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -1157,14 +1157,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll) / amp_dx) + 1
+         ix = floor((x - xll) / amp_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1) * amp_dx)) / amp_dx
          !
-         if (iy <= 1 .or. iy >= amp_nrows .or. ix <= 0 .or. ix >= amp_ncols) then
+         if (iy < 1 .or. iy >= amp_nrows .or. ix < 1 .or. ix >= amp_ncols) then
             !
             ! Point outside rectangular amp grid
             !
@@ -1289,7 +1289,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/ampr_dy) + 1
+         iy = floor((yul - y)/ampr_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -1298,14 +1298,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/ampr_dx) + 1
+         ix = floor((x - xll)/ampr_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1)*ampr_dx)) / ampr_dx
          !
-         if (iy<=1 .or. iy>=ampr_nrows .or. ix<=0 .or. ix>=ampr_ncols) then
+         if (iy<1 .or. iy>=ampr_nrows .or. ix<1 .or. ix>=ampr_ncols) then
             !
             ! Point outside rectangular ampr grid
             !
