@@ -916,19 +916,30 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    !
    integer              :: iref
    integer              :: nmx
+   integer              :: mmx
    integer              :: n, m, nm, i1, i2, j
    !
    indx = 0
    !
    xtmp =   quadtree_cosrot*(x - quadtree_x0) + quadtree_sinrot*(y - quadtree_y0)
    ytmp = - quadtree_sinrot*(x - quadtree_x0) + quadtree_cosrot*(y - quadtree_y0)
-   !   
+   !
    do iref = quadtree_nr_levels, 1, -1
       !
       nmx = quadtree_nmax*2**(iref - 1)
+      mmx = quadtree_mmax*2**(iref - 1)
       !
-      n  = int(ytmp/quadtree_dyr(iref)) + 1
-      m  = int(xtmp/quadtree_dxr(iref)) + 1
+      ! Use floor so that points left of or below the grid give an index of 0 or less (int truncates towards zero)
+      !
+      n  = floor(ytmp/quadtree_dyr(iref)) + 1
+      m  = floor(xtmp/quadtree_dxr(iref)) + 1
+      !
+      ! Points outside the grid (without this check, n > nmx would wrap into the next column)
+      !
+      if (n < 1 .or. n > nmx .or. m < 1 .or. m > mmx) then
+         cycle
+      endif
+      !
       nm = (m - 1)*nmx + n
       !
       ! Find nm index of this point
@@ -936,21 +947,21 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       i1 = quadtree_first_point_per_level(iref)
       i2 = quadtree_last_point_per_level(iref)
       !
-      if (nm>0) then      
-         !
-         indx = binary_search(quadtree_nm_indices(i1:i2), i2 - i1 + 1, nm)
-         !
+      if (i2 < i1) then
+         cycle
       endif
       !
-      if (indx>0) then
+      j = binary_search(quadtree_nm_indices(i1:i2), i2 - i1 + 1, nm)
+      !
+      if (j > 0) then
          !
          ! Now check if this is the point we're actually interested in (could also be another point with another refinement level with the same nm index)
          !
-         if (quadtree_level(i1 + indx - 1) == iref) then
+         if (quadtree_level(i1 + j - 1) == iref) then
             !
             ! This must be our point
             !
-            indx = indx + i1 - 1
+            indx = j + i1 - 1
             exit
             !
          endif
