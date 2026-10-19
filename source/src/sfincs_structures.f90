@@ -256,24 +256,21 @@
          irefnm  = z_flags_iref(nm)
          irefnmu = z_flags_iref(nmu)
          !
-         if (crsgeo) then
-            ! Geographic coordinate system
-            if (idir==0) then
-               ! U point
-               dxs = dyrm(iref)
-            else
-               ! V point
-               dxs = 1.0 / dxminv(indx)
-            endif   
-         else   
-            ! Projected coordinate system
-            if (idir==0) then
-               ! U point
-               dxs  = dyrm(iref)
-            else
-               ! V point
-               dxs  = dxrm(iref)
-            endif
+         ! Grid spacing in the units of the coordinates (degrees in geographic models), as it is
+         ! combined with the cell centre coordinates z_xz and z_yz below
+         !
+         if (idir==0) then
+            !
+            ! U point
+            !
+            dxs = dyr(iref)
+            !
+         else
+            !
+            ! V point
+            !
+            dxs = dxr(iref)
+            !
          endif
          !
          if (irefnm>=irefnmu) then
@@ -414,44 +411,22 @@
          iref  = uv_flags_iref(ip) ! refinement level
          idir  = uv_flags_dir(ip)
          !
-         if (crsgeo) then
+         ! Grid spacing in the same units as lngth (degrees in geographic models)
+         !
+         if (idir==0) then
             !
-            ! Geographic coordinate system
+            ! U point
             !
-            if (idir==0) then
-               !
-               ! U point
-               !
-               dxs = dyrm(iref)
-               !
-            else
-               !
-               ! V point
-               !
-               dxs = 1.0 / dxminv(ip)
-               !
-            endif   
+            dxs = dyr(iref)
             !
-         else   
+         else
             !
-            ! Projected coordinate system
+            ! V point
             !
-            if (idir==0) then
-               !
-               ! U point
-               !
-               dxs  = dyrm(iref)
-               !
-            else
-               !
-               ! V point
-               !
-               dxs  = dxrm(iref)
-               !
-            endif
+            dxs = dxr(iref)
             !
          endif
-         !         
+         !
          structure_length(nstruc)   = lngth(ip)/dxs ! Turn into structure length relative to grid spacing
          !
          do ipar = 1, npars
