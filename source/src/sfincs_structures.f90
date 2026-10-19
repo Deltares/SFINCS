@@ -145,6 +145,7 @@
    integer   :: indx
    integer   :: iref
    integer   :: idir
+   integer   :: nr_overlap
    real*4    :: xpa,xpb,ypa,ypb
    real*4    :: dxs
    logical   :: okay
@@ -164,6 +165,7 @@
    integer,   dimension(:), allocatable  :: uv_indices   
    integer,   dimension(:), allocatable  :: vertices 
    integer*1, dimension(:), allocatable  :: istruc
+   integer,   dimension(:), allocatable  :: nr_weirs_uv
    !
    write(logstr,'(a)')'Info    : reading weir file'
    call write_log(logstr, 0)
@@ -177,6 +179,11 @@
    !
    allocate(istruc(npuv))
    istruc = 0
+   !
+   ! Number of weir polylines crossing each uv point, used to detect overlapping weirs
+   !
+   allocate(nr_weirs_uv(npuv))
+   nr_weirs_uv = 0
    !
    allocate(strucpars(npars,npuv))
    strucpars = 0.0
@@ -234,6 +241,8 @@
          indx = uv_indices(iuv)
          irow = vertices(iuv)
          istruc(indx) = 1
+         !
+         nr_weirs_uv(indx) = nr_weirs_uv(indx) + 1
          !
          ! Projecting uv corner points onto structure segment to determine length of this uv point
          !
@@ -370,9 +379,22 @@
          !
          istruc(ip) = 0
          !
-      endif   
+      endif
       !
-   enddo   
+   enddo
+   !
+   ! Warn for uv points crossed by more than one weir: their weir lengths are summed, which increases the flow.
+   ! Only uv points that remain a weir after the height check above are counted.
+   !
+   nr_overlap = count(istruc == 1 .and. nr_weirs_uv > 1)
+   !
+   if (nr_overlap > 0) then
+      !
+      write(logstr,'(a,i0,a,a)')'Warning : ', nr_overlap, ' weir u/v points are crossed by more than one weir,', &
+         ' their lengths are summed, SFINCS will keep running, but check your input'
+      call write_log(logstr, 1)
+      !
+   endif
    !
    allocate(structure_uv_index(nstruc))
    allocate(structure_type(nstruc))
