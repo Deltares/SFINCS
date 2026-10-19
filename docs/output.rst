@@ -150,6 +150,26 @@ Besides model instabilities, other recurring problems might be:
 
 * SFINCS also gives input about certain files after reading in data and how these are snapped/interpreted. For instance for subgrid; "Number of subgrid levels : XXX", weirfile; "XXX structure u/v points found", wavemaker; "Number of wavemaker polylines found : XXX", observation points; "Warning : observation point XXX falls outside model domain.' - compare whether this is as expected.
 
+Tips and tricks
+-----
+
+* **Tip to view netcdf output while SFINCS is still running**: by default the HDF5 library (used for writing sfincs_map.nc and sfincs_his.nc) locks the output files while SFINCS writes to them, so other programs (e.g. Quickplot, Panoply, Matlab, Python/xarray) cannot open them until the simulation has finished. Disabling HDF5 file locking, by setting the environment variable HDF5_USE_FILE_LOCKING to FALSE before starting SFINCS, allows you to inspect the output during the simulation:
+
+.. code-block:: text
+
+	Windows (command prompt or run.bat):
+	set HDF5_USE_FILE_LOCKING=FALSE
+	sfincs.exe
+
+	Linux:
+	export HDF5_USE_FILE_LOCKING=FALSE
+	sfincs
+
+	Docker:
+	docker run -e HDF5_USE_FILE_LOCKING=FALSE -v <model_folder>:/data deltares/sfincs-cpu
+
+Note that the file being read may not yet contain the latest output timestep, and that the reading program might also need HDF5_USE_FILE_LOCKING=FALSE in its own environment.
+
 
 Output description
 =====
