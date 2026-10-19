@@ -387,20 +387,37 @@ contains
       !
    endif   
    !
-   ! Determine Cd coefficients
+   ! Determine Cd coefficients. Below the first and above the last breakpoint the drag coefficient is kept constant.
    !
    do iw = 1, 1000
+      !
       wnd = iw*0.1
-      do icd = 1, cd_nr - 1
-         cdval(iw) = cd_val(icd)
-         if (wnd>=cd_wnd(icd) .and. wnd<cd_wnd(icd + 1)) then
-            cdval(iw) = cd_val(icd) + (wnd - cd_wnd(icd))*(cd_val(icd + 1) - cd_val(icd))/(cd_wnd(icd + 1) - cd_wnd(icd))
-            exit
-         elseif (wnd>=cd_wnd(cd_nr)) then  
-            cdval(iw) = cd_val(cd_nr)
-            exit
-         endif
-      enddo   
+      !
+      if (wnd <= cd_wnd(1)) then
+         !
+         cdval(iw) = cd_val(1)
+         !
+      elseif (wnd >= cd_wnd(cd_nr)) then
+         !
+         cdval(iw) = cd_val(cd_nr)
+         !
+      else
+         !
+         cdval(iw) = cd_val(cd_nr)
+         !
+         do icd = 1, cd_nr - 1
+            !
+            if (wnd >= cd_wnd(icd) .and. wnd < cd_wnd(icd + 1)) then
+               !
+               cdval(iw) = cd_val(icd) + (wnd - cd_wnd(icd))*(cd_val(icd + 1) - cd_val(icd))/(cd_wnd(icd + 1) - cd_wnd(icd))
+               exit
+               !
+            endif
+            !
+         enddo
+         !
+      endif
+      !
    enddo
    !
    ! Now apply wind, pressure and rain enhancement factors: factor_wind, factor_pres, factor_precip (default all set to 1.0)
@@ -785,7 +802,7 @@ contains
             !
          else
             !
-            cd = cdval(int(vmag * 10) + 1)
+            cd = cdval(min(int(vmag * 10) + 1, 1000))
             !
          endif
          !
@@ -1018,7 +1035,7 @@ contains
             !
          else
             !
-            cd = cdval(int(vmag*10)+1)
+            cd = cdval(min(int(vmag*10)+1, 1000))
             !
          endif
          !
@@ -1589,7 +1606,7 @@ contains
          endif
          vdir = dr0 * (1.0 - twfac) + dr1 * twfac
          !
-         cd = cdval(int(vmag * 10) + 1)
+         cd = cdval(min(int(vmag * 10) + 1, 1000))
          !
          twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
          twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
