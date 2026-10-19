@@ -1584,66 +1584,90 @@ contains
    !
    implicit none
    !
-   integer itw, nm
+   integer itw, nm, it0, it1
    !
    real*8                           :: t, twu, twv
    !
    real*4 cd, vmag, vdir, dr0, dr1, twfac
    !
-   do itw = itwndlast, ntwnd ! Loop in time
-      !
-      if (twnd(itw)>t) then
-         !
-         twfac  = (t - twnd(itw - 1)) / (twnd(itw) - twnd(itw - 1))
-         !
-         vmag = wndmag(itw - 1) * (1.0 - twfac) + wndmag(itw) * twfac
-         !
-         ! Include grid rotation here rather than when reading the wnd file, because for quadtree
-         ! models the rotation is only known after the quadtree file has been read
-         !
-         dr0  = modulo(wnddir(itw - 1) - rotation, 2 * pi)
-         dr1  = modulo(wnddir(itw )    - rotation, 2 * pi)
-         if (dr1 > dr0 + pi) then
-             dr0 = dr0 + 2 * pi
-         elseif (dr0 > dr1 + pi) then    
-             dr1 = dr1 + 2 * pi
-         endif
-         vdir = dr0 * (1.0 - twfac) + dr1 * twfac
-         !
-         cd = cdval(min(int(vmag * 10) + 1, 1000))
-         !
-         twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
-         twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
-         !
-         !$omp parallel &
-         !$omp private ( nm ) &
-         !$omp shared ( tauwu,tauwv )
-         !$omp do
-         !$acc parallel, present( tauwu, tauwv )
-         !$acc loop independent gang vector
-         do nm = 1, np
-            tauwu(nm) = twu
-            tauwv(nm) = twv
-         enddo   
-         !$acc end parallel
-         !$omp end do
-         !$omp end parallel
-         !
-         itwndlast = itw - 1
-         !
-         if (store_wind) then
-             !
-             windu = vmag * cos(vdir)
-             windv = vmag * sin(vdir)
-             !
-         endif
-         !   
-         exit
-         !
-       endif
-   enddo
+   ! Find the two times around t. Before the first and after the last time in the file the first or last value is used.
    !
-   end subroutine   
+   if (t <= twnd(1)) then
+      !
+      it0   = 1
+      it1   = 1
+      twfac = 0.0
+      !
+   elseif (t >= twnd(ntwnd)) then
+      !
+      it0   = ntwnd
+      it1   = ntwnd
+      twfac = 0.0
+      !
+   else
+      !
+      do itw = max(itwndlast, 2), ntwnd ! Loop in time
+         !
+         if (twnd(itw) > t) then
+            exit
+         endif
+         !
+      enddo
+      !
+      it0       = itw - 1
+      it1       = itw
+      twfac     = (t - twnd(it0)) / (twnd(it1) - twnd(it0))
+      itwndlast = it0
+      !
+   endif
+   !
+   vmag = wndmag(it0) * (1.0 - twfac) + wndmag(it1) * twfac
+   !
+   ! Include grid rotation here rather than when reading the wnd file, because for quadtree
+   ! models the rotation is only known after the quadtree file has been read
+   !
+   dr0  = modulo(wnddir(it0) - rotation, 2 * pi)
+   dr1  = modulo(wnddir(it1) - rotation, 2 * pi)
+   !
+   if (dr1 > dr0 + pi) then
+      !
+      dr0 = dr0 + 2 * pi
+      !
+   elseif (dr0 > dr1 + pi) then
+      !
+      dr1 = dr1 + 2 * pi
+      !
+   endif
+   !
+   vdir = dr0 * (1.0 - twfac) + dr1 * twfac
+   !
+   cd = cdval(min(int(vmag * 10) + 1, 1000))
+   !
+   twu = vmag**2 * cos(vdir) * rhoa * cd / rhow
+   twv = vmag**2 * sin(vdir) * rhoa * cd / rhow
+   !
+   !$omp parallel &
+   !$omp private ( nm ) &
+   !$omp shared ( tauwu,tauwv )
+   !$omp do
+   !$acc parallel, present( tauwu, tauwv )
+   !$acc loop independent gang vector
+   do nm = 1, np
+      tauwu(nm) = twu
+      tauwv(nm) = twv
+   enddo
+   !$acc end parallel
+   !$omp end do
+   !$omp end parallel
+   !
+   if (store_wind) then
+      !
+      windu = vmag * cos(vdir)
+      windv = vmag * sin(vdir)
+      !
+   endif
+   !
+   end subroutine
 
    subroutine update_precipitation_from_timeseries(t, dt)
    !
