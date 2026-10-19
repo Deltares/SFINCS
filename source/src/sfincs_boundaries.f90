@@ -93,7 +93,7 @@ contains
    !
    implicit none
    !
-   integer n, itb, ib, stat, ifreq, iok, ibdr
+   integer n, itb, ib, stat, ifreq, iok, ibdr, nmq
    real*4  :: x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
    logical :: ok
    !
@@ -319,9 +319,23 @@ contains
             !
             read(500,*)x_bdr(ibdr), y_bdr(ibdr), x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
             !
-            ! Find grid cell that contains the internal point
+            ! Find active grid cell that contains the internal point (quadtree index converted to SFINCS index)
             !
-            index_zsi_bdr(ibdr) = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            index_zsi_bdr(ibdr) = 0
+            !
+            nmq = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            !
+            if (nmq > 0) then
+               index_zsi_bdr(ibdr) = index_sfincs_in_quadtree(nmq)
+            endif
+            !
+            if (index_zsi_bdr(ibdr) <= 0) then
+               !
+               write(logstr,'(a,i0,a)')'Error ! Internal point of downstream river boundary point ', ibdr, &
+                  ' in bdr file is not in an active grid cell !'
+               call stop_sfincs(trim(logstr), 1)
+               !
+            endif
             !
             ! Water level difference between internal point and downstream boundary
             !
