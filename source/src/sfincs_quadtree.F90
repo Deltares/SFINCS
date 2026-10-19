@@ -1047,7 +1047,8 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    ind  = 0
    nint = 0
    !
-   ! Loop through segments along polyline
+   ! Loop through segments along polyline. Zero-length segments (duplicate consecutive points)
+   ! never cross a uv link (cross returns false), so they are skipped and never returned in vertices.
    !
    do ipol = 1, npol - 1
       !
