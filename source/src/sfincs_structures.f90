@@ -542,8 +542,10 @@
       !
       close(500)
       !
-      nrthindams = total_nr_points
-      !      
+      ! Count unique uv points: a uv point crossed by more than one thin dam is closed only once
+      !
+      nrthindams = count(istruc == 1)
+      !
       allocate(thindam_uv_index(nrthindams))
       !
       nstruc = 0
@@ -558,7 +560,7 @@
          endif
       enddo      
       !
-      write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
+      write(logstr,'(a,i0,a)')'Info    : ', nrthindams,' structure u/v points found'
       call write_log(logstr, 0)
       !
    endif   
