@@ -348,7 +348,7 @@ contains
       !
       do it = 1, ntwnd         
          read(500,*)twnd(it),wndmag(it),wnddir(it)
-         wnddir(it) = pi*(270.0 - wnddir(it))/180 - rotation ! Convert to cartesian, where the wind is blowing to and include grid rotation
+         wnddir(it) = pi*(270.0 - wnddir(it))/180 ! Convert to cartesian, where the wind is blowing to (rotation added later)
       enddo
       !
       close(500)
@@ -1580,8 +1580,12 @@ contains
          twfac  = (t - twnd(itw - 1)) / (twnd(itw) - twnd(itw - 1))
          !
          vmag = wndmag(itw - 1) * (1.0 - twfac) + wndmag(itw) * twfac
-         dr0  = modulo(wnddir(itw - 1), 2 * pi)
-         dr1  = modulo(wnddir(itw ),    2 * pi)
+         !
+         ! Include grid rotation here rather than when reading the wnd file, because for quadtree
+         ! models the rotation is only known after the quadtree file has been read
+         !
+         dr0  = modulo(wnddir(itw - 1) - rotation, 2 * pi)
+         dr1  = modulo(wnddir(itw )    - rotation, 2 * pi)
          if (dr1 > dr0 + pi) then
              dr0 = dr0 + 2 * pi
          elseif (dr0 > dr1 + pi) then    
