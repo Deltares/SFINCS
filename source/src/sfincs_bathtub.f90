@@ -201,7 +201,7 @@ contains
    call timer_start('continuity')
    !
    !$omp parallel &
-   !$omp private ( nm, i1, i2, w1, w2 )
+   !$omp private ( nm, i1, i2, w1, w2, zbt )
    !$omp do schedule ( dynamic, 256 )
    do nm = 1, np
       !
