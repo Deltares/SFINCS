@@ -107,6 +107,7 @@ The SFINCS team also includes Koen van Asselt, Tycho Bovenschen, Ap van Dongeren
    input
    input_forcing
    input_structures     
+   input_nonhydrostatic
 
 .. toctree::
    :maxdepth: 3   

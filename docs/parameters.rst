@@ -65,8 +65,20 @@ Parameters for model input
 	  :units:		m/s2
 	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
-	  :max:			9999  
-	alpha	
+	  :max:			9999
+	advection_umax_factor
+	  :description:		Only for 'momentum_scheme = velocity'. Scales the cap on the advective speeds in the advection term, umax = advection_umax_factor * (sqrt(g*hu) + abs(u)). The cap keeps the advection stable where the cell-mean depth is much smaller than the face depth hu (e.g. steep subgrid valleys). A value of 1 is the strict characteristic-speed bound, but it also clips the momentum flux into supercritical run-up fronts (breaking run-up 20-25 % too low in the NTHMP BP04 benchmark); the default 3 leaves such fronts unclamped.
+	  :units:		-
+	  :default:		3.0
+	  :min:			1.0 (recommended)
+	  :max:			-
+	momentum_scheme
+	  :description:		Form of the momentum equation: 'bates' (flux form, default) or 'velocity' (velocity form). The velocity form is used for the advective tsunami and landslide applications in combination with the non-hydrostatic option.
+	  :units:		-
+	  :default:		bates
+	  :min:			bates
+	  :max:			velocity
+	alpha
 	  :description:		Numerical time step reduction for CFL-condition. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
 	  :default:		0.5		
@@ -298,7 +310,157 @@ More parameters for model input (only for advanced users)
 	  :units:		-
 	  :default:		0.001 0.0025 0.0015
 	  :min:			2 values
-	  :max:			-	  
+	  :max:			-
+
+	**Non-hydrostatic pressure (see 'User manual - non-hydrostatic and moving bed'):**
+
+	nonhydrostatic
+	  :description:		Turn on the non-hydrostatic pressure correction (single-layer Keller-box, for dispersive short waves such as tsunamis and landslide-generated waves)
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	nonh_tol
+	  :description:		Convergence tolerance of the conjugate-gradient pressure solver (scaled residual norm)
+	  :units:		-
+	  :default:		0.01
+	  :min:			-
+	  :max:			-
+	nonh_itermax
+	  :description:		Maximum number of conjugate-gradient iterations per time step
+	  :units:		-
+	  :default:		100
+	  :min:			1
+	  :max:			-
+	nonh_tstop
+	  :description:		Time in seconds after tstart after which the non-hydrostatic correction is no longer applied. Default (-999) is the whole simulation.
+	  :units:		s
+	  :default:		-999.0
+	  :min:			-
+	  :max:			-
+	nonh_fnudge
+	  :description:		Fraction of the non-hydrostatic velocity correction that is applied to the velocities and fluxes (1 = full correction)
+	  :units:		-
+	  :default:		1.0
+	  :min:			0.0
+	  :max:			1.0
+	nonh_kinematic
+	  :description:		Bottom kinematic condition. 1 = carried implicitly by the layer term of the pressure operator (Escalante et al. 2018), a moving bed enters as the source d(zb)/dt. 0 = legacy explicit form with a lagged w_b = u.grad(zb). nonh_dzbmax, nonh_slsmooth, nonh_movingbed_ws and nonh_movingbed_slopes only matter for option 0. nonh_pade requires option 1 (nonh_kinematic is reset to 1 with a warning).
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1
+	nonh_pade
+	  :description:		Implicit Madsen-Sorensen-type dispersion correction in the pressure operator. Removes the frequency cutoff of the one-layer Keller box; with the default nonh_pade_beta the linear phase speed is within about 3 % of Airy up to kd = 6. When on, the Keller-box factor is set to 3/4 internally and nonh_disp is ignored.
+	  :units:		logical
+	  :default:		1
+	  :min:			0
+	  :max:			1
+	nonh_pade_beta
+	  :description:		Coefficient beta of the nonh_pade correction. 0 gives the [0/2] Pade approximant of the Airy dispersion relation, 1/15 the [2/2] approximant; 0.04 was calibrated on the NTHMP solitary-wave and landslide benchmarks.
+	  :units:		-
+	  :default:		0.04
+	  :min:			0.0
+	  :max:			0.0667
+	nonh_disp
+	  :description:		Keller-box vertical factor, only used when nonh_pade = 0. 1 is the strict linear-pressure single layer (phase speed close to Airy up to kd = 2.5); larger values make short waves too fast.
+	  :units:		-
+	  :default:		1.0
+	  :min:			-
+	  :max:			-
+	nonh_filter
+	  :description:		Weight of a global 2dx (grid-scale) filter on the non-hydrostatic pressure after each solve; 0 = off
+	  :units:		-
+	  :default:		0.5
+	  :min:			0.0
+	  :max:			1.0
+	nonh_pmax
+	  :description:		Depth limiter on the non-hydrostatic pressure, abs(pnh) <= nonh_pmax * rho * g * H after each solve (caps spikes at walls and breaking fronts); 0 = off, 1-2 is typical
+	  :units:		-
+	  :default:		0.0
+	  :min:			0.0
+	  :max:			-
+	nonh_brfr
+	  :description:		Froude breaking criterion (NEOWAVE): the non-hydrostatic pressure is switched off where abs(U)/sqrt(g*D) > nonh_brfr and switched on again when it drops below 0.3 * nonh_brfr. Takes precedence over nonh_brsteep; 0 = off (nonh_brsteep is used instead)
+	  :units:		-
+	  :default:		0.5
+	  :min:			0.0
+	  :max:			-
+	nonh_brsteep
+	  :description:		Steepness (hydrostatic front approximation, as in XBeach) breaking criterion: breaking starts where d(zs)/dt > nonh_brsteep * sqrt(g*h). Only used when nonh_brfr = 0; 0 = off
+	  :units:		-
+	  :default:		0.4
+	  :min:			0.0
+	  :max:			-
+	nonh_brsmooth
+	  :description:		Number of [1 2 1]/4 smoothing passes over the breaking flag, so the pressure ramps out over a few cells at the edge of the breaking zone; 0 = sharp
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			-
+	nonh_treform
+	  :description:		Reformation time scale after breaking: released cells recover the non-hydrostatic pressure gradually over nonh_treform seconds; 0 = instant recovery
+	  :units:		s
+	  :default:		1.0
+	  :min:			0.0
+	  :max:			-
+	nonh_fadein
+	  :description:		Width (in cells) of a fade-in zone at open boundaries, over which the non-hydrostatic correction ramps from 0 at the boundary to full; 0 = off
+	  :units:		cells
+	  :default:		0
+	  :min:			0
+	  :max:			-
+	nonh_smoothbnd
+	  :description:		Strength of a localised 2dx pressure smoothing in the fade-in zone (full weight at the boundary, ramping to 0 over the fade-in) and in the shallow zone set by nonh_smoothdep; 0 = off
+	  :units:		-
+	  :default:		0.5
+	  :min:			0.0
+	  :max:			1.0
+	nonh_smoothdep
+	  :description:		Depth below which the localised pressure smoothing (nonh_smoothbnd) also acts, ramping from full weight at D = 0 to 0 at D = nonh_smoothdep; 0 = off
+	  :units:		m
+	  :default:		0.0
+	  :min:			0.0
+	  :max:			-
+	nonh_movingbed
+	  :description:		Add the bed-motion rate d(zb)/dt of an external bed update (BMI 'dzbext') to the pressure solve as a kinematic source. The free surface is always lifted with the filtered bed increment, also without this option. Recommended 'no' for landslides (surface lift only).
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	nonh_dzbmax
+	  :description:		Only for nonh_kinematic = 0: cap on the bed slope abs(d(zb)/dx) in the explicit bottom kinematic condition; 0 = no cap
+	  :units:		-
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			-
+	nonh_slsmooth
+	  :description:		Only for nonh_kinematic = 0: number of [1 2 1]/4 smoothing passes over the bed slopes of the explicit bottom kinematic condition; 0 = off
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			-
+	nonh_movingbed_ws
+	  :description:		Only for nonh_kinematic = 0 with nonh_movingbed: factor on the surface vertical velocity increment that accompanies the moving-bed term (-1 is Keller-box consistent, 0 and +1 are diagnostic)
+	  :units:		-
+	  :default:		-1
+	  :min:			-1
+	  :max:			1
+	nonh_movingbed_slopes
+	  :description:		Recompute the bed slopes of the explicit bottom kinematic condition after every external bed update (no = keep the initial slopes). Only affects nonh_kinematic = 0.
+	  :units:		logical
+	  :default:		1
+	  :min:			0
+	  :max:			1
+
+	**Moving bed (BMI/XMI 'dzbext', see 'User manual - non-hydrostatic and moving bed'):**
+
+	movingbed_filter
+	  :description:		Width factor of the depth filter applied to an external bed increment before the free surface is lifted with it (and before it is used as the non-hydrostatic moving-bed source). Gaussian with a standard deviation of movingbed_filter times the mean depth of the moving cells (Kajiura-type attenuation); 0 = raw increment, no filter. Replaces 'nonh_movingbed_filter', which is still read as a deprecated alias.
+	  :units:		-
+	  :default:		0.8
+	  :min:			0.0
+	  :max:			-
 	
 Different parameters influencing the given output by SFINCS can be changed, see below. 
 
@@ -401,8 +563,12 @@ Parameters for model output
 	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
 	  :units:		-
 	  :default:		0	
+	storezvolmax
+	  :description:		Flag to write the maximum subgrid volume per cell 'zvolmax' on 'dtmaxout' interval (storezvolmax = 1, default). Only for subgrid models with maximum water level output (dtmaxout > 0).
+	  :units:		-
+	  :default:		1
 	store_dynamic_bed_level
-	  :description:		Flag to turn on writing away the bed level 'zb' on 'dtmapout' interval during simulation (store_dynamic_bed_level = 1), for bed levels that change during the run (e.g. set through the BMI 'dzbext' array). For subgrid mode 'zb' holds the minimum subgrid bed level per cell (z_zmin). Works for regular and quadtree grids.
+	  :description:		Flag to turn on writing away the bed level 'zb' on 'dtmapout' interval during simulation (store_dynamic_bed_level = 1), for bed levels that change during the run (e.g. set through the BMI 'dzbext' array). For subgrid mode 'zb' holds the minimum subgrid bed level per cell (z_zmin). Works for regular, subgrid and quadtree grids; the bed level at observation points (used for the water depth in sfincs_his.nc) follows the moving bed as well.
 	  :units:		-
 	  :default:		0
 	storestoragevolume

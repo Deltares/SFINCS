@@ -167,7 +167,7 @@ In case of netcdf output, the given parameters mean the following:
 	  :standard_name:	projection_y_coordinate	  
 	  :units:		m in projected reference system  
 	zb
-	  :description:		Bed level elevation (in case of subgrid version of SFINCS, this elevation is not used in the model but the sbgfile with subgrid tables is used instead).
+	  :description:		Bed level elevation (in case of subgrid version of SFINCS, this elevation is not used in the model but the sbgfile with subgrid tables is used instead). With store_dynamic_bed_level = 1, zb is written on every map output time (time-varying bed through the BMI 'dzbext' array); for subgrid models it then holds the minimum subgrid bed level per cell.
 	  :standard_name:	altitude	  
 	  :units:		m above reference level
 	msk
@@ -222,6 +222,13 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Maximum flow flux proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum_flux	  
 	  :units:		m^2/s	  	  	  
+	zvolmax
+	  :description:		Maximum subgrid volume in cell per 'dtmaxout' timestep, only for subgrid models with dtmaxout>0 and storezvolmax = 1 (default), corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum_subgrid_volume_in_cell
+	  :units:		m^3
+	pnonh
+	  :description:		Non-hydrostatic pressure per 'dtout' timestep, only when nonhydrostatic = 1, corresponding with netcdf variable 'time'.
+	  :units:		N/m^2
 	cuminf
 	  :description:		Cumulative infiltration depth over whole simulation.
 	  :units:		m	  
