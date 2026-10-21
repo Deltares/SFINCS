@@ -63,6 +63,7 @@ contains
    implicit none
    !
    integer ip, nm, nmu, ncrs, nrows, ncols, irow, stat, icrs, nr_points, iuv, indx, nr
+   integer nr_max
    !
    real      :: dummy
    real*4    :: phiuv
@@ -78,6 +79,7 @@ contains
    real*4,  dimension(2)                :: yp
    integer, dimension(:),   allocatable :: uv_indices   
    integer, dimension(:),   allocatable :: vertices
+   integer, dimension(:,:), allocatable :: itmp
    !
    ! Read cross sections file
    !
@@ -107,10 +109,18 @@ contains
       !
       nrcrosssections = ncrs
       !
-      allocate(crs_uv_index(1000, ncrs))
-      allocate(crs_idir(1000,ncrs))
+      ! Initial size of the uv point arrays per cross-section, enlarged below when needed
+      !
+      nr_max = 1000
+      !
+      allocate(crs_uv_index(nr_max, ncrs))
+      allocate(crs_idir(nr_max, ncrs))
       allocate(crs_nr(ncrs))
       allocate(namecrs(ncrs))
+      !
+      crs_uv_index = 0
+      crs_idir     = 0
+      crs_nr       = 0
       !
       ! Loop through polylines
       !
@@ -131,6 +141,34 @@ contains
          namecrs(icrs) = trim(cdummy)
          !
          call find_uv_points_intersected_by_polyline(uv_indices, vertices, nr_points, xcrs, ycrs, nrows)
+         !
+         ! Warn when this cross-section intersects an unusually large number of uv points
+         !
+         if (nr_points > 1000) then
+            !
+            write(logstr,'(a,a,a,i0,a)')'Warning : cross-section ', trim(namecrs(icrs)), ' intersects ', nr_points, &
+               ' uv points (more than 1000), SFINCS will keep running, but check your input!'
+            call write_log(logstr, 1)
+            !
+         endif
+         !
+         ! Enlarge the uv point arrays when this cross-section intersects more uv points than fit
+         !
+         if (nr_points > nr_max) then
+            !
+            allocate(itmp(nr_points, ncrs))
+            itmp             = 0
+            itmp(1:nr_max,:) = crs_uv_index
+            call move_alloc(itmp, crs_uv_index)
+            !
+            allocate(itmp(nr_points, ncrs))
+            itmp             = 0
+            itmp(1:nr_max,:) = crs_idir
+            call move_alloc(itmp, crs_idir)
+            !
+            nr_max = nr_points
+            !
+         endif
          !
          ! Now loop through uv points
          !
