@@ -54,7 +54,14 @@ This means (summarised, for details always read license):
 	- Permissions: Commercial use, Distribution, Modification, Patent use, Private use
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
 	- Limitations: No liability, no warranty
-	
+
+Exception: the SnapWave wave model in ``source/src/snapwave/`` is available under the
+GNU LGPL-2.1 license, see ``source/src/snapwave/LICENSE``. SnapWave is copyright
+Dano Roelvink / IHE Delft, with modifications by Deltares; parts are adapted from XBeach
+(copyright UNESCO-IHE, Deltares and Delft University). The header of each file lists its
+copyright holders. SnapWave is linked into SFINCS, which as a whole is distributed under
+GNU GPL-3.0.
+
 The SFINCS pre-compiled executables on Windows and Docker(linux) are available under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
 
 SFINCS is available under Deltares Freeware license without monetary fee, meaning (summarised, for details always read license):

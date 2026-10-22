@@ -34,6 +34,36 @@ module snapwave_infragravity
    !     spectrum.
    !     Called from: compute_herbers (snapwave_infragravity)
    !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2024-2026.
+   !
+   ! This file is part of SnapWave as coupled with SFINCS.
+   !
+   ! Parts of this file are adapted from XBeach (waveparams.F90),
+   ! Copyright (C)  UNESCO-IHE, Deltares and Delft University, 2007-2026,
+   ! distributed under the GNU Lesser General Public License version 2.1
+   ! or (at your option) any later version.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
 
     use sfincs_log
     
