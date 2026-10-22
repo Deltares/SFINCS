@@ -57,6 +57,7 @@ libsfincs_la_SOURCES = \
 	sfincs_spiderweb.f90 \
         ../third_party_open/Delft3D/astro.f90 \
 	../third_party_open/utils/geometry.f90 \
+	../third_party_open/utils/hpsort_eps.f90 \
 	sfincs_error.f90 \
 	sfincs_quadtree.f90 \
 	sfincs_ncinput.F90 \
@@ -67,7 +68,6 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_ncoutput.F90 \
 	snapwave/snapwave_infragravity.f90 \
 	snapwave/snapwave_boundaries.f90 \
-	snapwave/snapwave_date.f90 \
 	snapwave/snapwave_input.f90 \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_windsource.f90 \
