@@ -97,6 +97,7 @@
 				<File RelativePath="..\src\snapwave\snapwave_RFtable.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
 				</File>
+				<File RelativePath="..\src\snapwave\snapwave_vegetation.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>

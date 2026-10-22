@@ -72,6 +72,7 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_windsource.f90 \
 	snapwave/snapwave_RFtable.f90 \
+	snapwave/snapwave_vegetation.f90 \
 	snapwave/snapwave_solver.f90 \
 	sfincs_initial_conditions.f90 \
 	sfincs_boundaries.f90 \
