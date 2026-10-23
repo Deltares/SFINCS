@@ -145,6 +145,7 @@
    integer   :: indx
    integer   :: iref
    integer   :: idir
+   integer   :: nr_overlap
    real*4    :: xpa,xpb,ypa,ypb
    real*4    :: dxs
    logical   :: okay
@@ -164,6 +165,7 @@
    integer,   dimension(:), allocatable  :: uv_indices   
    integer,   dimension(:), allocatable  :: vertices 
    integer*1, dimension(:), allocatable  :: istruc
+   integer,   dimension(:), allocatable  :: nr_weirs_uv
    !
    write(logstr,'(a)')'Info    : reading weir file'
    call write_log(logstr, 0)
@@ -177,6 +179,11 @@
    !
    allocate(istruc(npuv))
    istruc = 0
+   !
+   ! Number of weir polylines crossing each uv point, used to detect overlapping weirs
+   !
+   allocate(nr_weirs_uv(npuv))
+   nr_weirs_uv = 0
    !
    allocate(strucpars(npars,npuv))
    strucpars = 0.0
@@ -234,6 +241,8 @@
          indx = uv_indices(iuv)
          irow = vertices(iuv)
          istruc(indx) = 1
+         !
+         nr_weirs_uv(indx) = nr_weirs_uv(indx) + 1
          !
          ! Projecting uv corner points onto structure segment to determine length of this uv point
          !
@@ -315,19 +324,24 @@
          !
          d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0)
          !
-         lngth(indx) = lngth(indx) + d
-         !
          dst1   = sqrt((xuv - xthd(irow))**2 + (yuv - ythd(irow))**2)
          dst2   = sqrt((xuv - xthd(irow + 1))**2 + (yuv - ythd(irow + 1))**2)
          wfac   = dst1 / (dst1 + dst2)
          !
          height = pars(1, irow)*(1.0 - wfac) + pars(1, irow + 1)*wfac
          !
-         strucpars(1, indx) = max(strucpars(1, indx), height)
-         ! 
-         do ipar = 2, npars
-            strucpars(ipar, indx) = pars(ipar, irow)*(1.0 - wfac) + pars(ipar, irow + 1)*wfac
-         enddo
+         ! When several weirs cross this uv point, only the highest one is used (length and all parameters)
+         !
+         if (height > strucpars(1, indx)) then
+            !
+            lngth(indx)        = d
+            strucpars(1, indx) = height
+            !
+            do ipar = 2, npars
+               strucpars(ipar, indx) = pars(ipar, irow)*(1.0 - wfac) + pars(ipar, irow + 1)*wfac
+            enddo
+            !
+         endif
          !
       enddo
       !
@@ -370,9 +384,22 @@
          !
          istruc(ip) = 0
          !
-      endif   
+      endif
       !
-   enddo   
+   enddo
+   !
+   ! Warn for uv points crossed by more than one weir: only the highest weir is used there.
+   ! Only uv points that remain a weir after the height check above are counted.
+   !
+   nr_overlap = count(istruc == 1 .and. nr_weirs_uv > 1)
+   !
+   if (nr_overlap > 0) then
+      !
+      write(logstr,'(a,i0,a,a)')'Warning : ', nr_overlap, ' weir u/v points are crossed by more than one weir,', &
+         ' only the highest weir is used, SFINCS will keep running, but check your input'
+      call write_log(logstr, 1)
+      !
+   endif
    !
    allocate(structure_uv_index(nstruc))
    allocate(structure_type(nstruc))
