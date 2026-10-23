@@ -55,7 +55,7 @@ This means (summarised, for details always read license):
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
 	- Limitations: No liability, no warranty
 
-SFINCS makes use of several third-party libraries, which are subject to their respective licenses:
+SFINCS makes use of several third-party codes and libraries, which are subject to their respective licenses:
 	- SnapWave (``source/src/snapwave/``): GNU LGPL-2.1, see ``source/src/snapwave/LICENSE``. Copyright Dano Roelvink / IHE Delft. Parts of the SnapWave code are adapted from XBeach (copyright UNESCO-IHE, Deltares and Delft University). SFINCS-SnapWave comes with modifications of and additions to SnapWave by Deltares (copyright Deltares). The header of each file lists its copyright holders.
 	- NetCDF-Fortran 4.6.1 (``source/third_party_open/netcdf/netcdf-fortran-4.6.1/``): copyright University Corporation for Atmospheric Research/Unidata, BSD-style license, see ``COPYRIGHT`` in that folder; the Fortran 2003 interfaces are under Apache-2.0, see ``F03Interfaces_LICENSE``.
 	- NetCDF-C 4.9.2 (Windows binaries in ``source/third_party_open/netcdf/netCDF 4.9.2/``): copyright UCAR/Unidata, BSD-style license. These binaries include HDF5, HDF4, zlib, libcurl and libjpeg, each under its own permissive license.
