@@ -54,8 +54,10 @@ module snapwave_ncinput
    character (len=256), parameter :: hs_varname   = 'hs'
    character (len=256), parameter :: tp_varname   = 'tp'   
    character (len=256), parameter :: wd_varname   = 'wd'   
-   character (len=256), parameter :: ds_varname   = 'ds'      
-   character (len=256), parameter :: units        = 'units'  
+   character (len=256), parameter :: ds_varname   = 'ds'
+   character (len=256), parameter :: units        = 'units'
+   !
+   real*8, dimension(:), allocatable :: time_nc   ! netcdf time as read (real*8 to keep fractional units)
    !
 !   if (crsgeo) then
 !      x_varname    = 'lon'
@@ -94,6 +96,7 @@ module snapwave_ncinput
    allocate(x_bwv(nwbnd))
    allocate(y_bwv(nwbnd)) 
    allocate(t_bwv(ntwbnd))
+   allocate(time_nc(ntwbnd))
    allocate(hs_bwv(nwbnd, ntwbnd))
    allocate(tp_bwv(nwbnd, ntwbnd))
    allocate(wd_bwv(nwbnd, ntwbnd))
@@ -102,7 +105,7 @@ module snapwave_ncinput
    ! Read values
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%x_varid, x_bwv(:)) )
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%y_varid, y_bwv(:)) )
-   NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%time_varid, t_bwv(:)) ) 
+   NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%time_varid, time_nc(:)) )
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%hs_varid, hs_bwv(:,:)) )   
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%tp_varid, tp_bwv(:,:)) )   
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%wd_varid, wd_bwv(:,:)) )   
@@ -112,9 +115,11 @@ module snapwave_ncinput
    NF90(nf90_get_att(net_file_snapwave%ncid, net_file_snapwave%time_varid, UNITS, treftimefews))
    !      
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
-   t_bwv = convert_fewsdate(t_bwv, ntwbnd, treftimefews, trefstr)
+   t_bwv = convert_fewsdate(time_nc, ntwbnd, treftimefews, trefstr)
    !
-   NF90(nf90_close(net_file_snapwave%ncid))       
+   deallocate(time_nc)
+   !
+   NF90(nf90_close(net_file_snapwave%ncid))
    ! 
    end subroutine
    

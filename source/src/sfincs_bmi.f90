@@ -327,14 +327,19 @@ contains
       ! Called from: external BMI caller, through the C interface (e.g. a model coupler)
       !
       character(kind=c_char), intent(in) :: c_var_name(*)
-      integer(c_int), intent(inout) :: var_shape(6)
+      integer(c_int), intent(inout) :: var_shape(*)
       character(len=strlen(c_var_name, BMI_LENVARADDRESS)) :: var_name
       integer(kind=c_int) :: ierr
-
+      !
+      ! The caller (xmipy) allocates var_shape with exactly get_var_rank entries,
+      ! which is 1 for every variable exposed here. Only ever write var_shape(1):
+      ! writing a fixed 6-element shape overruns the 4-byte buffer and corrupts
+      ! the heap (intermittent 0xc0000374 in update/finalize).
+      !
       ierr = 0
 
       var_name = char_array_to_string(c_var_name, strlen(c_var_name, BMI_LENVARADDRESS))
-      var_shape = (/0, 0, 0, 0, 0, 0/)
+      var_shape(1) = 0
       
       select case(var_name)
       case("z_xz", "z_yz", "zs", "zb", "uorb")

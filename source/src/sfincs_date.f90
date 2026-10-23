@@ -395,11 +395,13 @@ CONTAINS
    !   
    function convert_fewsdate(timein, timent, treftimefews, trefstr) result (timeout)
        !
-       ! Convert FEWS netCDF times (minutes since the reference time in the file) to seconds
-       ! since tref.
+       ! Convert netCDF times with units "<seconds|minutes|hours|days> since yyyy-mm-dd[ HH:MM:SS]"
+       ! (UTC; FEWS default minutes) to seconds since tref. Everything is done in real*8 so that
+       ! fractional units (e.g. 10-s series stored as minutes) and large offsets (e.g. 1970-based
+       ! references) are preserved.
        !
        ! Input:
-       !   timein       : times from the netCDF file [minutes since its reference time]
+       !   timein       : times from the netCDF file [units since its reference time]
        !   timent       : number of times
        !   treftimefews : units attribute of the time variable, holding the reference time
        !                  of the file
@@ -419,31 +421,69 @@ CONTAINS
        character*41 :: treftimefews
        character*15 :: trefstr
        !
-       integer ijul1, ijul2, itb, timent     
-       integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2, tmp
+       integer ijul1, ijul2, timent, jsince
+       integer yyyy1,mm1,dd1,hh1,mn1,ss1,yyyy2,mm2,dd2,hh2,mn2,ss2
        integer*8 dtsec,sec1,sec2
+       real*8 tfac
+       character*1  :: csep
+       character*64 :: refstr
        !
-       real*4, dimension(:),     allocatable :: timein             
-       real*4, dimension(:),     allocatable :: timeout       
-       !       
+       real*8, dimension(:), intent(in)  :: timein
+       real*8, dimension(:), allocatable :: timeout
+       !
        read(trefstr,'(I4,2I2,1X,3I2)')yyyy1,mm1,dd1,hh1,mn1,ss1
        !
-       ! Fews time input: minutes since 1970-01-01 00:00:00.0 +0000       
-       ! yyyy -  mm   -  dd      HH   :  MM   :  SS       
-       read(treftimefews, '(A14,I4,A1,I2,A1,I2,A1,I2,A1,I2,A1,I2)')tmp,yyyy2,tmp,mm2,tmp,dd2,tmp,hh2,tmp,mn2,tmp,ss2 !assume time in UTC, whole seconds 
+       ! Time unit (fews default: minutes since 1970-01-01 00:00:00.0 +0000)
+       !
+       if (index(treftimefews, 'seconds') > 0) then
+          !
+          tfac = 1.0d0
+          !
+       elseif (index(treftimefews, 'minutes') > 0) then
+          !
+          tfac = 60.0d0
+          !
+       elseif (index(treftimefews, 'hours') > 0) then
+          !
+          tfac = 3600.0d0
+          !
+       elseif (index(treftimefews, 'days') > 0) then
+          !
+          tfac = 86400.0d0
+          !
+       else
+          !
+          tfac = 60.0d0
+          !
+       endif
+       !
+       ! Reference date after 'since' (missing time part reads as 00:00:00)
+       ! yyyy -  mm   -  dd      HH   :  MM   :  SS
+       !
+       jsince = index(treftimefews, 'since')
+       !
+       if (jsince == 0) then
+          !
+          jsince = 9   ! assume 'minutes since '
+          !
+       endif
+       !
+       refstr = treftimefews(jsince + 6:)
+       !
+       read(refstr, '(I4,A1,I2,A1,I2,A1,I2,A1,I2,A1,I2)') yyyy2, csep, mm2, csep, dd2, csep, hh2, csep, mn2, csep, ss2 ! assume time in UTC, whole seconds
        !
        ijul1 = julian_date (yyyy1,mm1,dd1)
        ijul2 = julian_date (yyyy2,mm2,dd2)
        !
        sec1  = hh1*3600 + mn1*60 + ss1
        sec2  = hh2*3600 + mn2*60 + ss2
-       dtsec = (ijul2 - ijul1)*86400 + sec2 - sec1       
-       !       
+       dtsec = (ijul2 - ijul1)*86400 + sec2 - sec1
+       !
        allocate(timeout(timent))
        !
-       timeout = real((int(timein) * 60) + dtsec)  ! time from fews is in minutes, then correct for use wrt sfincs treftime
-       !       
-   end function      
+       timeout = timein * tfac + dtsec  ! netcdf time in seconds, then correct for use wrt sfincs treftime
+       !
+   end function
    !
    function convert_spw_nc_date(timein, timent, treftimefews, trefstr) result (timeout)
        !
