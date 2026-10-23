@@ -1898,7 +1898,6 @@ contains
    ! Called from: bmi_update_bed_level (sfincs_bmi)
    !
    use sfincs_data
-   use sfincs_nonhydrostatic, only: compute_nonh_bed_slopes, nonh_movingbed_slopes
    !
    integer :: ip
    integer :: nm
@@ -2012,13 +2011,6 @@ contains
          !
       enddo
       !
-   endif
-   !
-   ! The non-hydrostatic bottom kinematic condition uses the bed slopes; refresh
-   ! them so a moving bed does not keep its old flank slopes in w_b.
-   !
-   if (nonhydrostatic .and. use_dzbext .and. nonh_movingbed_slopes) then
-      call compute_nonh_bed_slopes()
    endif
    !
    end subroutine update_bed_level
@@ -2627,7 +2619,7 @@ contains
    function moving_bed_dxinv(nm) result(rdx)
    !
    ! 1/dx in metres of a cell: per refinement level when projected, per cell
-   ! (latitude dependent) when crsgeo (as nh_dxr in sfincs_nonhydrostatic)
+   ! (latitude dependent) when crsgeo
    !
    use sfincs_data
    !

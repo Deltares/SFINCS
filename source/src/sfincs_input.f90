@@ -226,24 +226,11 @@ contains
       call get_keyword(500, 'nonh_tol',                        nonh_tol,                        0.01)              ! non-hydrostatic CG relative tolerance (scaled residual norm)
       call get_keyword(500, 'nonh_itermax',                    nonh_itermax,                    100)               ! non-hydrostatic CG max iterations
       call get_keyword(500, 'nonh_movingbed',                  nonh_movingbed,                  .false.)           ! add d(zb)/dt of the moving bed (dzbext) to the bottom kinematic condition
-      call get_keyword(500, 'nonh_movingbed_ws',               nonh_movingbed_ws,               -1)                ! surface-velocity factor of the moving-bed term (-1 default, 0/+1 diagnostic)
-      call get_keyword(500, 'nonh_movingbed_slopes',           nonh_movingbed_slopes,           .true.)            ! refresh the bottom-kinematic bed slopes after external bed updates
-      call get_keyword(500, 'movingbed_filter',                movingbed_filter,                0.8, ['nonh_movingbed_filter']) ! depth filter of the moving bed: Gaussian std = factor x depth; 0 = raw
+      call get_keyword(500, 'movingbed_filter',                movingbed_filter,                0.8)               ! depth filter of the moving bed: Gaussian std = factor x depth; 0 = raw
       call get_keyword(500, 'nonh_filter',                     nonh_filter,                     0.5)               ! spatial 2dx filter weight on pnh; 0 = off
-      call get_keyword(500, 'nonh_dzbmax',                     nonh_dzbmax,                     0.1)               ! cap on |d(zb)/dx| in the bottom kinematic condition; 0 = no cap
-      call get_keyword(500, 'nonh_kinematic',                  nonh_kinematic,                  1)                 ! bottom kinematic condition: 1 = layer-consistent, 0 = legacy explicit w_b = u.grad(zb)
-      call get_keyword(500, 'nonh_fadein',                     nonh_fadein,                     0)                 ! open-boundary non-hydrostatic fade-in width (cells); 0 = off
-      call get_keyword(500, 'nonh_brsteep',                    nonh_brsteep,                    0.4)               ! HFA breaking onset (steepness), used when nonh_brfr = 0; 0 = off
-      call get_keyword(500, 'nonh_brfr',                       nonh_brfr,                       0.5)               ! Froude breaking criterion |U|/sqrt(gD); 0 = off (then nonh_brsteep)
-      call get_keyword(500, 'nonh_brsmooth',                   nonh_brsmooth,                   0)                 ! breaking-flag smoothing passes; 0 = sharp
-      call get_keyword(500, 'nonh_slsmooth',                   nonh_slsmooth,                   0)                 ! bed-slope smoothing passes; 0 = off
+      call get_keyword(500, 'nonh_brfr',                       nonh_brfr,                       0.5)               ! Froude breaking criterion |U|/sqrt(gD); 0 = no breaking
       call get_keyword(500, 'nonh_treform',                    nonh_treform,                    1.0)               ! breaking reformation time scale (s); 0 = instant recovery
-      call get_keyword(500, 'nonh_smoothbnd',                  nonh_smoothbnd,                  0.5)               ! localized 2dx pnh smoothing strength in the fade-in / shallow zones; 0 = off
-      call get_keyword(500, 'nonh_smoothdep',                  nonh_smoothdep,                  0.0)               ! depth (m) below which the localized pnh smoothing acts; 0 = off
-      call get_keyword(500, 'nonh_disp',                       nonh_disp,                       1.0)               ! Keller-box vertical factor (ignored with nonh_pade)
-      call get_keyword(500, 'nonh_pmax',                       nonh_pmax,                       0.0)               ! depth limiter |pnh| <= nonh_pmax*rho*g*H; 0 = off
-      call get_keyword(500, 'nonh_pade',                       nonh_pade,                       .true.)            ! Pade-type Boussinesq dispersion correction (needs nonh_kinematic 1)
-      call get_keyword(500, 'nonh_pade_beta',                  nonh_pade_beta,                  0.04)              ! coefficient beta of the nonh_pade correction
+      call get_keyword(500, 'nonh_pade_beta',                  nonh_pade_beta,                  0.04)              ! coefficient beta of the Pade-type dispersion correction
       call get_keyword(500, 'h73table',                        h73table,                        .false.)           ! tabulate h^(7/3) for friction
       call get_keyword(500, 'rugdepth',                        runup_gauge_depth,               0.05)              ! runup gauge trigger depth (m)
       call get_keyword(500, 'wave_enhanced_roughness',         wave_enhanced_roughness,         .false.)           ! augment bed roughness with wave orbital velocity
@@ -717,13 +704,6 @@ contains
             nonh_tstop = t0 + nonh_tstop
          else
             nonh_tstop = t1 + 999.0
-         endif
-         !
-         ! The Boussinesq correction takes ws from the layer constraint (nonh_kinematic 1)
-         !
-         if (nonh_pade .and. nonh_kinematic /= 1) then
-            call write_log('Warning : nonh_pade requires nonh_kinematic = 1; nonh_kinematic set to 1', 1)
-            nonh_kinematic = 1
          endif
          !
       endif

@@ -54,34 +54,25 @@
 !
 ! On subgrid models zb is the EFFECTIVE bed zs - z_volume/area maintained every
 ! step in continuity (zb_effective), so all depth checks here see the volume-
-! consistent depth. The bed SLOPES for the bottom kinematic condition w_b
-! (nh_slbed) are computed by compute_nonh_bed_slopes at initialization (file bed
-! on regular grids, subgrid cell-mean bed z_zmax - z_volmax/area on subgrid
-! models) and recomputed whenever the bed is changed externally through
-! update_bed_level (moving bed via BMI dzbext): a landslide that has moved on
-! must not leave its initial flank slopes behind in w_b.
+! consistent depth.
 !
-! BOTTOM KINEMATIC CONDITION (nonh_kinematic). The layer term abf in the face
-! coefficients makes the transpose G^T (hu u) = u . grad(zb) - 0.5 h div(u), so
-! the operator already carries the bed-slope part of w_b implicitly and
-! symmetrically (one-layer Keller-box constraint with the bottom condition
-! eliminated, Escalante, Morales de Luna & Castro 2018, eq. 6). The default
-! (nonh_kinematic = 1) therefore keeps no separate w_b: ws is the depth-mean
-! vertical velocity (w_s + w_b)/2, updated by the pressure only, and a moving bed
-! (nonh_movingbed) enters as the known source d(zb)/dt on the right-hand side.
-! The source is the depth-filtered bed increment dzbext_filtered that
-! update_bed_level (sfincs_domain) produces from dzbext (movingbed_filter,
-! Gaussian std = factor x depth of the moving cells, because a single layer
-! lacks the Kajiura attenuation of short bed features); the same filtered
-! increment lifts the free surface there, so the mass and the pressure source
-! of a moving bed are consistent on every grid type.
-! nonh_kinematic = 0 is the legacy form with an additional explicit
-! w_b = u . grad(zb) from the lagged velocities (counts the slope term twice and
-! is unstable for short waves on steep slopes; nh_slbed, nonh_dzbmax and
-! nonh_slsmooth are only used by it).
+! BOTTOM KINEMATIC CONDITION. The layer term abf in the face coefficients
+! makes the transpose G^T (hu u) = u . grad(zb) - 0.5 h div(u), so the
+! operator carries the bed-slope part of w_b implicitly and symmetrically
+! (one-layer Keller-box constraint with the bottom condition eliminated,
+! Escalante, Morales de Luna & Castro 2018, eq. 6). There is therefore no
+! separate w_b: ws is the depth-mean vertical velocity (w_s + w_b)/2, updated
+! by the pressure only, and a moving bed (nonh_movingbed) enters as the known
+! source d(zb)/dt on the right-hand side. The source is the depth-filtered bed
+! increment dzbext_filtered that update_bed_level (sfincs_domain) produces
+! from dzbext (movingbed_filter, Gaussian std = factor x depth of the moving
+! cells, because a single layer lacks the Kajiura attenuation of short bed
+! features); the same filtered increment lifts the free surface there, so the
+! mass and the pressure source of a moving bed are consistent on every grid
+! type.
 !
-! BOUSSINESQ DISPERSION CORRECTION (nonh_pade). Linearised on a flat bed the
-! scheme above is, with the Keller-box factor kappa = nonh_disp,
+! BOUSSINESQ DISPERSION CORRECTION. Linearised on a flat bed the plain
+! Keller-box scheme is, with the vertical factor kappa,
 !
 !     u_t = -g eta_x - (1/(2 rho)) p_x ,   h wbar_t = kappa p / rho ,
 !     wbar = -(h/2) u_x  (constraint) ,     eta_t = -h u_x ,
@@ -93,8 +84,8 @@
 ! a [0/2]-type approximant of Airy with a frequency cutoff omega_max =
 ! 2 sqrt(kappa g / h) above which the group velocity vanishes: short waves on
 ! a slope are trapped between the beach and their turning depth and never
-! disperse away (LS2 landslide benchmark). nonh_pade replaces the vertical
-! momentum equation of the layer by the Madsen & Sorensen (1992) type form
+! disperse away (LS2 landslide benchmark). The vertical momentum equation of
+! the layer is therefore replaced by the Madsen & Sorensen (1992) type form
 !
 !     h wbar_t = (3/4) ( p - beta h^2 laplacian(p) ) / rho ,
 !
@@ -106,15 +97,15 @@
 ! beta = 0 is the [0/2] Pade approximant 1/(1 + X/3) of tanh(kh)/kh (the
 ! strict Keller box has X/4 instead), beta = 1/15 the [2/2] approximant
 ! (1 + X/15)/(1 + 2X/5): c(k) within 1 % of Airy to kh ~ 3 and 5 % to kh ~ 6,
-! no cutoff, group velocity -> sqrt(g h / 6) for kh -> inf. The correction is
-! on by default with beta = 0.04 (NTHMP test bed sfincs03: BP04-BP06 solitary
-! waves and the LS1/LS2 landslides); nonh_pade = 0 restores the Keller box.
+! no cutoff, group velocity -> sqrt(g h / 6) for kh -> inf. The default is
+! beta = 0.04 (nonh_pade_beta; NTHMP test bed sfincs03: BP04-BP06 solitary
+! waves and the LS1/LS2 landslides).
 ! In the discrete operator this is the diagonal with the Keller-box factor
 ! 3/4 and the face products of G^T diag(hu) G weighted by 1 + 3 beta: the
 ! extra part, (3/4) beta (dt/rho) G^T diag(hu) G, is a weighted graph
 ! Laplacian (symmetric, positive semi-definite, zero row sum), so the operator
 ! stays SPD and the CG solver, the momentum predictor and the flux correction
-! are untouched; nonh_disp is ignored. ws is then taken from the constraint,
+! are untouched. ws is taken from the constraint,
 ! ws = G^T (hu u^{n+1}) + d(zb)/dt, plus the residual A p - b of the solve:
 ! the sum is the vertical equation with the solved pressure, so the residual
 ! enters the next right-hand side and is cancelled by the next solve, while
@@ -188,29 +179,15 @@ module sfincs_nonhydrostatic
    real*4    :: nonh_fnudge      ! fraction of the pressure correction applied to uv/q
    real*4    :: nonh_tstop       ! time (s, absolute after input processing) to stop applying nonh corrections
    integer   :: nonh_itermax     ! max CG iterations per solve
-   integer   :: nonh_fadein      ! open-boundary nonh fade-in width (cells); 0 = off
    real*4    :: nonh_filter      ! global 2dx pnh filter weight; 0 = off
-   real*4    :: nonh_dzbmax      ! cap on |d(zb)/dx| in the bottom kinematic w_b; 0 = no cap
-   real*4    :: nonh_brsteep     ! HFA steepness breaking onset; 0 = off
-   real*4    :: nonh_brfr        ! Froude breaking onset (NEOWAVE); 0 = off -> use nonh_brsteep
-   integer   :: nonh_brsmooth    ! breaking-flag smoothing passes: ramps pnh out over ~brsmooth+1 cells at the breaking-zone edges; 0 = sharp (one face)
-   integer   :: nonh_slsmooth    ! frozen-bed-slope smoothing passes: bounds bed curvature d2zb/dx2 at slope breaks (e.g. island toe); 0 = off
+   real*4    :: nonh_brfr        ! Froude breaking onset (NEOWAVE); 0 = off (no breaking)
    real*4    :: nonh_treform     ! breaking reformation time scale (s): released cells recover gradually, brfac += dt/treform; 0 = instant
-   real*4    :: nonh_smoothbnd   ! localized 2dx pnh smoothing strength (fade-in / shallow zones)
-   real*4    :: nonh_smoothdep   ! depth below which the localized smoothing also acts; 0 = off
-   real*4    :: nonh_disp        ! Keller-box vertical factor (1.0 = strict linear-pressure single layer, c(k) close to Airy to kd ~ 2.5)
-   real*4    :: nonh_pmax        ! depth limiter: |pnh| <= nonh_pmax * rho g H; 0 = off
    real*4    :: nonh_tol         ! CG relative tolerance (scaled residual norm)
-   logical   :: nonh_movingbed   ! add d(zb)/dt (= dzbext/dt) to the bottom kinematic w_b, so a moving seafloor radiates a depth-filtered (Kajiura-like) surface response
-   integer   :: nonh_movingbed_ws ! factor on the surface-velocity increment that accompanies the moving-bed w_b term: -1 (Keller-box consistent, default), 0, +1 (diagnostic)
-   logical   :: nonh_movingbed_slopes ! refresh the bottom-kinematic bed slopes (nh_slbed) after every external bed update (default yes); no = keep the initial slopes, so a moving slide's flanks do not enter w_b
-   integer   :: nonh_kinematic   ! bottom kinematic condition: 1 = layer-consistent (bed slope carried by the layer term abf of the operator, d(zb)/dt as rhs source; default), 0 = legacy explicit lagged w_b = u . grad(zb)
-   logical   :: nonh_pade        ! Boussinesq dispersion correction: Pade-type relation without frequency cutoff (see header); default on
-   real*4    :: nonh_pade_beta   ! coefficient beta of the correction (default 0.04; 1/15 = Pade [2/2] of Airy, 0 = [0/2])
+   logical   :: nonh_movingbed   ! add d(zb)/dt (= dzbext_filtered/dt) as the moving-bed source of the layer constraint, so a moving seafloor radiates a depth-filtered (Kajiura-like) surface response
+   real*4    :: nonh_pade_beta   ! coefficient beta of the Boussinesq dispersion correction (default 0.04; 1/15 = Pade [2/2] of Airy, 0 = [0/2])
    !
-   ! Effective Keller-box factor and weight of the face products of the
-   ! operator: nonh_disp and 1, or 3/4 and 1 + 3 beta with nonh_pade (set in
-   ! initialize_nonhydrostatic)
+   ! Keller-box factor (3/4) and weight of the face products of the operator
+   ! (1 + 3 beta) of the Boussinesq correction (set in initialize_nonhydrostatic)
    !
    real*4    :: nh_kbfac
    real*4    :: nh_pdf
@@ -224,34 +201,13 @@ module sfincs_nonhydrostatic
    integer, dimension(:), allocatable   :: uv_index_of_nhuv
    !
    real*4, dimension(:),   allocatable  :: pnh        ! non-hydrostatic bed pressure   (nrows)
-   real*4, dimension(:),   allocatable  :: ws         ! surface vertical velocity      (nrows)
-   real*4, dimension(:),   allocatable  :: wb         ! bottom vertical velocity       (nrows)
-   real*4, dimension(:),   allocatable  :: wb0        ! previous bottom v. velocity    (nrows)
+   real*4, dimension(:),   allocatable  :: ws         ! depth-mean vertical velocity   (nrows)
    !
    real*4,  dimension(:), allocatable   :: Dnm        ! layer depth per row            (nrows)
    !
-   ! Per-row inverse grid spacing in metres (handles quadtree refinement levels and
-   ! geographic crsgeo lat-dependence). nh_dxr/nh_dyr are the per-CELL 1/dx, 1/dy used
-   ! by the breaking dzdt divergence and the frozen bed slopes; nh_cf (below) is the
-   ! per-FACE 0.5/dx used in the pressure operator.
-   !
-   real*4,  dimension(:), allocatable   :: nh_dxr     ! per-row 1/dx in metres         (nrows)
-   real*4,  dimension(:), allocatable   :: nh_dyr     ! per-row 1/dy in metres         (nrows)
-   !
-   ! Bed slopes for the bottom kinematic condition w_b (step 7), FROZEN at
-   ! initialization (file bed on regular grids, subgrid cell-mean bed
-   ! z_zmax - z_volmax/area on subgrid models) and capped at +/- nonh_dzbmax.
-   ! They must NOT follow the per-step effective bed zs - z_volume/area that
-   ! subgrid models maintain (zb_effective): that bed moves with the wet fraction
-   ! every step and its slope jitter would feed straight into w_b/ws. The real
-   ! bed slope is constant in time.
-   !
-   real*4,  dimension(:,:), allocatable :: nh_slbed   ! (4, nrows) slots: 1 left(md), 2 right(mu), 3 below(nd), 4 above(nu)
-   !
    real*4,  dimension(:), allocatable   :: nh_dvert   ! vertical-accel diagonal term   (nrows)
-   real*4,  dimension(:), allocatable   :: nh_fade    ! open-boundary nonh fade-in 0..1 (nrows)
-   real*4,  dimension(:), allocatable   :: nh_brfac   ! breaking STATE 1=full nonh .. 0=hydrostatic (nrows; hysteresis memory, unsmoothed)
-   real*4,  dimension(:), allocatable   :: nh_bract   ! breaking ACTIVITY used by the pressure operator (nrows; = nh_brfac, optionally smoothed)
+   real*4,  dimension(:), allocatable   :: nh_brfac   ! breaking STATE 1=full nonh .. 0=hydrostatic (nrows; hysteresis memory)
+   real*4,  dimension(:), allocatable   :: nh_bract   ! breaking ACTIVITY used by the pressure operator (nrows; = nh_brfac)
    !
    integer, dimension(:), allocatable   :: nh_faceuv  ! full uv index of each nh face  (nhuv)
    integer, dimension(:), allocatable   :: nh_faceL   ! row index of left/bottom cell  (nhuv, 0 = boundary)
@@ -293,11 +249,10 @@ module sfincs_nonhydrostatic
    real*4, dimension(:), allocatable    :: nh_b       ! scaled right-hand side   (0:nrows)
    !
    ! Moving-bed rate d(zb)/dt = dzbext_filtered/dt of this step per row: the known
-   ! source of the layer-consistent constraint (nonh_kinematic = 1, nonh_movingbed).
+   ! source of the layer-consistent constraint (nonh_movingbed).
    ! Bed increments below nh_dzb_ulps float32 ulps of the bed level (of 1 m for
    ! |zb| < 1 m) are round-off of the caller's bed difference, not motion; they are
-   ! dropped by update_bed_level (sfincs_domain) when it builds dzbext_filtered and
-   ! by the legacy loop (nonh_kinematic = 0) that reads dzbext directly.
+   ! dropped by update_bed_level (sfincs_domain) when it builds dzbext_filtered.
    !
    real*4, parameter :: nh_dzb_ulps = 4.0
    !
@@ -318,9 +273,9 @@ contains
    !
    subroutine initialize_nonhydrostatic()
    !
-   ! Builds the row<->cell maps, the nonh face maps, the static neighbour map,
-   ! the frozen bed slopes and the open-boundary fade-in, allocates the solver
-   ! work arrays and pushes everything the per-step kernels touch onto the GPU.
+   ! Builds the row<->cell maps, the nonh face maps and the static neighbour
+   ! map, allocates the solver work arrays and pushes everything
+   ! the per-step kernels touch onto the GPU.
    !
    ! Called from: sfincs_initialize (sfincs_lib)
    !
@@ -351,24 +306,16 @@ contains
    !
    allocate(pnh(nrows))
    allocate(ws(nrows))
-   allocate(wb(nrows))
-   allocate(wb0(nrows))
    allocate(Dnm(nrows))
    allocate(nm_index_of_row(nrows))
-   allocate(nh_dxr(nrows))
-   allocate(nh_dyr(nrows))
    allocate(nh_dvert(nrows))
-   allocate(nh_fade(nrows))
    allocate(nh_brfac(nrows))
    allocate(nh_bract(nrows))
    !
    pnh      = 0.0
    ws       = 0.0
-   wb       = 0.0
-   wb0      = 0.0
    Dnm      = 0.0
    nh_dvert = 0.0
-   nh_fade  = 1.0
    nh_brfac = 1.0
    nh_bract = 1.0
    nm_index_of_row = 0
@@ -384,17 +331,6 @@ contains
          irow = irow + 1
          row_index_of_nm(nm) = irow
          nm_index_of_row(irow) = nm
-         !
-         ! Per-cell inverse grid spacing in metres. y-spacing is uniform per refinement
-         ! level (dyrinv) in both projected and geographic mode. x-spacing is uniform per
-         ! level (dxrinv) when projected, but lat-dependent per cell (1/dxm) when crsgeo.
-         !
-         nh_dyr(irow) = dyrinv(z_flags_iref(nm))
-         if (crsgeo) then
-            nh_dxr(irow) = 1.0 / dxm(nm)
-         else
-            nh_dxr(irow) = dxrinv(z_flags_iref(nm))
-         endif
       endif
    enddo
    !
@@ -510,66 +446,6 @@ contains
       nh_nbn(i) = 0 ; f = nh_cellface(4, i) ; if (f > 0) nh_nbn(i) = nh_faceR(f)
    enddo
    !
-   ! Frozen, capped per-face bed slopes for the bottom kinematic condition
-   ! w_b = u . d(zb)/dx (step 7). Computed here from the initialization-time zb
-   ! (file bed on regular grids; subgrid cell-mean bed from sfincs_domain); on
-   ! subgrid models zb is overwritten with the water-level-dependent effective
-   ! bed every step (zb_effective), so the slopes must be taken now. The cap at +/- nonh_dzbmax
-   ! clips near-vertical wall steps that would otherwise produce an enormous
-   ! spurious w_b when a thin wall cell wets (2dt explicit instability); real
-   ! bed slopes are well below it.
-   !
-   allocate(nh_slbed(4, nrows))
-   nh_slbed = 0.0
-   !
-   call compute_nonh_bed_slopes()
-   !
-   ! Open-boundary non-hydrostatic FADE-IN. Over nonh_fadein cells
-   ! inside each open (water level / outflow) boundary, ramp the non-hydrostatic
-   ! coupling from 0 (at the boundary) to full (nonh_fadein cells in). The incident
-   ! wave then enters hydrostatically at the boundary and the nonh turns on
-   ! gradually, avoiding the sharp pnh=0 -> full-nonh transition that reflects an
-   ! incoming dispersive wave. nh_fade is 1 everywhere by default (no fade).
-   !
-   if (nonh_fadein > 0) then
-      !
-      block
-         integer, dimension(:), allocatable :: idist
-         integer :: pass, nmL, nmR, rL, rR
-         !
-         allocate(idist(nrows))
-         idist = nonh_fadein + 1
-         do ip = 1, nhuv
-            inhuv = uv_index_of_nhuv(ip)
-            nmL = uv_index_z_nm(inhuv)
-            nmR = uv_index_z_nmu(inhuv)
-            rL  = nh_faceL(ip)
-            rR  = nh_faceR(ip)
-            if (rL > 0 .and. rR == 0) then
-               if (kcs(nmR) == 2 .or. kcs(nmR) == 3) idist(rL) = 0
-            endif
-            if (rR > 0 .and. rL == 0) then
-               if (kcs(nmL) == 2 .or. kcs(nmL) == 3) idist(rR) = 0
-            endif
-         enddo
-         do pass = 1, nonh_fadein
-            do ip = 1, nhuv
-               rL = nh_faceL(ip)
-               rR = nh_faceR(ip)
-               if (rL > 0 .and. rR > 0) then
-                  if (idist(rL) + 1 < idist(rR)) idist(rR) = idist(rL) + 1
-                  if (idist(rR) + 1 < idist(rL)) idist(rL) = idist(rR) + 1
-               endif
-            enddo
-         enddo
-         do irow = 1, nrows
-            nh_fade(irow) = min(1.0, real(idist(irow)) / real(nonh_fadein))
-         enddo
-         deallocate(idist)
-      end block
-      !
-   endif
-   !
    ! Solver work arrays: assembled stencil, scaling and CG vectors (ghost
    ! element 0). First-touch initialization (NUMA page placement matches the
    ! static loop partition the per-step kernels use); ghost stays 0 forever.
@@ -620,32 +496,21 @@ contains
    !$acc enter data copyin( nh_nbw, nh_nbe, nh_nbs, nh_nbn, &
    !$acc                    nh_aw, nh_ae, nh_as, nh_an, nh_scl, nh_sclo, &
    !$acc                    nh_y, nh_r, nh_p, nh_s, nh_w, nh_b, nh_dzbdt, &
-   !$acc                    pnh, ws, wb, wb0, Dnm, nm_index_of_row, &
-   !$acc                    nh_dvert, nh_fade, nh_brfac, nh_bract, nh_dxr, nh_dyr, nh_slbed, &
+   !$acc                    pnh, ws, Dnm, nm_index_of_row, &
+   !$acc                    nh_dvert, nh_brfac, nh_bract, &
    !$acc                    nh_faceuv, nh_faceL, nh_faceR, nh_cellface, &
    !$acc                    nh_cf, nh_cR, nh_cL, nh_hu )
    !
    write(logstr,'(a,i0,a,i0,a)')'Non-hydrostatic solver (assembled-stencil CG): ', nrows, ' cells, ', nhuv, ' faces'
    call write_log(logstr, 0)
    !
-   write(logstr,'(a,i0)')'Non-hydrostatic bottom kinematic condition (1 layer-consistent, 0 legacy explicit): ', nonh_kinematic
+   ! Keller-box factor and face weight of the Boussinesq correction (see header)
+   !
+   nh_kbfac = 0.75
+   nh_pdf   = 1.0 + 3.0 * nonh_pade_beta
+   !
+   write(logstr,'(a,f8.5,a,f6.3,a,f6.3)')'Non-hydrostatic Boussinesq correction: beta = ', nonh_pade_beta, ', Keller-box factor ', nh_kbfac, ', face weight ', nh_pdf
    call write_log(logstr, 0)
-   !
-   ! Effective Keller-box factor and face weight: nonh_disp and 1, or the
-   ! values of the Boussinesq correction (see header)
-   !
-   nh_kbfac = nonh_disp
-   nh_pdf   = 1.0
-   !
-   if (nonh_pade) then
-      !
-      nh_kbfac = 0.75
-      nh_pdf   = 1.0 + 3.0 * nonh_pade_beta
-      !
-      write(logstr,'(a,f8.5,a,f6.3,a,f6.3)')'Non-hydrostatic Boussinesq correction (nonh_pade): beta = ', nonh_pade_beta, ', Keller-box factor set to ', nh_kbfac, ' (nonh_disp ignored), face weight ', nh_pdf
-      call write_log(logstr, 0)
-      !
-   endif
    !
    end subroutine
 
@@ -667,10 +532,10 @@ contains
    !
    real*4    :: dt
    !
-   integer   :: i, ip, ipuv, nm, nmn, nmu, iuv, iuvl, iuvr, j, jl, jr, f, iter, ipass, cnt, ineighbour
-   real*4    :: dtrho, kbfac, pdf, ta, hu, Dnm1, Dnmu, abf, fdep, tf, dval, sq, braw, accv, sumn, brrec, act
-   real*4    :: qr, ql, dzdt, wmax, breform, pcap, gf, pL, pR, unh
-   real*4    :: alpha, beta, fmb, dzb_eps
+   integer   :: i, ip, ipuv, nm, nmu, iuvl, iuvr, j, f, iter, cnt
+   real*4    :: dtrho, kbfac, pdf, ta, hu, Dnm1, Dnmu, abf, tf, dval, sq, braw, accv, sumn, brrec, act
+   real*4    :: qr, ql, dzdt, gf, pL, pR, unh
+   real*4    :: alpha, beta, fmb
    real*8    :: gam8, del8, bn8, gamold8, alpha8, beta8, pap8, bnorm8
    logical   :: bndok
    !
@@ -678,12 +543,8 @@ contains
    !
    call timer_start('non-hydrostatic')
    !
-   ! Keller-box vertical factor (nonh_disp): 1.0 (default) is the strict
-   ! linear-pressure single layer, h dwbar/dt = pnh/rho with wbar = (w_s + w_b)/2
-   ! (dispersion close to Airy to kd ~ 2.5); larger values weaken the pressure
-   ! feedback and make short waves too fast (2.0 is NOT the strict value).
-   ! With nonh_pade the factor is 3/4 and the face products of the operator
-   ! are weighted by pdf = 1 + 3 beta (see header); otherwise pdf = 1.
+   ! Keller-box vertical factor 3/4 and face-product weight pdf = 1 + 3 beta of
+   ! the Boussinesq correction (see header).
    !
    kbfac = nh_kbfac
    pdf   = nh_pdf
@@ -707,8 +568,7 @@ contains
    !
    ! 1b) Breaking criterion -> nh_brfac (1 = full nonh, <1 = hydrostatic pnh=0).
    !     Froude (NEOWAVE; Yamazaki, Kowalik & Cheung 2009, eqs 33/34) when
-   !     nonh_brfr > 0, else steepness/HFA (Smit, Zijlema & Stelling 2013) when
-   !     nonh_brsteep > 0.
+   !     nonh_brfr > 0; no breaking otherwise.
    !
    if (nonh_brfr > 0.0) then
       !
@@ -747,131 +607,6 @@ contains
       enddo
       !$omp end parallel do
       !
-   elseif (nonh_brsteep > 0.0) then
-      !
-      ! Steepness/HFA criterion (gradual XBeach hydrostatic-front approximation).
-      ! Detect steepening from the surface rate of rise built from the flux
-      ! divergence: d(zs)/dx = dzdt / sqrt(g h), threshold nonh_brsteep. Only the
-      ! rising front (dzdt > 0) is reduced; a breaking cell stays breaking until
-      ! the surface falls.
-      !
-      breform = 0.25 * nonh_brsteep        ! XBeach reformsteep default (neighbour-spread threshold)
-      !
-      ! (a) raw surface rate-of-rise dzdt = -div(q) into nh_w
-      !
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i, nm, iuvl, iuvr, ql, qr, dzdt )
-      do i = 1, nrows
-         nm   = nm_index_of_row(i)
-         iuvr = z_index_uv_mu(nm) ; iuvl = z_index_uv_md(nm)
-         qr = 0.0 ; ql = 0.0
-         if (iuvr > 0) qr = q(iuvr)
-         if (iuvl > 0) ql = q(iuvl)
-         dzdt = - (qr - ql) * nh_dxr(i)
-         if (nmax > 1) then
-            iuvr = z_index_uv_nu(nm) ; iuvl = z_index_uv_nd(nm)
-            qr = 0.0 ; ql = 0.0
-            if (iuvr > 0) qr = q(iuvr)
-            if (iuvl > 0) ql = q(iuvl)
-            dzdt = dzdt - (qr - ql) * nh_dyr(i)
-         endif
-         nh_w(i) = dzdt
-      enddo
-      !$omp end parallel do
-      !
-      ! (b) two [1 2 1]/4 smoothing passes (2dx noise -> connected front)
-      !
-      do ipass = 1, 2
-         !$acc parallel loop default(present)
-         !$omp parallel do schedule ( static ) private ( i, accv, j )
-         do i = 1, nrows
-            accv = nh_w(i)
-            j = nh_nbw(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-            j = nh_nbe(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-            j = nh_nbs(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-            j = nh_nbn(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-            nh_p(i) = accv
-         enddo
-         !$omp end parallel do
-         !$acc parallel loop default(present)
-         !$omp parallel do schedule ( static ) private ( i )
-         do i = 1, nrows
-            nh_w(i) = nh_p(i)
-         enddo
-         !$omp end parallel do
-      enddo
-      !
-      ! (c) snapshot last step's breaking state (no within-sweep contamination)
-      !
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i )
-      do i = 1, nrows
-         nh_r(i) = nh_brfac(i)
-      enddo
-      !$omp end parallel do
-      !
-      ! (d) hysteretic state machine on the smoothed dzdt (onset / neighbour-spread /
-      !     release only when the surface falls)
-      !
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i, dzdt, ineighbour, j, wmax )
-      do i = 1, nrows
-         dzdt = nh_w(i)
-         ineighbour = 0
-         j = nh_nbw(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
-         j = nh_nbe(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
-         j = nh_nbs(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
-         j = nh_nbn(i) ; if (j > 0) then ; if (nh_r(j) < 1.0) ineighbour = 1 ; endif
-         wmax = sqrt(g * Dnm(i))
-         if (nh_r(i) >= 1.0) then                                   ! was not breaking
-            if (dzdt > nonh_brsteep * wmax) then
-               nh_brfac(i) = 0.0
-            elseif (dzdt > breform * wmax .and. ineighbour == 1) then
-               nh_brfac(i) = 0.0
-            else
-               nh_brfac(i) = 1.0
-            endif
-         else                                                       ! was breaking
-            if (dzdt < 0.0) then
-               nh_brfac(i) = min(1.0, nh_r(i) + brrec)              ! release only when surface falls (gradually if nonh_treform > 0)
-            else
-               nh_brfac(i) = 0.0
-            endif
-         endif
-      enddo
-      !$omp end parallel do
-      !
-      ! (e) close interior holes (a non-breaking cell flanked on both x-sides, or
-      !     both y-sides, by breaking cells is filled in; 3 passes)
-      !
-      do ipass = 1, 3
-         !$acc parallel loop default(present)
-         !$omp parallel do schedule ( static ) private ( i )
-         do i = 1, nrows
-            nh_r(i) = nh_brfac(i)
-         enddo
-         !$omp end parallel do
-         !$acc parallel loop default(present)
-         !$omp parallel do schedule ( static ) private ( i, ineighbour, jl, jr )
-         do i = 1, nrows
-            if (nh_r(i) >= 1.0) then
-               ineighbour = 0
-               jl = nh_nbw(i) ; if (jl > 0) then ; if (nh_r(jl) < 1.0) ineighbour = ineighbour + 1 ; endif
-               jr = nh_nbe(i) ; if (jr > 0) then ; if (nh_r(jr) < 1.0) ineighbour = ineighbour + 2 ; endif
-               if (ineighbour == 3) then
-                  nh_brfac(i) = 0.0
-               endif
-               if (nmax > 1 .and. nh_brfac(i) >= 1.0) then
-                  ineighbour = 0
-                  jl = nh_nbs(i) ; if (jl > 0) then ; if (nh_r(jl) < 1.0) ineighbour = ineighbour + 1 ; endif
-                  jr = nh_nbn(i) ; if (jr > 0) then ; if (nh_r(jr) < 1.0) ineighbour = ineighbour + 2 ; endif
-                  if (ineighbour == 3) nh_brfac(i) = 0.0
-               endif
-            endif
-         enddo
-         !$omp end parallel do
-      enddo
-      !
    else
       !
       !$acc parallel loop default(present)
@@ -883,12 +618,8 @@ contains
       !
    endif
    !
-   ! 1c) Breaking ACTIVITY for the pressure operator: nh_bract = nh_brfac,
-   !     optionally smoothed over the nonh neighbours (nonh_brsmooth passes of a
-   !     [1 2 1]/4 stencil). The binary flag switches the pressure off across a
-   !     single face, which prints a kink on the surface at the rear edge of the
-   !     breaking region; the smoothed activity ramps the pressure out over a few
-   !     cells instead. The hysteresis STATE stays in nh_brfac (unsmoothed).
+   ! 1c) Breaking ACTIVITY for the pressure operator: nh_bract = nh_brfac. The
+   !     hysteresis STATE stays in nh_brfac.
    !
    !$acc parallel loop default(present)
    !$omp parallel do schedule ( static ) private ( i )
@@ -897,31 +628,10 @@ contains
    enddo
    !$omp end parallel do
    !
-   do ipass = 1, nonh_brsmooth
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i )
-      do i = 1, nrows
-         nh_w(i) = nh_bract(i)
-      enddo
-      !$omp end parallel do
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i, accv, j )
-      do i = 1, nrows
-         accv = nh_w(i)
-         j = nh_nbw(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-         j = nh_nbe(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-         j = nh_nbs(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-         j = nh_nbn(i) ; if (j > 0) accv = accv + 0.25 * (nh_w(j) - nh_w(i))
-         nh_bract(i) = accv
-      enddo
-      !$omp end parallel do
-   enddo
-   !
-   ! 2) Per-face gradient coefficients (wet/dry, layer term abf, conveyance depth,
-   !    open-boundary fade-in).
+   ! 2) Per-face gradient coefficients (wet/dry, layer term abf, conveyance depth).
    !
    !$acc parallel loop default(present)
-   !$omp parallel do schedule ( static ) private ( ip, ipuv, nm, nmu, hu, Dnm1, Dnmu, abf, fdep, bndok )
+   !$omp parallel do schedule ( static ) private ( ip, ipuv, nm, nmu, hu, Dnm1, Dnmu, abf, bndok )
    do ip = 1, nhuv
       ipuv = nh_faceuv(ip)
       nm   = uv_index_z_nm(ipuv)
@@ -947,21 +657,14 @@ contains
                else
                   nh_hu(ip) = hu
                endif
-               if (nonh_fadein > 0) then
-                  fdep = 1.0
-                  if (nh_faceL(ip) > 0) fdep = min(fdep, nh_fade(nh_faceL(ip)))
-                  if (nh_faceR(ip) > 0) fdep = min(fdep, nh_fade(nh_faceR(ip)))
-                  nh_cR(ip) = nh_cR(ip) * fdep
-                  nh_cL(ip) = nh_cL(ip) * fdep
-               endif
             endif
          endif
       endif
    enddo
    !$omp end parallel do
    !
-   ! 2b) Moving-bed source of the layer-consistent constraint (nonh_kinematic =
-   !     1): d(zb)/dt = dzbext_filtered/dt of this step per wet row. dzbext_filtered
+   ! 2b) Moving-bed source of the layer-consistent constraint: d(zb)/dt =
+   !     dzbext_filtered/dt of this step per wet row. dzbext_filtered
    !     is built by update_bed_level (sfincs_domain) from the caller's dzbext:
    !     round-off increments dropped (a few float32 ulps of the bed level; divided
    !     by the 1e-6 s start-up step such noise is a 1e-2 m/s bed velocity whose
@@ -970,12 +673,11 @@ contains
    !     Host loop (dzbext_filtered is a host array), pushed to the device. fmb
    !     switches the source on in the assembly; nh_dzbdt is only read when fmb = 1.
    !     NOTE (GPU builds): this loop reads the HOST zs and zb, which are not
-   !     refreshed from the device every step; on a GPU build they can be stale
-   !     (the legacy moving-bed loop in step 7 has the same issue).
+   !     refreshed from the device every step; on a GPU build they can be stale.
    !
    fmb = 0.0
    !
-   if (nonh_kinematic == 1 .and. nonh_movingbed .and. use_dzbext .and. dt > 0.0) then
+   if (nonh_movingbed .and. use_dzbext .and. dt > 0.0) then
       !
       if (allocated(dzbext_filtered)) then
          !
@@ -1006,37 +708,27 @@ contains
    !    (one product per incident face, same both ways -> symmetric), the diagonal
    !    dval = dvert + sum dtrho*hu*coef^2, the scaling scl = 1/sqrt(dval), the
    !    breaking-masked scaling sclo, the SCALED right-hand side
-   !    b = scl * [ G^T (hu u*) - (ws + wb0 - 2 wb) ], and the warm start
+   !    b = scl * [ G^T (hu u*) - ws + d(zb)/dt ], and the warm start
    !    y0 = pnh * sqrt(dval) (scaled previous pressure; 0 at breaking cells).
-   !    With nonh_pade the face product ta = dtrho*hu*cR*cL is weighted by
-   !    pdf = 1 + 3 beta and the diagonal gets the matching -(pdf - 1) ta, i.e.
-   !    the added part is a weighted graph Laplacian (zero row sum, SPD kept).
+   !    The face product ta = dtrho*hu*cR*cL is weighted by pdf = 1 + 3 beta and
+   !    the diagonal gets the matching -(pdf - 1) ta, i.e. the added part is a
+   !    weighted graph Laplacian (zero row sum, SPD kept).
    !
-   !    Layer-consistent bottom kinematic condition (nonh_kinematic = 1): with
-   !    the layer term abf the transpose G^T (hu u) already equals
-   !    u . grad(zb) - 0.5 h div(u), i.e. it contains the bed-slope part of w_b
-   !    implicitly and symmetrically (Keller-box constraint with the bottom
-   !    condition eliminated, Escalante et al. 2018 eq. 6). ws then holds the
-   !    depth-mean vertical velocity (w_s + w_b)/2 and the constraint is
-   !    G^T (hu u^{n+1}) = ws^{n+1} - d(zb)/dt, so b = scl * [ G^T (hu u*) - ws +
-   !    d(zb)/dt ] with no separate w_b. nonh_kinematic = 0 keeps the legacy
-   !    explicit w_b = u . grad(zb) from the lagged velocities on top of it
-   !    (counts the slope term twice; unstable for short waves on steep slopes).
+   !    Layer-consistent bottom kinematic condition: with the layer term abf the
+   !    transpose G^T (hu u) already equals u . grad(zb) - 0.5 h div(u), i.e. it
+   !    contains the bed-slope part of w_b implicitly and symmetrically
+   !    (Keller-box constraint with the bottom condition eliminated, Escalante
+   !    et al. 2018 eq. 6). ws holds the depth-mean vertical velocity
+   !    (w_s + w_b)/2 and the constraint is G^T (hu u^{n+1}) = ws^{n+1} -
+   !    d(zb)/dt, so b = scl * [ G^T (hu u*) - ws + d(zb)/dt ] with no separate
+   !    w_b.
    !
    !$acc parallel loop default(present)
    !$omp parallel do schedule ( static ) private ( i, dval, braw, f, tf, ta, sq, act )
    do i = 1, nrows
       dval = nh_dvert(i)
       !
-      if (nonh_kinematic == 1) then
-         !
-         braw = - ws(i) + fmb * nh_dzbdt(i)
-         !
-      else
-         !
-         braw = - (ws(i) + wb0(i) - 2.0 * wb(i))
-         !
-      endif
+      braw = - ws(i) + fmb * nh_dzbdt(i)
       !
       f = nh_cellface(1, i)
       if (f > 0) then
@@ -1083,8 +775,8 @@ contains
       !
       ! Breaking activity act in [0,1]: act = 1 full nonh; act = 0 holds pnh = 0
       ! (row+column zeroed via sclo, unit scaled diagonal). Fractional act (from
-      ! nonh_brsmooth / nonh_treform) ramps the pressure out smoothly; the
-      ! operator stays SPD (T A T + diag(1 - act^2), act <= 1).
+      ! nonh_treform) ramps the pressure back in smoothly; the operator stays
+      ! SPD (T A T + diag(1 - act^2), act <= 1).
       !
       act = nh_bract(i)
       nh_sclo(i) = nh_scl(i) * act
@@ -1235,50 +927,6 @@ contains
       !$omp end parallel do
    endif
    !
-   ! 5c) Localized 2dx smoothing in the marginal-nonh zones (fade-in zone and/or
-   !     shallow run-up water, D < nonh_smoothdep); zero in the resolved interior.
-   !
-   if (nonh_smoothbnd > 0.0 .and. (nonh_fadein > 0 .or. nonh_smoothdep > 0.0)) then
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i )
-      do i = 1, nrows
-         nh_w(i) = pnh(i)
-      enddo
-      !$omp end parallel do
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i, sumn, cnt, j, fdep, gf )
-      do i = 1, nrows
-         sumn = 0.0 ; cnt = 0
-         j = nh_nbw(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
-         j = nh_nbe(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
-         j = nh_nbs(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
-         j = nh_nbn(i) ; if (j > 0) then ; sumn = sumn + nh_w(j) ; cnt = cnt + 1 ; endif
-         if (cnt > 0) then
-            fdep = 0.0
-            if (nonh_fadein > 0)      fdep = 1.0 - nh_fade(i)
-            if (nonh_smoothdep > 0.0) fdep = max(fdep, (nonh_smoothdep - Dnm(i)) / nonh_smoothdep)
-            gf = nonh_smoothbnd * max(0.0, min(1.0, fdep))
-            pnh(i) = (1.0 - gf) * nh_w(i) + gf * sumn / real(cnt)
-         endif
-      enddo
-      !$omp end parallel do
-   endif
-   !
-   ! 5e) Depth limiter: |pnh| <= nonh_pmax * rho g H. The total bed pressure
-   !     rho*g*H + pnh then stays >= 0 for nonh_pmax <= 1 (no "suction"); resolved
-   !     waves have |pnh| << rho*g*H so are untouched -- this only clips spikes
-   !     at steep wall run-up, breaking fronts and grid-scale modes.
-   !
-   if (nonh_pmax > 0.0) then
-      !$acc parallel loop default(present)
-      !$omp parallel do schedule ( static ) private ( i, pcap )
-      do i = 1, nrows
-         pcap = nonh_pmax * rhow * g * Dnm(i)
-         pnh(i) = max(-pcap, min(pcap, pnh(i)))
-      enddo
-      !$omp end parallel do
-   endif
-   !
    ! 6) Correct fluxes / velocities with the pressure gradient -(dt/rho) G pnh.
    !    Each face writes only its own uv/q point -> race-free.
    !
@@ -1298,239 +946,57 @@ contains
    enddo
    !$omp end parallel do
    !
-   ! 7) Update surface/bottom vertical velocities for the next step's forcing
-   !    (bottom kinematic condition w_b = u . d(zb)/dx with the slopes FROZEN at
-   !    initialization in nh_slbed; the wet checks use the current, possibly
-   !    effective, zb -- they are depth checks).
+   ! 7) Update the depth-mean vertical velocity ws for the next step's forcing
+   !    (the wet checks use the current, possibly effective, zb -- they are
+   !    depth checks).
    !
    !$acc parallel loop default(present)
-   !$omp parallel do schedule ( static ) private ( i, nm, iuv, nmn, f, accv )
+   !$omp parallel do schedule ( static ) private ( i, nm, f, accv )
    do i = 1, nrows
       nm = nm_index_of_row(i)
       !
       ! Non-hydrostatically dry cell: carry no nonh state (clean re-wetting).
       !
       if (zs(nm) - zb(nm) <= huthresh_nh) then
-         wb0(i) = 0.0
-         wb(i)  = 0.0
          ws(i)  = 0.0
          pnh(i) = 0.0
          nh_brfac(i) = 1.0
          cycle
       endif
       !
-      if (nonh_kinematic == 1) then
-         !
-         ! Layer-consistent form: ws is the depth-mean vertical velocity
-         ! (w_s + w_b)/2 of the Keller box; the bed kinematics are carried by
-         ! the operator (layer term abf), so there is no separate w_b.
-         !
-         if (nonh_pade) then
-            !
-            ! Boussinesq form: ws from the constraint G^T (hu u^{n+1}) + d(zb)/dt
-            ! with the corrected velocities, PLUS the residual A p - b of this
-            ! solve (scaled CG residual nh_r, unscaled with 1/scl; zero at
-            ! breaking rows). The sum equals ws^n + A p - L p_f, i.e. the
-            ! vertical equation with the solved pressure p and the horizontal
-            ! correction with the applied (filtered) pressure p_f, so the next
-            ! right-hand side is -(A p - b) plus the new forcing: the residual
-            ! of every solve is cancelled by the next one (as in the Keller-box
-            ! branch), while the effect of the pnh filter is accepted as applied.
-            ! Without the residual term the residual of every solve stays in
-            ! the flow for good: at the 1 % tolerance one impulsive solve (LS1,
-            ! 5 mm bed jump in a step) was a 2 cm spurious wave at the gauges.
-            !
-            accv = fmb * nh_dzbdt(i)
-            f = nh_cellface(1, i)
-            if (f > 0) accv = accv + nh_cR(f) * nh_hu(f) * uv(nh_faceuv(f))
-            f = nh_cellface(2, i)
-            if (f > 0) accv = accv + nh_cL(f) * nh_hu(f) * uv(nh_faceuv(f))
-            f = nh_cellface(3, i)
-            if (f > 0) accv = accv + nh_cR(f) * nh_hu(f) * uv(nh_faceuv(f))
-            f = nh_cellface(4, i)
-            if (f > 0) accv = accv + nh_cL(f) * nh_hu(f) * uv(nh_faceuv(f))
-            ws(i) = accv - nh_r(i) / nh_scl(i)
-            !
-         else
-            !
-            ws(i) = ws(i) + (kbfac * dt / (rhow * Dnm(i))) * pnh(i)
-            !
-         endif
-         !
-         cycle
-         !
-      endif
+      ! Layer-consistent form: ws is the depth-mean vertical velocity
+      ! (w_s + w_b)/2 of the Keller box; the bed kinematics are carried by
+      ! the operator (layer term abf), so there is no separate w_b.
       !
-      wb0(i) = wb(i)
-      wb(i)  = 0.0
+      ! Boussinesq form: ws from the constraint G^T (hu u^{n+1}) + d(zb)/dt
+      ! with the corrected velocities, PLUS the residual A p - b of this
+      ! solve (scaled CG residual nh_r, unscaled with 1/scl; zero at
+      ! breaking rows). The sum equals ws^n + A p - L p_f, i.e. the
+      ! vertical equation with the solved pressure p and the horizontal
+      ! correction with the applied (filtered) pressure p_f, so the next
+      ! right-hand side is -(A p - b) plus the new forcing: the residual
+      ! of every solve is cancelled by the next one, while the effect of
+      ! the pnh filter is accepted as applied.
+      ! Without the residual term the residual of every solve stays in
+      ! the flow for good: at the 1 % tolerance one impulsive solve (LS1,
+      ! 5 mm bed jump in a step) was a 2 cm spurious wave at the gauges.
       !
-      ! w_b over faces to non-hydrostatically wet neighbours only.
+      accv = fmb * nh_dzbdt(i)
+      f = nh_cellface(1, i)
+      if (f > 0) accv = accv + nh_cR(f) * nh_hu(f) * uv(nh_faceuv(f))
+      f = nh_cellface(2, i)
+      if (f > 0) accv = accv + nh_cL(f) * nh_hu(f) * uv(nh_faceuv(f))
+      f = nh_cellface(3, i)
+      if (f > 0) accv = accv + nh_cR(f) * nh_hu(f) * uv(nh_faceuv(f))
+      f = nh_cellface(4, i)
+      if (f > 0) accv = accv + nh_cL(f) * nh_hu(f) * uv(nh_faceuv(f))
+      ws(i) = accv - nh_r(i) / nh_scl(i)
       !
-      iuv = z_index_uv_md(nm)
-      if (kfuv(iuv) > 0) then
-         nmn = uv_index_z_nm(iuv)
-         if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(1, i)
-         endif
-      endif
-      iuv = z_index_uv_mu(nm)
-      if (kfuv(iuv) > 0) then
-         nmn = uv_index_z_nmu(iuv)
-         if (zs(nmn) - zb(nmn) > huthresh_nh) then
-            wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(2, i)
-         endif
-      endif
-      if (nmax > 1) then
-         iuv = z_index_uv_nd(nm)
-         if (kfuv(iuv) > 0) then
-            nmn = uv_index_z_nm(iuv)
-            if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(3, i)
-            endif
-         endif
-         iuv = z_index_uv_nu(nm)
-         if (kfuv(iuv) > 0) then
-            nmn = uv_index_z_nmu(iuv)
-            if (zs(nmn) - zb(nmn) > huthresh_nh) then
-               wb(i) = wb(i) - 0.5 * uv(iuv) * nh_slbed(4, i)
-            endif
-         endif
-      endif
-      !
-      ws(i) = ws(i) - (wb(i) - wb0(i)) + (kbfac * dt / (rhow * Dnm(i))) * pnh(i)
    enddo
    !$omp end parallel do
-   !
-   ! Optional moving-bed source: add d(zb)/dt = dzbext/dt to the bottom kinematic
-   ! w_b (full condition w_b = d(zb)/dt + u.d(zb)/dx), so a moving seafloor
-   ! radiates a depth-filtered (Kajiura-like) surface response. The surface
-   ! velocity receives nonh_movingbed_ws times the same increment: -1 completes
-   ! the step-7 Keller-box update ws = ws - (wb - wb0) for the bed term (default),
-   ! 0 and +1 are diagnostic settings. Kept in a SEPARATE flag-guarded loop so the
-   ! step-7 loop above is byte-for-byte the original when the feature is off.
-   !
-   if (nonh_movingbed .and. use_dzbext .and. dt > 0.0 .and. nonh_kinematic == 0) then
-      !$omp parallel do schedule ( static ) private ( i, nm, dzb_eps )
-      do i = 1, nrows
-         nm = nm_index_of_row(i)
-         if (zs(nm) - zb(nm) <= huthresh_nh) cycle
-         dzb_eps = nh_dzb_ulps * spacing(max(abs(zb(nm)), 1.0))   ! round-off increments are not motion (see step 2b)
-         if (abs(dzbext(nm)) <= dzb_eps) cycle
-         wb(i) = wb(i) + dzbext(nm) / dt
-         ws(i) = ws(i) + nonh_movingbed_ws * dzbext(nm) / dt
-      enddo
-      !$omp end parallel do
-   endif
    !
    call timer_stop('non-hydrostatic')
    !
    end subroutine
-   !
-   !
-   subroutine compute_nonh_bed_slopes()
-      !
-      ! Bed slopes to the four neighbours (nh_slbed) for the bottom kinematic
-      ! condition w_b = u . d(zb)/dx, capped at +/- nonh_dzbmax and optionally
-      ! smoothed (nonh_slsmooth). Taken from the current zb: the file bed on
-      ! regular grids, the cell-mean bed on subgrid models at initialization
-      ! (zb is set to z_zmax - z_volmax/area there) and the effective bed after
-      ! an external bed update. The cap clips near-vertical wall steps that would
-      ! otherwise produce an enormous spurious w_b when a thin wall cell wets
-      ! (2dt explicit instability); real bed slopes are well below it. The
-      ! smoothing ([1 2 1]/4 passes per direction) bounds the bed curvature,
-      ! to which the single-layer w_b source is sensitive at slope breaks.
-      !
-      ! Called from: initialize_nonhydrostatic, sfincs_domain -> update_bed_level
-      !
-      use sfincs_data
-      !
-      implicit none
-      !
-      integer :: irow, nm, iuv, nmn, ps, ii, s, jw, je, js, jn
-      real*4  :: slc, accs
-      real*4, dimension(:,:), allocatable :: sltmp
-      !
-      if (.not. allocated(nh_slbed)) return
-      !
-      slc = nonh_dzbmax
-      if (slc <= 0.0) slc = huge(1.0)   ! 0 = no cap
-      !
-      nh_slbed = 0.0
-      !
-      do irow = 1, nrows
-         !
-         nm = nm_index_of_row(irow)
-         !
-         iuv = z_index_uv_md(nm)
-         if (iuv > 0) then
-            nmn = uv_index_z_nm(iuv)
-            nh_slbed(1, irow) = max(-slc, min(slc, (zb(nmn) - zb(nm)) * nh_dxr(irow)))
-         endif
-         !
-         iuv = z_index_uv_mu(nm)
-         if (iuv > 0) then
-            nmn = uv_index_z_nmu(iuv)
-            nh_slbed(2, irow) = max(-slc, min(slc, (zb(nm) - zb(nmn)) * nh_dxr(irow)))
-         endif
-         !
-         if (nmax > 1) then
-            !
-            iuv = z_index_uv_nd(nm)
-            if (iuv > 0) then
-               nmn = uv_index_z_nm(iuv)
-               nh_slbed(3, irow) = max(-slc, min(slc, (zb(nmn) - zb(nm)) * nh_dyr(irow)))
-            endif
-            !
-            iuv = z_index_uv_nu(nm)
-            if (iuv > 0) then
-               nmn = uv_index_z_nmu(iuv)
-               nh_slbed(4, irow) = max(-slc, min(slc, (zb(nm) - zb(nmn)) * nh_dyr(irow)))
-            endif
-            !
-         endif
-         !
-      enddo
-      !
-      if (nonh_slsmooth > 0) then
-         !
-         allocate(sltmp(4, nrows))
-         !
-         do ps = 1, nonh_slsmooth
-            !
-            sltmp = nh_slbed
-            !
-            do ii = 1, nrows
-               !
-               jw = nh_nbw(ii)
-               je = nh_nbe(ii)
-               !
-               do s = 1, 2                       ! x-slopes smoothed along x-neighbours
-                  accs = sltmp(s, ii)
-                  if (jw > 0) accs = accs + 0.25 * (sltmp(s, jw) - sltmp(s, ii))
-                  if (je > 0) accs = accs + 0.25 * (sltmp(s, je) - sltmp(s, ii))
-                  nh_slbed(s, ii) = accs
-               enddo
-               !
-               js = nh_nbs(ii)
-               jn = nh_nbn(ii)
-               !
-               do s = 3, 4                       ! y-slopes smoothed along y-neighbours
-                  accs = sltmp(s, ii)
-                  if (js > 0) accs = accs + 0.25 * (sltmp(s, js) - sltmp(s, ii))
-                  if (jn > 0) accs = accs + 0.25 * (sltmp(s, jn) - sltmp(s, ii))
-                  nh_slbed(s, ii) = accs
-               enddo
-               !
-            enddo
-            !
-         enddo
-         !
-         deallocate(sltmp)
-         !
-      endif
-      !
-      !$acc update device(nh_slbed)
-      !
-   end subroutine compute_nonh_bed_slopes
 
 end module

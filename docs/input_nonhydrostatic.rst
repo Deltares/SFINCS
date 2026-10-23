@@ -26,16 +26,14 @@ The non-hydrostatic pressure is written to the map file as 'pnonh'.
 Bottom kinematic condition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-With 'nonh_kinematic = 1' (default) the bottom kinematic condition is carried implicitly by the layer term of the pressure operator (Escalante, Morales de Luna & Castro, 2018), so no separate bottom vertical velocity is needed.
+The bottom kinematic condition is carried implicitly by the layer term of the pressure operator (Escalante, Morales de Luna & Castro, 2018), so no separate bottom vertical velocity is needed.
 A moving bed enters as the known source d(zb)/dt (see 'nonh_movingbed' below).
-'nonh_kinematic = 0' is the legacy form with an explicit, lagged bottom velocity w_b = u.grad(zb); it counts the slope term twice and can be unstable for short waves on steep slopes.
-The keywords 'nonh_dzbmax', 'nonh_slsmooth', 'nonh_movingbed_ws' and 'nonh_movingbed_slopes' only matter for 'nonh_kinematic = 0'.
 
 Dispersion correction
 ^^^^^^^^^^^^^^^^^^^^^
 
-The strict one-layer Keller box ('nonh_disp = 1') has a phase speed close to the linear (Airy) value up to kd = 2.5, but it has a frequency cutoff: shorter waves have no group velocity and can stay trapped on a slope.
-'nonh_pade = 1' (default) replaces the vertical momentum equation of the layer with an implicit Madsen-Sorensen-type form.
+The strict one-layer Keller box has a phase speed close to the linear (Airy) value up to kd = 2.5, but it has a frequency cutoff: shorter waves have no group velocity and can stay trapped on a slope.
+SFINCS therefore replaces the vertical momentum equation of the layer with an implicit Madsen-Sorensen-type form.
 This gives the dispersion relation
 
 .. math::
@@ -45,25 +43,21 @@ This gives the dispersion relation
 without a cutoff.
 With the default 'nonh_pade_beta = 0.04' the linear phase speed is within about 3 % of Airy up to kd = 6 (beta = 1/15 is the [2/2] Pade approximant, beta = 0 the [0/2] approximant).
 The correction keeps the operator symmetric and positive definite and adds no time step restriction.
-With 'nonh_pade = 1' the Keller-box factor is set to 3/4 internally and 'nonh_disp' is ignored; 'nonh_pade' requires 'nonh_kinematic = 1'.
 
 Breaking and filtering
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Breaking waves are treated by switching off the non-hydrostatic pressure locally:
 
-* 'nonh_brfr' (default 0.5): Froude criterion as in NEOWAVE; off where abs(U)/sqrt(g D) > nonh_brfr, on again below 0.3 * nonh_brfr. Takes precedence when > 0.
-* 'nonh_brsteep' (default 0.4): steepness criterion (hydrostatic front approximation, as in XBeach), only used when 'nonh_brfr = 0'.
-* 'nonh_brsmooth' (default 0) smooths the edges of the breaking zone, 'nonh_treform' (default 1 s) lets released cells recover the pressure gradually.
+* 'nonh_brfr' (default 0.5): Froude criterion as in NEOWAVE; off where abs(U)/sqrt(g D) > nonh_brfr, on again below 0.3 * nonh_brfr. 0 = no breaking.
+* 'nonh_treform' (default 1 s) lets released cells recover the pressure gradually.
 
-Further options: 'nonh_filter' (default 0.5) is a 2dx filter on the pressure after each solve, 'nonh_pmax' (default off) caps the pressure at nonh_pmax * rho g H, 'nonh_fadein', 'nonh_smoothbnd' and 'nonh_smoothdep' fade the correction in near open boundaries and smooth it in very shallow water, 'nonh_fnudge' (default 1) sets the fraction of the correction that is applied and 'nonh_tstop' switches the correction off after a given time.
+Further options: 'nonh_filter' (default 0.5) is a 2dx filter on the pressure after each solve, 'nonh_fnudge' (default 1) sets the fraction of the correction that is applied and 'nonh_tstop' switches the correction off after a given time.
 
 .. code-block:: text
 
 	momentum_scheme  = velocity
 	nonhydrostatic   = 1
-	nonh_kinematic   = 1
-	nonh_pade        = 1
 	nonh_pade_beta   = 0.04
 
 Moving bed via BMI/XMI
@@ -83,7 +77,7 @@ The kernel then:
 The filter is a Gaussian with a standard deviation of 'movingbed_filter' (default 0.8) times the mean depth of the moving cells, which mimics the Kajiura attenuation of short bed features by the water column (a single non-hydrostatic layer lacks this attenuation).
 The rising and sinking parts keep their own volume.
 'movingbed_filter = 0' applies the raw increment.
-'nonh_movingbed_filter' is still accepted as a deprecated alias; the earlier keywords 'movingbed_stamp' and 'movingbed_stamp_filter' have been removed (the surface lift is now always applied).
+The earlier keywords 'nonh_movingbed_filter', 'movingbed_stamp' and 'movingbed_stamp_filter' have been removed (the surface lift is now always applied).
 Increments smaller than a few float32 round-off units (ulps) of the local bed level are ignored, because they result from the difference between the caller's double-precision target bed and the single-precision kernel bed.
 The kernel does not reset 'dzbext' after applying it; the caller owns the array.
 'update_bed_level' updates the host arrays only, so it is meant for CPU builds.
@@ -102,8 +96,6 @@ Recommended sfincs.inp settings for a landslide (rigid slide pushed through 'dzb
 	momentum_scheme          = velocity
 	advection                = 1
 	nonhydrostatic           = 1
-	nonh_kinematic           = 1
-	nonh_pade                = 1
 	nonh_pade_beta           = 0.04
 	nonh_movingbed           = no
 	movingbed_filter         = 0.8
