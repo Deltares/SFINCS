@@ -259,7 +259,8 @@ module sfincs_data
       logical       :: store_wave_forces
       logical       :: store_wave_direction
       logical       :: write_time_output
-      logical       :: bziwaves
+      logical       :: bziwaves         ! incoming-wave signal (bzi file or zi in netbndbzsbzifile) is applied at the water level boundaries; set when reading the boundaries
+      logical       :: bziwaves_user    ! keyword bziwaves (default 1): 0 switches the incoming-wave signal off for both input routes
       logical       :: infiltration
       logical       :: discharges
       logical       :: drainage_structures

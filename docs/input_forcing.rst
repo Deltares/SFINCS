@@ -103,6 +103,11 @@ This can contain infragravity and/or short waves.
 Do note that the forced signal should be the incoming wave component only, not including the reflecting one, since this is computed by SFINCS internally as well.
 The signal should be around 0.
 
+The incoming-wave signal can be supplied by either input route: as an ascii bzifile next to the bndfile/bzsfile, or as the optional variable 'zi' in the netcdf 'netbndbzsbzifile' (see below). Whichever route is used, SFINCS applies the signal when it is present; a bzifile keyword next to a netbndbzsbzifile has no effect.
+The keyword 'bziwaves' (default 1) switches the incoming-wave signal off for both routes (bziwaves = 0), in which case only the bzs/zs water levels are applied. The log states whether an incoming-wave signal is used and from which file.
+
+When an incoming-wave signal is applied, the water level boundary is a clean weakly-reflective (Riemann) condition: the running-mean boundary flux 'uvmean' with filter time scale 'btfilter' is not used (it would otherwise act as an integrator that doubles the incoming wave). 'btfilter' therefore only acts when no incoming-wave signal is present.
+
 **NOTE - Specified time should be the same in both the bzs and bzi files - generally on a high frequency of seconds**
 
 **NOTE - There is not a specific Python function yet, but one could call the water_level.create function twice with saving the files in between and changing their names**
@@ -124,7 +129,8 @@ Netcdf format input
 ^^^^^^^^^
 
 As alternative, the bnd/bzs/bzi data can also be specified using a single Netcdf file with FEWS input type format 'netbndbzsbzifile'.
-SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalant) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
+SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalant) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"
+If 'zi' is present it is applied as the incoming-wave signal (no bzifile keyword needed, see above); it can be switched off with bziwaves = 0.
 
 **NOTE - There is not a specific Python function for this yet**
 	

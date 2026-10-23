@@ -621,6 +621,11 @@ Forcing - Water levels and waves
 	  :units:		m in projected UTM zone, m above reference level & m around mean water level of bzsfile
 	  :required:		Only when specifying water levels and waves using netcdf input file.
 	  :format:		net	 
+	bziwaves = 1
+	  :description:		Switch for the incoming-wave signal at the water level boundaries, for both input routes (bzifile or 'zi' in netbndbzsbzifile). 0 = ignore the signal even if present (only bzs/zs levels are applied and btfilter/uvmean are active again), 1 = apply it when present.
+	  :units:		-
+	  :required:		no
+	  :default:		1
 	  
 Forcing - Discharges
 -----

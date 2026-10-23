@@ -147,6 +147,7 @@ contains
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
       call get_keyword(500, 'btfilter',                        btfilter,                        60.0)              ! bathtub filter time scale (s)
+      call get_keyword(500, 'bziwaves',                        bziwaves_user,                   .true.)            ! apply the incoming-wave signal (bzifile or zi in netbndbzsbzifile) when present
       call get_keyword(500, 'sfacinf',                         sfacinf,                         0.2)               ! SCS initial-abstraction fraction (0.2S)
       call get_keyword(500, 'radstr',                          radstr,                          .false.)           ! radiation-stress forcing from SnapWave
       call get_keyword(500, 'crsgeo',                          crsgeo,                          .false.)           ! interpret grid coords as geographic (WGS84)
