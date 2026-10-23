@@ -1,0 +1,31 @@
+name: pr-checklist
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+jobs:
+  checklist:
+    # Draft PRs may still have open items; the check runs once the PR is marked Ready for Review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that all checklist items are ticked
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          body=$(printf '%s\n' "$PR_BODY" | tr -d '\r')
+          checked=$(printf '%s\n' "$body" | grep -cE '^\s*[-*] \[[xX]\]' || true)
+          unchecked=$(printf '%s\n' "$body" | grep -E '^\s*[-*] \[ \]' || true)
+
+          if [ "$checked" -eq 0 ] && [ -z "$unchecked" ]; then
+            echo "::error::No checklist found in the PR description. Please use the pull request template (.github/pull_request_template.md)."
+            exit 1
+          fi
+
+          if [ -n "$unchecked" ]; then
+            echo "::error::The following checklist items are not ticked. Tick them, or tick them and add 'n/a' if they do not apply:"
+            printf '%s\n' "$unchecked"
+            exit 1
+          fi
+
+          echo "All $checked checklist items are ticked."

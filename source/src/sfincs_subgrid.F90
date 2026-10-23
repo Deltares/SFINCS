@@ -1,6 +1,61 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)
 module sfincs_subgrid
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Subgrid tables: reads the subgrid file (netCDF or binary) and computes the initial cell
+   ! volumes.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_subgrid_file()
+   !     Read the subgrid file, in netCDF or original binary format.
+   !     Called from: initialize_bathymetry (sfincs_domain)
+   !
+   !   read_subgrid_file_netcdf()
+   !     Read the subgrid tables from a netCDF file.
+   !     Called from: read_subgrid_file (sfincs_subgrid)
+   !
+   !   read_subgrid_file_original()
+   !     Read the subgrid tables from an original (binary) file.
+   !     Called from: read_subgrid_file (sfincs_subgrid)
+   !
+   !   compute_initial_subgrid_volumes()
+   !     Compute the initial water volume in each cell from the subgrid tables.
+   !     Called from: initialize_hydro (sfincs_domain)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use netcdf       
    use sfincs_log
    use sfincs_error
@@ -19,6 +74,10 @@ module sfincs_subgrid
 contains
 
    subroutine read_subgrid_file()
+   !
+   ! Read the subgrid file, in netCDF or original binary format.
+   !
+   ! Called from: initialize_bathymetry (sfincs_domain)
    !
    use sfincs_data
    !
@@ -65,6 +124,10 @@ contains
 
 
    subroutine read_subgrid_file_netcdf()
+   !
+   ! Read the subgrid tables from a netCDF file.
+   !
+   ! Called from: read_subgrid_file (sfincs_subgrid)
    !
    use sfincs_data
    use quadtree
@@ -505,6 +568,10 @@ contains
 
 
    subroutine read_subgrid_file_original()
+   !
+   ! Read the subgrid tables from an original (binary) file.
+   !
+   ! Called from: read_subgrid_file (sfincs_subgrid)
    !
    use sfincs_data
    use quadtree
@@ -959,6 +1026,10 @@ contains
 
    subroutine compute_initial_subgrid_volumes()
    !
+   ! Compute the initial water volume in each cell from the subgrid tables.
+   !
+   ! Called from: initialize_hydro (sfincs_domain)
+   !
    use sfincs_data
    !
    implicit none
@@ -1015,6 +1086,15 @@ contains
    end subroutine
 
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

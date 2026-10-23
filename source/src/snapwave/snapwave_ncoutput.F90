@@ -1,6 +1,20 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module snapwave_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF output for SnapWave: writes the SnapWave mesh to file.
+   !
+   ! Subroutines / functions:
+   !
+   !   write_snapwave_mesh(fname, crsgeo)
+   !     Write the SnapWave mesh (nodes, faces, depth and mask) to a netCDF file.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
    use sfincs_log
    use netcdf       
    !
@@ -9,6 +23,14 @@ module snapwave_ncoutput
    contains
    !
    subroutine write_snapwave_mesh(fname, crsgeo)
+      !
+      ! Write the SnapWave mesh (nodes, faces, depth and mask) to a netCDF file.
+      !
+      ! Input:
+      !   fname  : name of the netCDF file to write
+      !   crsgeo : grid is in geographic coordinates
+      !
+      ! Called from: initialize_snapwave_domain (snapwave_domain)
       !
       use snapwave_data
       !
@@ -125,6 +147,15 @@ module snapwave_ncoutput
    
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

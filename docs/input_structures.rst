@@ -1,14 +1,13 @@
-﻿User manual - structures
-=====
+﻿Structures
+==========
 
 Overview
 -----
 
 The input for SFINCS is supplied using various text and binary files, which are linked through the main input file: sfincs.inp.
-Within this section of the user manual all different types of structures to reduce flood hazards with input settings and files are discussed.
-The figure below gives an overview of all different types of input files and whether they are required or not.
-Below an example is given of this file, which uses a keyword/value layout. 
-For more information regarding specific parameters see the pages 'Input parameters' or 'Output parameters'.
+This section of the user manual describes the different types of structures that can be used to represent flood hazard reduction measures, together with their input settings and files.
+The figure below gives an overview of the input files and indicates whether each one is required or optional.
+For more information regarding specific parameters, see the pages 'Input parameters' or 'Output parameters'.
 
 **NOTE - In the manual below, blocks named 'Python example using HydroMT-SFINCS' are included, referring to easy setup functions of the HydroMT-SFINCS Python toolbox: https://deltares.github.io/hydromt_sfincs/latest/**
 
@@ -16,18 +15,18 @@ For more information regarding specific parameters see the pages 'Input paramete
    :width: 800px
    :align: center
 
-   Overview of input file of SFINCS with indication whther they are required or not
+   Overview of input file of SFINCS with indication whether they are required or not
 
-Structures
------
+Flow-blocking structures
+------------------------
 
-SFINCS consists of multiple options for adding structures that can divert or block flow of water, which can be used to simulate flood hazard reduction methods.
+SFINCS provides several types of structures that block or throttle the flow of water between grid cells, which can be used to simulate flood hazard reduction measures.
 
 Thin dam
 ^^^^^
 
-With a thin dam flow through certain grid cells is completely blocked (i.e. an infinitely high wall).
-One can provide multiple polylines within one file, a maximum of 5000 supplied points is supported.
+A thin dam blocks the cell-to-cell connections (u/v faces) that the polyline snaps to, acting as an infinitely high wall along those faces. Flow parallel to the dam is unaffected — only the normal-component fluxes across the snapped faces are set to zero.
+Multiple polylines can be supplied within a single file.
 The supplied polylines are snapped onto the SFINCS grid within the model.
 
 .. figure:: ./figures/SFINCS_thindam_grid.png
@@ -77,14 +76,27 @@ The supplied polylines are snapped onto the SFINCS grid within the model.
 Weirs
 ^^^^^
 
-Weirs are in principle the same as a thin dam, but then with a certain height (levee).
-When the water level on either or both sides of the weir are higher than that of the weir, a flux over the weir is calculated.
-Hereby a situation where the weir is partly or fully submerged is distinguished.
-Besides the x&y locations per points, also the elevation z and a Cd coefficient for the weir formula (recommended to use 0.6).
+Weirs are similar to a thin dam, but with a finite crest elevation (like a levee).
+When the water level on either or both sides of the weir is higher than the weir crest, a flux over the weir is calculated.
+A distinction is made between free (modular) flow and submerged flow, using a broad-crested weir formula:
+
+.. math::
+
+   q =
+   \begin{cases}
+   C_d \cdot 1.7049 \cdot h_1^{3/2},                     & h_2 \le \tfrac{2}{3}\, h_1 \quad\text{(free flow)} \\
+   C_d \cdot h_2 \cdot \sqrt{2\, g\, (h_1 - h_2)},       & h_2 >   \tfrac{2}{3}\, h_1 \quad\text{(submerged)}
+   \end{cases}
+
+where :math:`h_1 = \max(z_{s,\text{up}} - z_\text{weir},\, 0)` is the head above the crest on the upstream side, :math:`h_2 = \max(z_{s,\text{dn}} - z_\text{weir},\, 0)` is the head on the downstream side, :math:`z_\text{weir}` is the user-supplied crest elevation, :math:`C_d` is the user-supplied discharge coefficient (0.6 is a typical value), and :math:`g = 9.81` m/s². The discharge :math:`q` is per unit width; SFINCS multiplies by the length of the weir segment inside each grid cell. The constant 1.7049 is :math:`\tfrac{2}{3}\sqrt{\tfrac{2}{3} g}`, the standard broad-crested free-flow coefficient.
+
+Each point in the weir file carries its x and y location, the crest elevation z, and the :math:`C_d` coefficient.
 The supplied polylines are snapped onto the SFINCS grid within the model.
-While running SFINCS the number of structure uv points found is displayed, e.g.:
-	Info : 7932 structure u/v points found
-Note that SFINCS displays the points found after snapping to the grid (max 2 per grid cell), not how many were specified in the input.
+While running SFINCS, the number of structure uv-points found (after snapping) is displayed, e.g.::
+
+   Info : 7932 structure u/v points found
+
+Note that this is the count after snapping to the grid (at most 2 per grid cell), not the number of points supplied in the input.
 
 The snapped coordinates are available in sfincs_his.nc as structure_x, structure_y & structure_height from SFINCS v2.0.2 onwards.
 
@@ -131,30 +143,40 @@ The snapped coordinates are available in sfincs_his.nc as structure_x, structure
 
 **NOTE - If your weir elevation is unknown a priori, you can also let HydroMT-SFINCS derive this from an input (low-resolution) DEM by specifying 'dep' and adding a certain assumed elevation 'dz'**
 
-Drainage Pumps and Culverts
-^^^^^
+Drainage Structures
+-------------------
 
-**Introduction**
+.. important::
 
-In SFINCS, drainage pumps, culverts and check valves (one way culverts) are specified using the same input file format, with the structure type distinguished by an indicator:
+   **Drainage structures do not block flow.** They simply transfer water
+   from one grid cell (the intake, ``src_1``) to another (the outfall,
+   ``src_2``), without representing any physical barrier. If the drainage
+   path passes through an embankment, dam face, or culvert wall that is
+   not already resolved by the model topography, that blocking
+   geometry must be added separately using a thin dam or a weir. Without
+   it, water will simply flow around the drainage structure as if it were
+   not there.
 
-- type=1: Drainage pump
-- type=2: Culvert
-- type=3: Check valve
+**Overview**
 
-A drainage pump moves water from a retraction point (source location) to an outflow point (sink location) at a specified discharge rate, as long as there is enough water available at the retraction point. The discharge rate is defined using the par1 parameter.
+SFINCS supports four types of internal drainage structures that move water between two grid cells without resolving the flow through a physical momentum equation. They are configured through a single file (typically sfincs.drn), referenced from ``sfincs.inp`` with the ``drnfile`` keyword. Dike breaches use the same file format, but are read from a separate file (see :ref:`dike breach <dkb>` below).
 
-For culverts, par1 represents the discharge capacity. The actual flow through the culvert depends on the water level difference (head difference) between the upstream and downstream ends. This gradient determines how much water flows through the culvert based on the capacity defined in par1.
+**NOTE - The TOML format of this file is available from SFINCS v2026.02 Hautacam release onwards. The legacy fixed-column format is still accepted (see below).**
 
-The check valve requires the same par1 discharge capacity input as a culvert, but only allows flow in one direction, preventing backflow (e.g. for a one-way tide gate). Water is only flowing if the water level at input point 1 is larger than the water level at output point 2.
+.. code-block:: text
 
-**Input Parameters**
+   drnfile = sfincs.drn
 
-- x & y locations: Coordinates for the retraction (source) and outflow (sink) points.
-- Type: Specifies if the structure is a drainage pump (type=1), a culvert (type=2) or a check valve (type=3).
-- par1: Sets the discharge capacity. Additional parameters (par2 to par5) are included as placeholders for future updates.
+The four structure types are:
 
-You can know how much discharge is extracted by the model in the sfincs_his.nc output by specifying 'storeqdrain=1' from SFINCS v2.0.2 onwards, see the description in "Input parameters".
+- ``pump`` — drainage pump. Moves a prescribed discharge ``q`` from ``src_1`` to ``src_2``, limited by available water. Same as the original drainage pump (legacy ``type = 1``).
+- ``culvert_simple`` — lumped one-coefficient culvert. Bidirectional by default. Same as the original culvert (legacy ``type = 2``) and check valve (legacy ``type = 3``).
+- ``culvert`` — detailed culvert with a rectangular or circular barrel (``shape``), invert elevations and barrel friction, taking the minimum of inlet and outlet control. New from SFINCS v2026.02 Hautacam release onwards.
+- ``gate`` — bidirectional gate with a sill and an inertial culvert-style momentum update (Bates et al., 2010). Generalises the original water-level- and time-controlled gates (legacy ``type = 4`` and ``5``); rule-based control is available from SFINCS v2026.02 Hautacam release onwards.
+
+All structures can be driven by optional rule expressions (see :ref:`open/close rules <drn_rules>` below) that open or close the structure based on water levels at user-chosen observation cells.
+
+The discharge through each structure is always written to the ``sfincs_his.nc`` output as ``drainage_discharge``.
 
 .. figure:: ./figures/SFINCS_drainage_grid.png
    :width: 400px
@@ -162,61 +184,570 @@ You can know how much discharge is extracted by the model in the sfincs_his.nc o
 
    Example of how drainage pump/culvert input points with sink and source locations from 2 different structures are snapped to the grid of SFINCS.
 
-**drnfile = sfincs.drn**
+**Common input keys**
+
+Every ``[[src_structure]]`` block carries a small set of keys that are shared across all four types. Per-type required and optional keys are documented in the sub-subsections further below.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - **name**
+     - string
+     - Unique identifier for the structure. Required.
+   * - **type**
+     - string
+     - One of ``"pump"``, ``"culvert_simple"``, ``"culvert"``, ``"gate"``. The legacy alias ``"check_valve"`` maps to ``culvert_simple`` with ``direction = "positive"``. Required.
+   * - **src_1**
+     - [x, y]
+     - Coordinates of the intake cell, in the grid CRS. Required.
+   * - **src_2**
+     - [x, y]
+     - Coordinates of the outfall cell, in the grid CRS. Required.
+   * - obs_1
+     - [x, y]
+     - Coordinates of the observation cell feeding the ``z1`` atom in rule expressions. Default: the ``src_1`` coordinates.
+   * - obs_2
+     - [x, y]
+     - Coordinates of the observation cell feeding the ``z2`` atom in rule expressions. Default: the ``src_2`` coordinates.
+   * - direction
+     - string
+     - Flow-direction filter. One of ``"both"`` (default), ``"positive"`` (allow flow ``src_1 -> src_2`` only), ``"negative"`` (allow flow ``src_2 -> src_1`` only). Meaningful for bidirectional types (``culvert_simple``, ``culvert``); ``pump`` is one-way by construction and ``gate`` is typically left bidirectional.
+   * - opening_duration
+     - real
+     - Ramp time (s) for the closed → open transition. Default: **600.0** for ``gate``; **0.0** (instant) for ``pump``, ``culvert_simple``, ``culvert``.
+   * - closing_duration
+     - real
+     - Ramp time (s) for the open → closed transition. Same defaults as ``opening_duration``.
+   * - rule
+     - array of tables
+     - Ordered list of ``[[src_structure.rule]]`` control rules, each with an ``operation`` (``"open"``, ``"close"`` or ``"hold"``) and a ``when`` expression. See :ref:`control rules <drn_rules>`.
+
+Pump
+^^^^
+
+A drainage pump moves water from the intake cell ``src_1`` to the outfall cell ``src_2`` at a prescribed discharge ``q`` (m³/s). The discharge is signed in the sense that ``q > 0`` pumps from ``src_1`` to ``src_2``; ``q < 0`` reverses the direction. As the upstream depth drops below a small internal threshold (0.1 m, hard-coded), the discharge is scaled linearly so the pump cannot pump a cell dry:
+
+.. math::
+
+   Q = q \cdot \min\!\left(1,\, \frac{h_\text{up}}{0.1~\text{m}}\right)
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - **q**
+     - real
+     - Nominal pump discharge in m³/s. Required. The dry-prevention scaling above is an internal safety and is not user-tunable.
+
+All common keys (``name``, ``type``, ``src_*``, ``obs_*``, ``direction``, ``opening_duration``, ``closing_duration``, ``rule``) are accepted as documented in the common-keys table above.
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name        = "south_pump"
+   type        = "pump"
+   src_1       = [50.0, 25.0]
+   src_2       = [150.0, 25.0]
+   q           = 0.345
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z1 > 0.20"
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z1 < 0.05"
+
+Culvert (simple)
+^^^^^^^^^^^^^^^^
+
+The simple culvert uses a single lumped coefficient and a square-root head-difference law. It is the fastest choice when geometry is unknown or unimportant. Setting ``direction = "positive"`` (or equivalently using the ``check_valve`` type alias) turns the structure into a check valve that blocks backflow — useful for one-way tide gates and similar features.
+
+.. math::
+
+   Q = c_f \cdot \operatorname{sign}(\Delta h) \cdot \sqrt{|\Delta h|}
+
+with :math:`\Delta h = z_{s,1} - z_{s,2}`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - **flow_coef**
+     - real
+     - Lumped discharge coefficient :math:`c_f` from the formula above (units chosen so the formula returns m³/s when ``Δh`` is in m). Required.
+
+All common keys are accepted. Set ``direction = "positive"`` (or use ``type = "check_valve"``) to block backflow.
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name      = "north_check_valve"
+   type      = "culvert_simple"
+   direction = "positive"
+   src_1     = [75.0, 25.0]
+   src_2     = [125.0, 25.0]
+   flow_coef = 0.345
+
+Culvert (detailed)
+^^^^^^^^^^^^^^^^^^
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
+The detailed culvert models a barrel with a rectangular (``width`` × ``height``) or circular (``diameter``) cross-section, selected with ``shape``. The controlling sill is the higher of the two inverts, :math:`z_\text{sill} = \max(\text{invert}_1, \text{invert}_2)`; upstream and downstream are assigned on the fly from the sign of :math:`\Delta h = z_{s,1} - z_{s,2}`, so the structure is bidirectional (restrict with ``direction`` if needed).
+
+Let :math:`h_\text{up}` be the upstream depth above :math:`z_\text{sill}`. The barrel is filled to :math:`d = \min(h_\text{up}, D)`, where :math:`D` is the barrel ``height`` (rectangular) or ``diameter`` (circular), so the flow area :math:`A(d)` stops growing once the barrel runs full. As in standard culvert practice (e.g. FHWA HDS-5), the discharge is the smaller of an inlet-control and an outlet-control estimate:
+
+.. math::
+
+   Q = \operatorname{sign}(\Delta h) \cdot \min\left(Q_\text{in},\, Q_\text{out}\right)
+
+.. math::
+
+   Q_\text{in}  = c_f \, A \, \sqrt{2 g \,(h_\text{up} - y_c)}, \qquad
+   Q_\text{out} = A \, \sqrt{\frac{2 g\, |\Delta h|}{K}}, \qquad
+   K = \frac{1}{c_f^2} + \frac{2 g\, L\, n^2}{R^{4/3}}
+
+where :math:`y_c` is the height of the flow-area centroid above the invert, :math:`R` the hydraulic radius, :math:`L` the barrel ``length`` and :math:`n` its ``mannings_n``. Inlet control covers both a free-surface (weir-like) inlet and a drowned (orifice-like) inlet. Outlet control accounts for local entrance/exit losses (lumped in :math:`c_f`), barrel friction and the tailwater level. Both estimates are continuous in the water levels, so the discharge is continuous across regime changes. The cross-section geometry follows from ``shape``:
+
+- ``"rectangular"``: :math:`A = w\,d`, :math:`y_c = d/2`. :math:`R` uses the open-channel wetted perimeter :math:`w + 2d` when partially full and the closed perimeter :math:`2(w + d)` when full.
+- ``"circular"``: :math:`A`, :math:`y_c` and :math:`R` are those of the circular segment with central angle :math:`\theta = 2 \arccos(1 - 2d/D)`, i.e. :math:`A = \tfrac{D^2}{8}(\theta - \sin\theta)` and wetted perimeter :math:`\tfrac{D}{2}\theta`. At full flow, :math:`A = \pi D^2/4` and :math:`R = D/4`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - shape
+     - string
+     - Barrel cross-section: ``"rectangular"`` (default) or ``"circular"`` (case-insensitive). Determines which geometry keys are required. Any other value is an error.
+   * - **width**
+     - real
+     - Barrel width (m). Required for ``shape = "rectangular"``; ignored for ``"circular"``.
+   * - **height**
+     - real
+     - Barrel height (m). Caps the flow area when the barrel runs full. Required for ``shape = "rectangular"``; ignored for ``"circular"``.
+   * - **diameter**
+     - real
+     - Barrel diameter (m). Required for ``shape = "circular"``; ignored for ``"rectangular"``.
+   * - **invert_1**
+     - real
+     - Invert elevation at the ``src_1`` end (m, same datum as ``zb``). Required.
+   * - **invert_2**
+     - real
+     - Invert elevation at the ``src_2`` end (m, same datum as ``zb``). Required.
+   * - flow_coef
+     - real
+     - Discharge coefficient :math:`c_f`, used for inlet control and as the lumped entrance/exit loss :math:`1/c_f^2` in outlet control. Default: **0.6**.
+   * - length
+     - real
+     - Barrel length :math:`L` (m) for the Manning friction loss. Default: **0.0** (no friction loss).
+   * - mannings_n
+     - real
+     - Manning roughness :math:`n` of the barrel (s/m\ :sup:`1/3`). Default: **0.013** (concrete).
+
+All common keys are accepted. A rectangular box culvert:
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name       = "west_culvert"
+   type       = "culvert"
+   src_1      = [100.0, 50.0]
+   src_2      = [100.0, 150.0]
+   width      = 1.2
+   height     = 1.0
+   invert_1   = 0.20
+   invert_2   = 0.15
+   length     = 20.0
+   flow_coef  = 0.6
+
+A circular pipe culvert:
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name       = "road_pipe"
+   type       = "culvert"
+   shape      = "circular"
+   src_1      = [200.0, 50.0]
+   src_2      = [200.0, 150.0]
+   diameter   = 0.8
+   invert_1   = 0.10
+   invert_2   = 0.05
+   length     = 15.0
+   mannings_n = 0.013
+
+There is no separate orifice structure type. To model an orifice, use ``type = "culvert"`` with ``length = 0`` (the default): with no friction loss, the outlet-control estimate is :math:`c_f A \sqrt{2 g |\Delta h|}`, the classic orifice formula.
+
+Gate
+^^^^
+
+The gate is a bidirectional opening with a horizontal sill. Discharge is computed from an inertial culvert-style momentum update (Bates et al., 2010), per unit width, and then multiplied by the gate ``width``. The previous-step discharge :math:`q^n` is carried through the relaxation blend, so the gate has memory on the order of ``structure_relax`` seconds.
+
+With :math:`h = \max(\max(z_{s,1}, z_{s,2}) - z_\text{sill},\, 0)` and :math:`\partial z_s/\partial s = (z_{s,2} - z_{s,1})/L`:
+
+.. math::
+
+   q^{n+1} =
+   \frac{q^n - g\, h\, (\partial z_s/\partial s)\, \Delta t}
+        {1 + g\, n^2\, \Delta t\, |q^n| / h^{7/3}}
+
+then :math:`Q = c_f \cdot q^{n+1} \cdot w \cdot \text{fraction\_open}`, where :math:`c_f` is ``flow_coef``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - **width**
+     - real
+     - Gate width (m). Required.
+   * - **sill_elevation**
+     - real
+     - Sill elevation :math:`z_\text{sill}` (m, same datum as ``zb``). Required.
+   * - mannings_n
+     - real
+     - Manning's roughness coefficient on the gate sill. Default: **0.024** (concrete-lined).
+   * - flow_coef
+     - real
+     - Lumped discharge coefficient :math:`c_f` from the formula above, accounting for additional losses not captured by the Manning friction term. Default: **1.0** (no extra loss).
+
+All common keys are accepted. The gate defaults ``opening_duration`` and ``closing_duration`` to **600 s** (matching legacy ``dtype = 4`` behaviour) rather than the 0 s default used by the other three types.
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name             = "east_tide_gate"
+   type             = "gate"
+   src_1            = [200.0, 25.0]
+   src_2            = [250.0, 25.0]
+   obs_2            = [260.0, 25.0]   # observe water level just outside the gate
+   width            = 3.0
+   sill_elevation   = 0.20
+   mannings_n       = 0.024
+   opening_duration = 300.0
+   closing_duration = 300.0
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z2-z1 < 0.0 | z2 > 1.0"
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z2-z1 > 0.10"
+
+.. _dkb:
+
+Dike breach
+^^^^^^^^^^^
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
+A dike breach has been implemented as source-sink structure type of element, both the location and timing of the breach are predefined. The development of the breach width (and therefore discharge) depend on the outside and inside waterlevels. The breach first deepens and then widens, following the two-phase breach model of Verheij & Van der Knaap (2003). Like the other structures, a dike breach moves water from ``src_1`` to ``src_2`` (or back) and does not change the model bathymetry. The dike itself must therefore be represented in the model, for example by the topography or a weir, which the breach then bypasses.
+
+Dike breaches are specified in a separate TOML file, referenced from ``sfincs.inp`` with the ``dkbfile`` keyword. The file uses the same ``[[src_structure]]`` blocks as the drainage structures file, with ``type = "dike_breach"``. A ``dkbfile`` can be used with or without a ``drnfile``:
 
 .. code-block:: text
 
-	<xsnk1> <ysnk1> <xsrc1> <ysrc1> <type1> <par1-1> par2-1 par3-1 par4-1 par5-1
-	<xsnk2> <ysnk2> <xsrc2> <ysrc2> <type2> <par1-2> par2-2 par3-2 par4-2 par5-2
+   dkbfile = sfincs.dkb
 
-	e.g. pump:
-	50.00        25.00       150.00        25.00 1    0.345    0.000    0.000    0.000    0.000
-       	75.00        25.00       125.00        25.00 1    0.345    0.000    0.000    0.000    0.000
-       
-       	e.g. culvert:
-       	50.00        25.00       150.00        25.00 2    0.345    0.000    0.000    0.000    0.000
-       	75.00        25.00       125.00        25.00 2    0.345    0.000    0.000    0.000    0.000
-	
-**Python example using HydroMT-SFINCS**
+Place ``src_1`` (and ``obs_1``) on the side the flood water comes from (for example the river or sea side), and ``src_2`` (and ``obs_2``) on the side that floods (for example the polder).
+
+**Phase 1 - deepening.** From ``t_breach`` onwards, the breach has a fixed width :math:`B_0` and its crest level :math:`z_b` drops linearly from ``z_crest`` to ``z_min`` in ``t0`` seconds:
+
+.. math::
+
+   z_b(t) = z_\text{crest} - (z_\text{crest} - z_\text{min}) \, \frac{t - t_\text{breach}}{t_0}
+
+**Phase 2 - widening.** After ``t_breach + t0`` the crest stays at ``z_min`` and the breach widens at the rate
+
+.. math::
+
+   \frac{dB}{dt} = \frac{f_1 f_2}{\ln 10} \, \frac{(g \, \Delta H)^{3/2}}{u_c^2} \, \frac{1}{1 + \dfrac{f_2 \, g}{u_c} \, T}
+
+with :math:`B` in m, :math:`dt` and :math:`T` (the time since the start of phase 2) in hours, :math:`f_1 = 1.3`, :math:`f_2 = 0.04`, and :math:`\Delta H` the difference in head above ``z_min`` between ``obs_1`` and ``obs_2``. The critical flow velocity :math:`u_c` depends on the dike core material: 0.2 m/s for sand (``dike_core = 1``) and 0.5 m/s for clay (``dike_core = 2``). The breach only widens while the water level at ``obs_1`` is higher than at ``obs_2``; flow in the other direction is allowed, but does not widen the breach.
+
+**Discharge.** The discharge through the breach uses the water levels at ``obs_1`` and ``obs_2``. With :math:`h_\text{up}` and :math:`h_\text{dn}` the upstream and downstream depths above the breach crest :math:`z_b`:
+
+.. math::
+
+   Q =
+   \begin{cases}
+   B \cdot h_\text{dn} \cdot \sqrt{2 g\, |\Delta z_s|}, & h_\text{dn}/h_\text{up} \ge r_\text{sub} \quad\text{(submerged)} \\
+   1.71 \cdot B \cdot h_\text{up}^{3/2}, & h_\text{dn}/h_\text{up} < r_\text{sub} \quad\text{(free flow)}
+   \end{cases}
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 14 64
+
+   * - Key
+     - Type
+     - Description
+   * - **z_crest**
+     - real
+     - Initial dike crest elevation (m, same datum as ``zb``). Required.
+   * - **z_min**
+     - real
+     - Final (lowest) breach crest elevation (m, same datum as ``zb``). Required.
+   * - **t_breach**
+     - real
+     - Time at which the breach starts (s since ``tref``). Required.
+   * - **t0**
+     - real
+     - Duration of phase 1, the deepening from ``z_crest`` to ``z_min`` (s). Required.
+   * - **B0**
+     - real
+     - Breach width during phase 1, and the initial width of phase 2 (m). Required.
+   * - dike_core
+     - integer
+     - Dike core material: ``1`` = sand, ``2`` = clay. Default: **1**.
+   * - submergence_ratio
+     - real
+     - Threshold :math:`r_\text{sub}` on :math:`h_\text{dn}/h_\text{up}` that switches between the two regimes. Default: **0.667**.
+
+All common keys are accepted. The breach width in time is written to ``sfincs_his.nc`` as ``breach_width``.
+
+.. code-block:: toml
+
+   # sfincs.dkb
+
+   [[src_structure]]
+   name      = "north_breach"
+   type      = "dike_breach"
+   src_1     = [1000.0, 2100.0]   # river side
+   src_2     = [1000.0, 1900.0]   # polder side
+   z_crest   = 5.0                # initial crest elevation (m)
+   z_min     = 1.0                # final breach crest elevation (m)
+   t_breach  = 36000.0            # breach starts 10 hours after tref
+   t0        = 3600.0             # 1 hour of deepening
+   B0        = 10.0               # initial breach width (m)
+   dike_core = 2                  # clay core
+
+**Python example using HydroMT-SFINCS (TOML format)**
 
 .. code-block:: python
 
-	sf.drainage_structures.create(
-		locations="drainage_input.geojson",
-		stype='pump',
-		discharge=100.0,
-		merge=True
-	)
+   # Will be added soon: HydroMT-SFINCS support for writing dike breaches in the TOML format.
 
-	OR as a culvert:
+.. _drn_rules:
 
-	sf.drainage_structures.create(
-		locations="drainage_input.geojson",
-		stype='culvert',
-		discharge=100.0,
-		merge=True
-	)
+**Control rules**
 
-	More information: 
-	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsDrainageStructures.create.html
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
 
-**Calculating Culvert Discharge Capacity**
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
 
-For culverts, par1 (discharge capacity) can be calculated as:
+Any structure can carry an ordered list of control rules, written as ``[[src_structure.rule]]`` tables directly below its ``[[src_structure]]`` block. Each rule has two keys:
 
-``par1 = \(\mu \cdot A \cdot \sqrt{2g}\)``
+- ``operation`` — one of ``"open"``, ``"close"`` or ``"hold"``
+- ``when`` — a boolean expression (see below)
 
-where:
+Every time step SFINCS evaluates the rules in the order they are written. The first rule whose ``when`` expression is true sets the target position of the structure: ``open`` sets it to fully open (``fraction_open = 1``), ``close`` to fully closed (``fraction_open = 0``), and ``hold`` keeps the current position. If no rule is true, the structure also holds its current position. Because the first match wins, put the rule that should take priority (for example a safety closure) first.
 
-* \(\mu\) = dimensionless culvert loss coefficient, typically between 0 and 1
-* \(A\) = area of the culvert opening (m²)
-* \(g\) = gravitational acceleration (9.81 m/s²)
+The structure then moves towards its target: ``fraction_open`` increases by ``dt / opening_duration`` or decreases by ``dt / closing_duration`` per time step. If the target changes halfway through a transition, the structure simply turns around from its current position. Set ``opening_duration`` or ``closing_duration`` to ``0.0`` for an instantaneous transition. Leaving a gap between the open and close conditions (as in the pump example above) prevents the structure from rapidly toggling.
 
-This formula is derived from the Bernoulli Equation, which estimates flow based on the head difference.
+At the start of the simulation the rules are evaluated once. The structure starts fully open if the first matching rule is ``open``, and fully closed otherwise (including when no rule matches). A structure without any rules stays fully open for the entire simulation.
 
-* If \(\mu = 1\), the flow is assumed to be driven entirely by the head difference, with no friction or length-based losses.
-* If \(\mu < 1\), it accounts for additional energy losses, such as friction and entry/exit losses.
+The ``when`` expressions use a small expression language. The building blocks are:
 
-**Planned Enhancements**
+- ``z1`` — water level at the ``obs_1`` cell (m)
+- ``z2`` — water level at the ``obs_2`` cell (m)
+- ``z2-z1`` — the head difference (m)
+- ``z1-z2`` — the negative head difference (m)
+- ``t`` — model time in seconds since ``tref`` (s)
 
-Future updates will incorporate the Darcy–Weisbach equation for more accurate discharge estimates by considering frictional and minor losses along the culvert length, which is particularly useful for longer or rougher conduits.
+You compare one of these against a number using ``<``, ``>``, ``<=``, ``>=`` or ``=`` (``==`` is accepted as an alias for ``=``). Multiple comparisons can be combined with ``&`` for "and" and ``|`` for "or", and you can use parentheses to group them. All names are case-insensitive. Thresholds are stored in single precision, so time thresholds are exact for whole seconds up to about 1.6e7 s (~190 days) after ``tref``.
+
+Examples:
+
+.. code-block:: text
+
+   when = "z1 > 0.5"                               # intake rises above 0.5 m
+   when = "z2 > 2.0"                               # outfall floods above 2 m
+   when = "(z1 < 0.5 | z2-z1 > 0.05) & z2 < 1.5"   # combined trigger
+   when = "z2-z1 > 0.3"                            # outfall 0.3 m higher than intake
+   when = "t >= 168600 & t < 201600"               # time window (s since tref)
+   when = "t > 3600 & z2 > 1.0"                    # time and water level combined
+
+A gate that is closed during a fixed time window and open otherwise:
+
+.. code-block:: toml
+
+   [[src_structure]]
+   name             = "scheduled_gate"
+   type             = "gate"
+   src_1            = [36638.3, 402759.4]
+   src_2            = [37062.1, 402754.2]
+   width            = 140.4
+   sill_elevation   = -10.0
+   mannings_n       = 0.03
+   opening_duration = 4500.0
+   closing_duration = 4500.0
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "t >= 168600 & t < 201600"
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "t < 168600 | t >= 201600"
+
+**Discharge relaxation: structure_relax**
+
+Discharges from drainage structures are relaxation-blended between time steps to damp oscillations:
+
+.. math::
+
+   q^{n+1}_{\text{blended}} = \alpha \, q^{n+1}_{\text{raw}} + (1 - \alpha) \, q^{n}, \qquad \alpha = \frac{\Delta t}{T + \Delta t}
+
+where :math:`T` is the relaxation time constant in seconds, set by the ``structure_relax`` keyword in ``sfincs.inp``, and :math:`\Delta t` is the model time step. This is a first-order lag: the structure discharge follows the raw formula value with a response time of about :math:`T` seconds, independent of the time step. Default is ``10`` s; ``0`` disables the relaxation.
+
+**Output: storing structure discharges**
+
+The time-series discharge per structure is always written to ``sfincs_his.nc`` as ``drainage_discharge`` (along with ``drainage_fraction_open``, and ``breach_width`` for dike breaches), on the ``dthisout`` interval.
+
+**Example sfincs.drn file**
+
+.. code-block:: toml
+
+   # sfincs.drn
+
+   [[src_structure]]
+   name             = "south_pump"
+   type             = "pump"
+   src_1            = [50.0, 25.0]
+   src_2            = [150.0, 25.0]
+   q                = 0.345                     # pump discharge (m^3/s)
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z1 > 0.20"                      # start pumping when intake > 0.20 m
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z1 < 0.05"                      # stop pumping when intake drops below 0.05 m
+
+   [[src_structure]]
+   name             = "north_check_valve"
+   type             = "culvert_simple"
+   direction        = "positive"                # one-way; blocks backflow
+   src_1            = [75.0, 25.0]
+   src_2            = [125.0, 25.0]
+   flow_coef        = 0.345
+
+   [[src_structure]]
+   name             = "west_culvert"
+   type             = "culvert"
+   src_1            = [100.0, 50.0]
+   src_2            = [100.0, 150.0]
+   shape            = "rectangular"             # "rectangular" (default, width + height) or "circular" (diameter)
+   width            = 1.2
+   height           = 1.0
+   invert_1         = 0.20
+   invert_2         = 0.15
+   length           = 20.0                      # barrel length for Manning friction (m)
+   flow_coef        = 0.6                       # discharge coefficient
+
+   [[src_structure]]
+   name             = "east_tide_gate"
+   type             = "gate"
+   src_1            = [200.0, 25.0]
+   src_2            = [250.0, 25.0]
+   obs_2            = [260.0, 25.0]                     # observe water level just outside the gate
+   width            = 3.0
+   sill_elevation   = 0.20
+   mannings_n       = 0.024
+   opening_duration = 300.0                     # 5-minute ramp open
+   closing_duration = 300.0
+
+   [[src_structure.rule]]
+   operation = "close"
+   when      = "z2-z1 < 0.0 | z2 > 1.0"         # close on reversal (prevents backflow) or when outer water level exceeds 1.0 m
+
+   [[src_structure.rule]]
+   operation = "open"
+   when      = "z2-z1 > 0.10"                   # open when outer level exceeds inner by 0.10 m
+
+**Python example using HydroMT-SFINCS (TOML format)**
+
+.. code-block:: python
+
+   # Will be added soon: HydroMT-SFINCS support for writing drainage structures in the TOML format.
+
+**Python example using HydroMT-SFINCS (legacy format)**
+
+.. code-block:: python
+
+   sf.drainage_structures.create(
+       locations="drainage_input.geojson",
+       stype='pump',
+       discharge=100.0,
+       merge=True
+   )
+
+The ``discharge`` argument above is the pump discharge and applies to pumps only. Culverts and gates carry their own geometry-based parameters (width, height, inverts, flow coefficients, etc.) rather than a single discharge value — see the HydroMT-SFINCS documentation for the full argument list per structure type:
+
+https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.geometries.SfincsDrainageStructures.create.html
+
+**Legacy fixed-column drn format**
+
+The legacy ASCII fixed-column ``.drn`` format is still accepted for back-compatibility. Each non-blank, non-comment line describes one structure with the columns:
+
+.. code-block:: text
+
+   <x1> <y1> <x2> <y2> <type> <par1>
+
+where ``type`` is:
+
+- ``1`` — pump (``par1`` = pump discharge)
+- ``2`` — culvert (``par1`` = ``flow_coef``; maps to ``culvert_simple``)
+- ``3`` — check valve (``par1`` = ``flow_coef``; maps to ``culvert_simple`` with ``direction = "positive"``)
+
+Gates use six parameter columns instead of one:
+
+.. code-block:: text
+
+   <x1> <y1> <x2> <y2> 4 <width> <sill_elevation> <mannings_n> <zmin>   <zmax>  <t_ramp>
+   <x1> <y1> <x2> <y2> 5 <width> <sill_elevation> <mannings_n> <tclose> <topen> <t_ramp>
+
+- ``4`` — water-level-controlled gate: open while ``zmin < z1 < zmax``, closed otherwise
+- ``5`` — time-controlled gate: closed while ``tclose <= t < topen``, open otherwise (``tclose`` and ``topen`` in seconds since ``tref``)
+
+``t_ramp`` is used for both ``opening_duration`` and ``closing_duration``.
+
+Example:
+
+.. code-block:: text
+
+   # pump:
+    50.00  25.00 150.00  25.00  1  0.345
+    75.00  25.00 125.00  25.00  1  0.345
+
+   # culvert:
+    50.00  25.00 150.00  25.00  2  0.345
+    75.00  25.00 125.00  25.00  2  0.345
+
+   # time-controlled gate (closed from t = 168600 s to t = 201600 s):
+   36638.3 402759.4 37062.1 402754.2  5  140.4  -10.0  0.03  168600.0  201600.0  4500.0
+
+When SFINCS sees a legacy ``.drn`` file it automatically transcribes it to a sibling TOML file (``sfincs.toml.drn`` if the input was ``sfincs.drn``) and then reads that. Legacy gates are converted to TOML ``gate`` blocks with an ``open`` and a ``close`` rule: ``type = 4`` gates get ``z1`` rules derived from the ``zmin`` / ``zmax`` columns, and ``type = 5`` gates get ``t`` rules derived from the ``tclose`` / ``topen`` columns.

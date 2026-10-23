@@ -1,20 +1,15 @@
 module sfincs_momentum_velocity
    !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
 contains
    !
-   subroutine compute_fluxes_velocity(dt, tloop)
+   subroutine compute_fluxes_velocity(dt)
    !
    ! Computes fluxes over subgrid u and v points
-   !
-   integer   :: count0
-   integer   :: count1
-   integer   :: count_rate
-   integer   :: count_max
-   real      :: tloop
    !
    real*4    :: dt
    !
@@ -103,7 +98,7 @@ contains
    !
    logical   :: iwet
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('momentum')
    !
    min_dt = dtmax
    !
@@ -960,8 +955,7 @@ contains
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('momentum')
    !
    end subroutine
    !

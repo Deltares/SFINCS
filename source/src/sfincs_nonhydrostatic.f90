@@ -138,6 +138,49 @@
 !
 module sfincs_nonhydrostatic
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Non-hydrostatic pressure correction (regular and quadtree grids). See the notes above
+   ! the module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_nonhydrostatic()
+   !     Set up the indices and the sparse matrix structure of the non-hydrostatic solver.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   compute_nonhydrostatic(dt)
+   !     Solve for the non-hydrostatic pressure and correct the fluxes and velocities.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !   
    implicit none
    !
    ! Input parameters (sfincs.inp, read in sfincs_input)
@@ -278,6 +321,8 @@ contains
    ! Builds the row<->cell maps, the nonh face maps, the static neighbour map,
    ! the frozen bed slopes and the open-boundary fade-in, allocates the solver
    ! work arrays and pushes everything the per-step kernels touch onto the GPU.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use sfincs_log
@@ -605,17 +650,21 @@ contains
    end subroutine
 
 
-   subroutine compute_nonhydrostatic(dt, tloop)
+   subroutine compute_nonhydrostatic(dt)
    !
    ! Per-step non-hydrostatic pressure projection (see module header). Every
    ! numbered kernel below is one !$omp / !$acc loop.
    !
+   ! Input:
+   !   dt : time step [s]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
    !
-   integer   :: count0, count1, count_rate, count_max
-   real      :: tloop
    real*4    :: dt
    !
    integer   :: i, ip, ipuv, nm, nmn, nmu, iuv, iuvl, iuvr, j, jl, jr, f, iter, ipass, cnt, ineighbour
@@ -625,9 +674,9 @@ contains
    real*8    :: gam8, del8, bn8, gamold8, alpha8, beta8, pap8, bnorm8
    logical   :: bndok
    !
-   call system_clock(count0, count_rate, count_max)
-   !
    if (nrows == 0) return
+   !
+   call timer_start('non-hydrostatic')
    !
    ! Keller-box vertical factor (nonh_disp): 1.0 (default) is the strict
    ! linear-pressure single layer, h dwbar/dt = pnh/rho with wbar = (w_s + w_b)/2
@@ -1373,8 +1422,7 @@ contains
       !$omp end parallel do
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
+   call timer_stop('non-hydrostatic')
    !
    end subroutine
    !

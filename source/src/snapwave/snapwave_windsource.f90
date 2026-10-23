@@ -1,10 +1,61 @@
 module snapwave_windsource
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Wind growth in SnapWave: wind input source term, wave celerities and supporting
+   ! routines.
+   !
+   ! Subroutines / functions:
+   !
+   !   numerical_limiter(...)
+   !     Limit the wave energy and wave action to physically realistic values.
+   !     Called from: not called (currently unused)
+   !
+   !   compute_celerities(...)
+   !     Compute the group velocity, refraction speed and wave number at a node.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   windinput(...)
+   !     Compute the wind input source terms for wave energy and wave action.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   disper_approx_1(h, Tp, dkk, Cg)
+   !     Approximate solution of the dispersion relation at a single node: wave number and
+   !     group velocity.
+   !     Called from: compute_celerities (snapwave_windsource),
+   !       windinput (snapwave_windsource)
+   !
    implicit none
    !
    contains
    ! 
    subroutine numerical_limiter(ntheta,ee,aa,waveps,hh,dtheta,rho,g,gamma,sigmin,sigmax,H,E,A,sig)
+      !
+      ! Limit the wave energy and wave action to physically realistic values.
+      !
+      ! Input:
+      !   ntheta : number of wave directions
+      !   waveps : minimum energy density
+      !   hh     : water depth [m]
+      !   dtheta : directional resolution [rad]
+      !   rho    : water density [kg/m3]
+      !   g      : gravitational acceleration [m/s2]
+      !   gamma  : breaker index gamma [-]
+      !   sigmin : minimum wave frequency [rad/s]
+      !   sigmax : maximum wave frequency [rad/s]
+      !
+      ! Input/output:
+      !   ee     : wave energy density per direction
+      !   aa     : wave action density per direction
+      !
+      ! Output:
+      !   H      : wave height [m]
+      !   E      : wave energy, integrated over direction
+      !   A      : wave action, integrated over direction
+      !   sig    : mean wave frequency [rad/s]
+      !
+      ! Called from: not called (currently unused)
+      !
       implicit none
       !
       integer,intent(in)                      :: ntheta
@@ -65,6 +116,28 @@ module snapwave_windsource
    end subroutine numerical_limiter
    !
    subroutine compute_celerities(hh, sig, sinth, costh, ntheta, gamma, dhdx, dhdy, sinhkh, Hmx, kwav, cg, ctheta)
+      !
+      ! Compute the group velocity, refraction speed and wave number at a node.
+      !
+      ! Input:
+      !   hh     : water depth [m]
+      !   sig    : mean wave frequency [rad/s]
+      !   sinth  : sine of the wave directions
+      !   costh  : cosine of the wave directions
+      !   ntheta : number of wave directions
+      !   gamma  : breaker index gamma [-]
+      !   dhdx   : bed slope in x direction
+      !   dhdy   : bed slope in y direction
+      !
+      ! Output:
+      !   sinhkh : sinh(k h)
+      !   Hmx    : maximum wave height [m]
+      !   kwav   : wave number [rad/m]
+      !   cg     : group velocity [m/s]
+      !   ctheta : refraction speed per direction [rad/s]
+      !
+      ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+      !
       implicit none
       integer,  intent(in)                   :: ntheta
       real*4, intent(in)                     :: hh, sig, dhdx, dhdy
@@ -94,6 +167,30 @@ module snapwave_windsource
    end subroutine compute_celerities
    !
    subroutine windinput(u10, rho, g, hh, ntheta, windspreadfac, E, A, cg, eeprev, aaprev, ds, WsorE, WsorA, jadcgdx)
+      !
+      ! Compute the wind input source terms for wave energy and wave action.
+      !
+      ! Input:
+      !   u10           : wind speed at 10 m [m/s]
+      !   rho           : water density [kg/m3]
+      !   g             : gravitational acceleration [m/s2]
+      !   hh            : water depth [m]
+      !   ntheta        : number of wave directions
+      !   windspreadfac : directional distribution of the wind input [-]
+      !   E             : wave energy, integrated over direction
+      !   A             : wave action, integrated over direction
+      !   cg            : group velocity [m/s]
+      !   eeprev        : wave energy at the upwind point, per direction
+      !   aaprev        : wave action at the upwind point, per direction
+      !   ds            : distance to the upwind point, per direction [m]
+      !   jadcgdx       : 1 to include the group velocity gradient, 0 not to
+      !
+      ! Output:
+      !   WsorE         : wind input of wave energy, per direction
+      !   WsorA         : wind input of wave action, per direction
+      !
+      ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+      !
       implicit none  
       real*4                                      , intent(in) :: u10             !< [m/s] wind speed        
       real*4                                      , intent(in) :: rho             !< [kg/m3] density of water
@@ -211,6 +308,20 @@ module snapwave_windsource
    end subroutine windinput
    !
    subroutine disper_approx_1(h,Tp,dkk,Cg)
+      !
+      ! Approximate solution of the dispersion relation at a single node: wave number and
+      ! group velocity.
+      !
+      ! Input:
+      !   h   : water depth [m]
+      !   Tp  : wave period [s]
+      !
+      ! Output:
+      !   dkk : wave number [rad/m]
+      !   Cg  : group velocity [m/s]
+      !
+      ! Called from: compute_celerities (snapwave_windsource),
+      !   windinput (snapwave_windsource)
       !
       real*4, intent(in)                 :: h
       real*4, intent(in)                 :: Tp

@@ -1,4 +1,64 @@
    module sfincs_structures
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Structures on uv points: weirs and thin dams. Reads the structure files, snaps them to
+   ! the grid and computes the fluxes over them.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_structures()
+   !     Read all structure files (weirs and thin dams).
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   read_structure_file(filename, itype, npars)
+   !     Read one structure file and find the uv points the structures intersect.
+   !     Called from: read_structures (sfincs_structures)
+   !
+   !   read_thin_dams()
+   !     Read the thin dams file and close the uv points the thin dams intersect.
+   !     Called from: read_structures (sfincs_structures)
+   !
+   !   give_structure_information(struc_info)
+   !     Return the structure coordinates and heights for the his output.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
+   !   give_thindam_information(struc_info)
+   !     Return the thin dam coordinates for the his output.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
+   !   compute_fluxes_over_structures()
+   !     Compute the fluxes over the weir-type structures.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_error
    use sfincs_log
@@ -8,6 +68,8 @@
    subroutine read_structures()
    !
    ! Reads all structures file
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -38,6 +100,13 @@
    subroutine read_structure_file(filename,itype,npars)
    !
    ! Reads structures file
+   !
+   ! Input:
+   !   filename : name of the structure file
+   !   itype    : structure type
+   !   npars    : number of parameters per structure point
+   !
+   ! Called from: read_structures (sfincs_structures)
    !
    use sfincs_data
    use quadtree
@@ -386,6 +455,8 @@
    !
    ! Reads thd file
    !
+   ! Called from: read_structures (sfincs_structures)
+   !
    use sfincs_data
    use quadtree
    !
@@ -471,8 +542,10 @@
       !
       close(500)
       !
-      nrthindams = total_nr_points
-      !      
+      ! Count unique uv points: a uv point crossed by more than one thin dam is closed only once
+      !
+      nrthindams = count(istruc == 1)
+      !
       allocate(thindam_uv_index(nrthindams))
       !
       nstruc = 0
@@ -487,7 +560,7 @@
          endif
       enddo      
       !
-      write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
+      write(logstr,'(a,i0,a)')'Info    : ', nrthindams,' structure u/v points found'
       call write_log(logstr, 0)
       !
    endif   
@@ -498,6 +571,12 @@
    subroutine give_structure_information(struc_info)
    !
    ! Subroutine to provide structure information to output
+   !
+   ! Output:
+   !   struc_info : x, y and height of each structure point
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
    use sfincs_data
    !
    implicit none
@@ -546,6 +625,12 @@
    subroutine give_thindam_information(struc_info)
    !
    ! Subroutine to provide structure information to output
+   !
+   ! Output:
+   !   struc_info : x and y of each thin dam point
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
    use sfincs_data
    !
    implicit none
@@ -589,11 +674,14 @@
    end subroutine
 
    
-   subroutine compute_fluxes_over_structures(tloop)
+   subroutine compute_fluxes_over_structures()
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
    !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
+   use sfincs_timers
 !   use quadtree
    !
    implicit none
@@ -614,13 +702,7 @@
    real*4                       :: h2
    real*4                       :: qstruc
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !   
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('structures')
    !
    !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
    !$acc loop independent gang vector
@@ -691,9 +773,8 @@
    enddo
    !$acc end parallel
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
+   call timer_stop('structures')
+   !
    end subroutine
    
    

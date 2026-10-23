@@ -13,6 +13,7 @@ The following times the percentual progress % is shown, a rough estimate of the 
 
 Once '---Simulation is finished---', your model has run succesfully and is writing away the model output files.
 Additionaly some information is written to the screen regarding total runtime, time consumption per section, the average time step, and the maximum occured water depth in the entire computation.
+With 'writeruntime = 1' the runtime per section is also written to a file 'runtimes.txt' (from SFINCS v2026.02 Hautacam release onwards).
 If you know the initial water depth, this can give an indication whether the model has encountered instabilities or not.
 Hereafter SFINCS is closed off, ready to start a new simulation.
 
@@ -149,6 +150,26 @@ Besides model instabilities, other recurring problems might be:
 
 * SFINCS also gives input about certain files after reading in data and how these are snapped/interpreted. For instance for subgrid; "Number of subgrid levels : XXX", weirfile; "XXX structure u/v points found", wavemaker; "Number of wavemaker polylines found : XXX", observation points; "Warning : observation point XXX falls outside model domain.' - compare whether this is as expected.
 
+Tips and tricks
+-----
+
+* **Tip to view netcdf output while SFINCS is still running**: by default the HDF5 library (used for writing sfincs_map.nc and sfincs_his.nc) locks the output files while SFINCS writes to them, so other programs (e.g. Quickplot, Panoply, Matlab, Python/xarray) cannot open them until the simulation has finished. Disabling HDF5 file locking, by setting the environment variable HDF5_USE_FILE_LOCKING to FALSE before starting SFINCS, allows you to inspect the output during the simulation:
+
+.. code-block:: text
+
+	Windows (command prompt or run.bat):
+	set HDF5_USE_FILE_LOCKING=FALSE
+	sfincs.exe
+
+	Linux:
+	export HDF5_USE_FILE_LOCKING=FALSE
+	sfincs
+
+	Docker:
+	docker run -e HDF5_USE_FILE_LOCKING=FALSE -v <model_folder>:/data deltares/sfincs-cpu
+
+Note that the file being read may not yet contain the latest output timestep, and that the reading program might also need HDF5_USE_FILE_LOCKING=FALSE in its own environment.
+
 
 Output description
 =====
@@ -210,6 +231,10 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Maximum water level per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
 	  :units:		m above reference level
+	zvolmax
+	  :description:		Maximum subgrid volume in cell per 'dtmaxout' timestep, only given if dtmaxout>0, subgrid is used and storezvolmax = 1 (default), corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum_subgrid_volume_in_cell
+	  :units:		m^3
 	t_zsmax
 	  :description:		Time of max water level per cell and per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
@@ -235,6 +260,9 @@ In case of netcdf output, the given parameters mean the following:
 	cumprcp
 	  :description:		Cumulative precipitation depth over whole simulation.
 	  :units:		m	  	  
+	bucket_volume
+	  :description:		Current bucket storage per 'dtout' timestep, only given for inftype = bkt.
+	  :units:		m
 	inp
 	  :description:		Copy of all the supplied input to SFINCS from 'sfincs.inp'.
 	  :units:		-
@@ -248,7 +276,7 @@ In case of netcdf output, the given parameters mean the following:
 Parameters netcdf file observation points (sfincs_his.nc)
 -----	
 
-This file is only created if observation points are supplied in the 'obsfile', or if weirs/cross-sections are supplied.
+This file is only created if at least one of the following is supplied: observation points ('obsfile'), cross-sections, weirs, drainage structures, run-up gauges, river discharge points combined with 'store_river_discharge = 1', or urban drainage zones combined with 'store_urban_drainage_discharge = 1'.
 
 	point_x
 	  :description:		x coordinate of interpreted observation points in projected reference system
@@ -326,6 +354,9 @@ This file is only created if observation points are supplied in the 'obsfile', o
 	  :description:		Instantaneous infiltration rate per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	point_qinf	  
 	  :units:		m
+	point_S
+	  :description:		Current infiltration state per 'dthisout' timestep: Se (m) for inftype = cnb, soil moisture deficit (-) for gai, infiltration capacity (mm/hr) for hor, bucket storage (m) for bkt.
+	  :units:		depends on inftype
 	crosssection_discharge
 	  :description:		Discharge through cross-section per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	discharge	  
@@ -333,4 +364,11 @@ This file is only created if observation points are supplied in the 'obsfile', o
 	drainage_discharge
 	  :description:		Discharge through drainage structure per 'dthisout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	discharge	  
+	  :units:		m3/s
+	river_name
+	  :description:		Name of each river discharge point, taken from the optional 3rd column of the 'srcfile', or auto-generated as 'discharge_0001', 'discharge_0002', etc. when no name is given (always the case for 'netsrcdisfile'). Only written when 'store_river_discharge = 1'.
+	  :units:		-
+	river_discharge
+	  :description:		Discharge per river discharge point per 'dthisout' timestep, corresponding with netcdf variable 'time'. This is the prescribed discharge from the dis/netsrcdis input, linearly interpolated to the model time (instantaneous value, not time-averaged). It is not corrected afterwards, so a point that falls outside the active model domain is still reported, even though its discharge does not enter the model. Only written when 'store_river_discharge = 1'.
+	  :standard_name:	discharge
 	  :units:		m3/s

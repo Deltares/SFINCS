@@ -1,10 +1,57 @@
 module sfincs_data
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Global data of SFINCS: input parameters, process flags, grid and index arrays, and all
+   ! state and forcing variables shared between the modules.
+   !
+   ! Subroutines / functions:
+   !
+   !   fill_h73_tables()
+   !     Fill the lookup tables for the h**(7/3) calculations.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_parameters()
+   !     Legacy initialization of local time-loop parameters.
+   !     Called from: not called (currently unused)
+   !
+   !   finalize_parameters()
+   !     Deallocate the global arrays.
+   !     Called from: not called (the call in sfincs_finalize (sfincs_lib) is commented out)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
       !!! Revision data
       character*256 :: build_revision, build_date
       !!!!
       !!! Time variables
-      real    :: tstart_all, tfinish_all
       real*4  :: dtavg
       real*4  :: min_dt
       !!!
@@ -35,8 +82,6 @@ module sfincs_data
       real*4 gn2
       real*4 t0
       real*4 t1
-      real*4 t3
-      real*4 t4      
       real*4 dx
       real*4 dy
       real*4 dxinv
@@ -130,9 +175,7 @@ module sfincs_data
       character*256 :: obsfile
       character*256 :: crsfile
       character*256 :: rugfile
-      character*256 :: srcfile
-      character*256 :: disfile
-      character*256 :: drnfile
+      character*256 :: urbfile
       character*256 :: zsinifile
       character*256 :: rstfile
       character*256 :: indexfile
@@ -152,12 +195,11 @@ module sfincs_data
       character*256 :: weirfile
       character*256 :: qinffile
       character*256 :: netbndbzsbzifile
-      character*256 :: netsrcdisfile
       character*256 :: netamuamvfile
       character*256 :: netampfile
       character*256 :: netamprfile
       character*256 :: netspwfile
-      character*256 :: infiltrationfile      
+      character*256 :: inffile      
       character*256 :: scsfile
       character*256 :: smaxfile
       character*256 :: sefffile
@@ -204,7 +246,6 @@ module sfincs_data
       logical       :: snapwave_vegetation
       logical       :: store_cumulative_precipitation
       logical       :: store_maximum_waterlevel
-      logical       :: store_maximum_waterdepth
       logical       :: store_maximum_velocity
       logical       :: store_maximum_flux
       logical       :: store_t_zsmax
@@ -212,7 +253,7 @@ module sfincs_data
       logical       :: store_twet
       logical       :: store_hsubgrid
       logical       :: store_hmean      
-      logical       :: store_qdrain
+      logical       :: store_river_discharge
       logical       :: store_zvolume
       logical       :: store_zvolume_max
       logical       :: store_storagevolume            
@@ -222,13 +263,15 @@ module sfincs_data
       logical       :: store_wind_max
       logical       :: store_wave_forces
       logical       :: store_wave_direction
-      logical       :: useqxy0
-      logical       :: usehuv
-      logical       :: usehuv0
       logical       :: write_time_output
       logical       :: bziwaves         ! incoming-wave signal (bzi file or zi in netbndbzsbzifile) is applied at the water level boundaries; set when reading the boundaries
       logical       :: bziwaves_user    ! keyword bziwaves (default 1): 0 switches the incoming-wave signal off for both input routes
       logical       :: infiltration
+      logical       :: discharges
+      logical       :: drainage_structures
+      logical       :: urban_drainage
+      logical       :: store_urban_drainage_discharge
+      logical       :: store_cumulative_urban_drainage
       LOGICAL       :: netcdf_infiltration
       logical       :: debug
       logical       :: radstr
@@ -246,15 +289,12 @@ module sfincs_data
       logical       :: outflow_boundaries_in_mask
       logical       :: downstream_river_boundaries_in_mask
       logical       :: neumann_boundaries_in_mask
-      logical       :: use_uv
       logical       :: use_quadtree
       logical       :: use_quadtree_output
-      logical       :: interpolate_zst
       logical       :: advection
       logical       :: thetasmoothing            
       logical       :: fixed_output_intervals
       logical       :: use_storage_volume
-      logical       :: output_irregular_grid
       logical       :: use_spw_precip
       logical       :: friction2d
       logical       :: advection_mask
@@ -272,21 +312,6 @@ module sfincs_data
       logical       :: bathtub
       logical       :: bathtub_snapwave      
       !!!
-      !!! sfincs_input.f90 switches
-      integer storevelmax
-      integer storefluxmax
-      integer storevel
-      integer storecumprcp
-      integer storetwet
-      integer storetzsmax
-      integer storeqdrain
-      integer storezvolume
-      integer storezvolmax
-      integer storestoragevolume      
-      integer storemeteo
-      integer storehsubgrid
-      integer wrttimeoutput
-      !!!
       !!! Static data
       !!!
       integer*4 :: np
@@ -297,11 +322,6 @@ module sfincs_data
       ! Temp for reading ascii depfile in initialize_bathymetry().
       !
       integer*1, dimension(:,:), allocatable :: kcsg
-      !
-      ! Internal wave maker
-      !
-      integer*4 :: nkcs4
-      integer*4 :: nkcuv4
       !
       ! Indices
       !
@@ -415,6 +435,15 @@ module sfincs_data
       !
       real*4, dimension(:),   allocatable :: storage_volume  ! Storage volume green infra
       !
+      ! Bucket model - finite capacity reservoir with linear drainage
+      !
+      real*4, dimension(:),   allocatable :: bucket_volume                     ! current storage (m)
+      real*4, dimension(:),   allocatable :: bucket_capacity                   ! max capacity S_max (m)
+      real*4, dimension(:),   allocatable :: bucket_k                          ! drainage coefficient (1/s)
+      real*4, dimension(:),   allocatable :: bucket_drain_rate                 ! net removal from surface this step (m/s)
+      real*4, dimension(:),   allocatable :: bucket_loss                       ! loss fraction per cell (0-1), ET/deep percolation
+      real*4, dimension(:),   allocatable :: bucket_runoff                     ! bucket drainage returned as surface runoff (m/s)
+      !
       ! Wind reduction for spiderweb winds
       !
       real*4, dimension(:,:), allocatable :: z0land          ! z0 values over land for spiderweb wind speed reduction   
@@ -449,7 +478,6 @@ module sfincs_data
       !
       !!! Wave makers
       !
-      character*256 :: wavemaker_wvmfile ! polylines
       character*256 :: wavemaker_wfpfile ! forcing points
       character*256 :: wavemaker_whifile ! wave heights
       character*256 :: wavemaker_wtifile ! wave periods
@@ -461,7 +489,19 @@ module sfincs_data
       logical       :: wavemaker_hinc
       logical       :: wavemaker_spectrum
       logical       :: wavemaker_random
-      logical       :: wavemaker_timeseries
+      logical       :: wavemaker_timeseries ! a time series forced wave maker is present
+      logical       :: wavemaker_snapwave   ! a SnapWave forced wave maker is present
+      !
+      ! Wave maker forcing sources. A model may have one wave maker polyline forced by time series
+      ! (wavemaker_timeseries_wvmfile) and one forced by SnapWave (wavemaker_wvmfile).
+      !
+      integer, parameter :: wavemaker_index_timeseries = 1 ! forced by time series (wfp/whi/wti/wst files)
+      integer, parameter :: wavemaker_index_snapwave   = 2 ! forced by SnapWave
+      !
+      character*256 :: wavemaker_wvmfile            ! polyline file of the SnapWave forced wave maker
+      character*256 :: wavemaker_timeseries_wvmfile ! polyline file of the time series forced wave maker
+      !
+      integer*1, dimension(:), allocatable :: wavemaker_index_type ! forcing source of each wave maker u/v point
       !
       integer*4                            :: wavemaker_nr_uv_points
       real*4                               :: wavemaker_filter_time
@@ -659,7 +699,6 @@ module sfincs_data
       !!!
       !!! Boundary data
       !!!
-      integer ntb
       integer nbnd
       integer nbdr
       integer ngbnd, itbndlast, ntbnd
@@ -799,22 +838,26 @@ module sfincs_data
       !!!
       !!! Discharges and drainage
       !!!
-      integer                               :: nsrc
-      integer                               :: ndrn
-      integer                               :: nsrcdrn
+      ! Cell-wise accumulated discharge used by continuity. Size np. Zeroed
+      ! each step, then both sfincs_discharges and sfincs_src_structures
+      ! accumulate into it.
+      !
+      real*4, dimension(:),     allocatable :: qsrc        ! (np)   cell-wise discharge [m3/s]
+      !
+      ! River point discharges (sfincs_discharges)
+      !
+      ! Identifiers that are read by sfincs_input / sfincs_ncinput stay here;
+      ! the pure discharge-module-only state (itsrclast, nmindsrc, qtsrc,
+      ! src_name, src_name_len) has been moved into sfincs_discharges.
+      !
       integer                               :: ntsrc
-      integer                               :: itsrclast
-      real*4, dimension(:),     allocatable :: tsrc
-      real*4, dimension(:,:),   allocatable :: qsrc
-      real*4, dimension(:),     allocatable :: qtsrc
-      integer*4, dimension(:),  allocatable :: nmindsrc
-      integer*1, dimension(:),  allocatable :: drainage_type
-      real*4, dimension(:,:),   allocatable :: drainage_params
-      real*4, dimension(:),     allocatable :: drainage_distance
-      integer*1, dimension(:),  allocatable :: drainage_status
-      real*4, dimension(:),     allocatable :: drainage_fraction_open
+      real*4, dimension(:),     allocatable :: tsrc        ! (ntsrc) time stamps of river discharge time series
+      real*4, dimension(:,:),   allocatable :: qsrc_ts     ! (nr_discharge_points, ntsrc) river discharge time series matrix
       real*4, dimension(:),     allocatable :: xsrc
       real*4, dimension(:),     allocatable :: ysrc
+      !
+      ! Src-point structures (pumps, culverts, check valves, controlled gates)
+      ! live in module sfincs_src_structures.
       !!!
       !!! Structures
       !!!
@@ -881,6 +924,8 @@ module sfincs_data
    !
    ! Fill lookup tables for h**(7/3) calculations
    !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    implicit none
    !
    integer :: j, k
@@ -904,14 +949,14 @@ module sfincs_data
    
    subroutine initialize_parameters()
       !
+      ! Legacy initialization of local time-loop parameters.
+      !
+      ! Called from: not called (currently unused)
+      !
       implicit none
       !
       ! Parameters for sfincs.f90
       integer                       :: nt
-      integer                       :: itmapout
-      integer                       :: itmaxout
-      integer                       :: itrstout
-      integer                       :: ithisout
       !
       real*8                       :: t
       real*4                       :: dt
@@ -929,10 +974,6 @@ module sfincs_data
       maxdepth    = 999.0
       maxmaxdepth = 0.0
       nt          = 0
-      itmapout    = 0
-      itmaxout    = 0
-      itrstout    = 0
-      ithisout    = 0
       twindupd    = t0
       !
       tloop2      = 0.0
@@ -947,6 +988,10 @@ module sfincs_data
 
 
    subroutine finalize_parameters()
+   !
+   ! Deallocate the global arrays.
+   !
+   ! Called from: not called (the call in sfincs_finalize (sfincs_lib) is commented out)
    !
    implicit none
    !
@@ -982,7 +1027,13 @@ module sfincs_data
     if(allocated(qinffield)) deallocate(qinffield)
     if(allocated(ksfield)) deallocate(ksfield)
     if(allocated(scs_Se)) deallocate(scs_Se)
-    if(allocated(nuvisc)) deallocate(nuvisc)    
+    if(allocated(bucket_volume)) deallocate(bucket_volume)
+    if(allocated(bucket_capacity)) deallocate(bucket_capacity)
+    if(allocated(bucket_k)) deallocate(bucket_k)
+    if(allocated(bucket_drain_rate)) deallocate(bucket_drain_rate)
+    if(allocated(bucket_loss)) deallocate(bucket_loss)
+    if(allocated(bucket_runoff)) deallocate(bucket_runoff)
+    if(allocated(nuvisc)) deallocate(nuvisc)
     !
     ! Boundary velocity points
     !
@@ -1092,6 +1143,8 @@ module sfincs_data
     if(allocated(wavemaker_phi_ig)) deallocate(wavemaker_phi_ig)
     if(allocated(wavemaker_dphi_ig)) deallocate(wavemaker_dphi_ig)
     !
+    if(allocated(wavemaker_index_type)) deallocate(wavemaker_index_type)
+    !
     if(allocated(spw_times)) deallocate(spw_times)
     if(allocated(spw_xe)) deallocate(spw_xe)
     if(allocated(spw_ye)) deallocate(spw_ye)
@@ -1143,10 +1196,9 @@ module sfincs_data
     !!!
     !!! Discharges
     !!!
-    if(allocated(tsrc)) deallocate(tsrc)
     if(allocated(qsrc)) deallocate(qsrc)
-    if(allocated(qtsrc)) deallocate(qtsrc)
-    if(allocated(nmindsrc)) deallocate(nmindsrc)
+    if(allocated(tsrc)) deallocate(tsrc)
+    if(allocated(qsrc_ts)) deallocate(qsrc_ts)
     !!!
     !!! Structures
     !!!
