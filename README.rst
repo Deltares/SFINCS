@@ -47,7 +47,7 @@ For the SFINCS model itself, questions to fellow users can be asked in the SFINC
 
 Questions to fellow users regarding model building with the Python toolbox HydroMT-SFINCS can be asked in the HydroMT-SFINCS `github discussion board section. <https://github.com/Deltares/hydromt_sfincs/discussions>`_ 
 
-Licensing conditions?
+Licensing conditions source code?
 -------------------------------------------------------
 This source code is available open source under GNU GPL-3.0 license, see attached.
 This means (summarised, for details always read license):
@@ -55,13 +55,18 @@ This means (summarised, for details always read license):
 	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
 	- Limitations: No liability, no warranty
 
-Exception: the SnapWave wave model in ``source/src/snapwave/`` is available under the
-GNU LGPL-2.1 license, see ``source/src/snapwave/LICENSE``. SnapWave is copyright
-Dano Roelvink / IHE Delft, with modifications by Deltares; parts are adapted from XBeach
-(copyright UNESCO-IHE, Deltares and Delft University). The header of each file lists its
-copyright holders. SnapWave is linked into SFINCS, which as a whole is distributed under
-GNU GPL-3.0.
+SFINCS makes use of several third-party libraries, which are subject to their respective licenses:
+	- SnapWave (``source/src/snapwave/``): GNU LGPL-2.1, see ``source/src/snapwave/LICENSE``. Copyright Dano Roelvink / IHE Delft. Parts of the SnapWave code are adapted from XBeach (copyright UNESCO-IHE, Deltares and Delft University). SFINCS-SnapWave comes with modifications of and additions to SnapWave by Deltares (copyright Deltares). The header of each file lists its copyright holders.
+	- NetCDF-Fortran 4.6.1 (``source/third_party_open/netcdf/netcdf-fortran-4.6.1/``): copyright University Corporation for Atmospheric Research/Unidata, BSD-style license, see ``COPYRIGHT`` in that folder; the Fortran 2003 interfaces are under Apache-2.0, see ``F03Interfaces_LICENSE``.
+	- NetCDF-C 4.9.2 (Windows binaries in ``source/third_party_open/netcdf/netCDF 4.9.2/``): copyright UCAR/Unidata, BSD-style license. These binaries include HDF5, HDF4, zlib, libcurl and libjpeg, each under its own permissive license.
+	- TOML-Fortran (``source/third_party_open/utils/toml-f/``): copyright Sebastian Ehlert, dual-licensed under Apache-2.0 or MIT, see ``LICENSE-Apache`` and ``LICENSE-MIT`` in that folder.
+	- ``hpsort_eps`` heapsort (``source/third_party_open/utils/hpsort_eps.f90``): from EPW / Quantum ESPRESSO, copyright Samuel Poncé, Roxana Margine, Carla Verdi, Feliciano Giustino, Jesse Noffsinger and Brad Malone, GNU GPL.
+	- Astronomical tide routines (``source/third_party_open/Delft3D/astro.f90``): from Delft3D, copyright Stichting Deltares, GNU GPL-3.0.
 
+SnapWave and the other libraries are integrated into SFINCS, which as a whole is distributed under GNU GPL-3.0, as above.
+
+Licensing conditions executables?
+-------------------------------------------------------
 The SFINCS pre-compiled executables on Windows and Docker(linux) are available under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
 
 SFINCS is available under Deltares Freeware license without monetary fee, meaning (summarised, for details always read license):
