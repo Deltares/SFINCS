@@ -287,6 +287,10 @@ module sfincs_output
       !
       !$acc update host(zsmax)
       !
+      if (store_zvolume_max) then
+         !$acc update host(zvolmax)
+      endif
+      !
       if (store_maximum_velocity) then
          !$acc update host(vmax)
       endif
