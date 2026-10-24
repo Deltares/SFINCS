@@ -85,6 +85,7 @@ contains
       integer*8          :: dtsec
       character(len=256) :: wmsigstr
       character(len=256) :: advstr
+      character(len=256) :: momstr
       !
       iok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
       !
@@ -136,6 +137,7 @@ contains
       call get_keyword(500, 'nc_deflate_level',                nc_deflate_level,                2)                 ! netCDF deflate level (0-9)
       call get_keyword(500, 'bndtype',                         bndtype,                         1)                 ! boundary condition type
       call get_keyword(500, 'advection',                       advection,                       .true.)            ! enable momentum advection terms
+      call get_keyword(500, 'advection_fade_power',            advection_fade_power,            0)                 ! velocity scheme: advection x (face wet fraction)**power on partly wet subgrid faces; 0 = off
       call get_keyword(500, 'latitude',                        latitude,                        0.0)               ! reference latitude for projected Coriolis (deg)
       call get_keyword(500, 'pavbnd',                          pavbnd,                          0.0)               ! atmospheric pressure applied at boundary (Pa)
       call get_keyword(500, 'gapres',                          gapres,                          101200.0)          ! atmospheric reference pressure (Pa)
@@ -144,6 +146,7 @@ contains
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
       call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on advection term
+      call get_keyword(500, 'advection_umax_factor',           advection_umax_factor,           3.0)               ! velocity scheme: scale on the advective-speed bound sqrt(g*hu) + |u| (1 = strict)
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
       call get_keyword(500, 'btfilter',                        btfilter,                        60.0)              ! bathtub filter time scale (s)
@@ -199,11 +202,14 @@ contains
       ! Numerical parameters
       !
       call get_keyword(500, 'advection_scheme',                advstr,                          'upw1')            ! advection scheme label ('upw1' = 1st-order upwind, 'original' = legacy)
+      call get_keyword(500, 'momentum_scheme',                 momstr,                          'bates')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form)
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
       call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor
       call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold
+      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! velocity scheme: lower bound of the wiggle under-relaxation factor
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! velocity scheme: only under-relax faces where a wiggle is detected
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
@@ -605,6 +611,40 @@ contains
       else
          store_storagevolume = .false.
       endif
+      !
+      ! Momentum scheme: Bates flux form (default) or velocity form
+      !
+      if (trim(momstr) == 'bates') then
+         !
+         momentum_scheme = 0
+         !
+      else
+         !
+         momentum_scheme = 1
+         !
+         if (trim(momstr) /= 'velocity') then
+            write(logstr, *) 'Warning : momentum scheme ', trim(momstr), ' not recognized! Using velocity instead!'
+            call write_log(logstr, 1)
+         else
+            call write_log('Info    : momentum scheme : velocity form', 0)
+         endif
+         !
+      endif
+      !
+      ! Effective bed level. Subgrid models have no reliable per-cell zb, but the velocity-form
+      ! advection needs one. zb is then recomputed every step in sfincs_continuity as
+      ! zs - z_volume/area.
+      !
+      zb_effective = subgrid .and. momentum_scheme == 1
+      !
+      if (zb_effective) then
+         call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme)', 0)
+      endif
+      !
+      ! The cell wet fraction z_wetfrac is only used by the velocity-form momentum scheme
+      ! (wiggle suppression).
+      !
+      compute_wetfrac = momentum_scheme == 1 .and. wiggle_suppression
       !
       if (advection) then
          !

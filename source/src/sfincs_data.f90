@@ -117,6 +117,7 @@ module sfincs_data
       real*4 pavbnd
       real*4 gapres
       real*4 advlim
+      real*4 advection_umax_factor   ! scale on the advective-speed bound sqrt(g*hu) + |u| in the velocity scheme (1 = strict)
       real*4 slopelim
       real*4 twet_threshold
       real*4, dimension(:), allocatable :: cd_wnd
@@ -136,6 +137,7 @@ module sfincs_data
       real*4 structure_relax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 wiggle_facmin
       real*4 uvlim
       real*4 uvmax
       !real*4 normbnd
@@ -146,6 +148,7 @@ module sfincs_data
       real*4 nh_tstop
       integer nh_itermax
       real*4 nh_tol
+      logical zb_effective ! subgrid + (velocity scheme or nonh): zb is recomputed every step in continuity as the effective bed zs - z_volume/area
       real*4 runup_gauge_depth
       real*4 factor_wind
       real*4 factor_pres
@@ -159,6 +162,8 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
+      integer momentum_scheme   ! 0 = Bates flux form (default), 1 = velocity form
+      integer advection_fade_power ! adv is multiplied by phi**advection_fade_power (phi = subgrid uv wet fraction), 0 = no fade
       !
       character*256 :: depfile
       character*256 :: mskfile
@@ -293,6 +298,8 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_mask
       logical       :: wiggle_suppression
+      logical       :: wiggle_detect
+      logical       :: compute_wetfrac    ! cell wet fraction z_wetfrac is needed (velocity-form momentum with wiggle suppression or slope-driven flow)
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
@@ -639,6 +646,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
+      real*4, dimension(:),   allocatable :: z_wetfrac
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2

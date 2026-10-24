@@ -900,6 +900,8 @@ Recommended is to turn the advection term always on.
 
 'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is set to 1 (2025.01 release onwards).
 
+'advection_umax_factor' (only for momentum_scheme = velocity) scales the cap on the advective speeds, umax = advection_umax_factor * (sqrt(g*hu) + abs(u)), default 3.0. The cap keeps the advection term stable where the cell-mean depth is much smaller than the face depth, e.g. in steep subgrid valleys. Do not set it much lower: a value of 1 also clips the momentum flux into supercritical run-up fronts and reduced the breaking run-up in the NTHMP BP04 benchmark by 20-25 %.
+
 .. code-block:: text
 
 	huthresh 	= 0.05

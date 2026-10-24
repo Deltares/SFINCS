@@ -1810,9 +1810,29 @@ contains
       !
       call read_subgrid_file()
       !
-      ! In case of nonh, we also need zb
+      ! The velocity-form momentum scheme needs a per-cell bed level. Subgrid models have
+      ! no reliable file zb, so use the EFFECTIVE bed implied by the subgrid tables at full
+      ! wetness, zb = z_zmax - z_volmax/area: the cell-mean bed. From the first time step
+      ! onward continuity maintains the water-level-dependent effective bed
+      ! zb = zs - z_volume/area (zb_effective).
       !
-      if (nonhydrostatic) then
+      if (momentum_scheme == 1) then
+         !
+         allocate(zb(np))
+         !
+         do ip = 1, np
+            !
+            if (crsgeo) then
+               zb(ip) = subgrid_z_zmax(ip) - subgrid_z_volmax(ip) / cell_area_m2(ip)
+            else
+               zb(ip) = subgrid_z_zmax(ip) - subgrid_z_volmax(ip) / cell_area(z_flags_iref(ip))
+            endif
+            !
+         enddo
+         !
+      elseif (nonhydrostatic) then
+         !
+         ! In case of nonh, we also need zb
          !
          allocate(zb(np))
          !
@@ -2341,6 +2361,13 @@ contains
       ! 
    endif
    !
+   if (compute_wetfrac) then
+      !
+      allocate(z_wetfrac(np))
+      z_wetfrac = 1.0
+      !
+   endif
+   !
    if (snapwave) then
       !
       allocate(hm0(np))
@@ -2438,7 +2465,10 @@ contains
       t_zsmax = -999.0
    endif
    !
-   uv = 0.0
+   ! NOTE: do NOT reset uv here. set_initial_conditions() (called above) computes the initial
+   ! velocity uv = q/hu from the restart/initial flux. The flux-form (Bates) scheme carries q and
+   ! recomputes uv every step, so this stray reset was harmless there, but the velocity-form
+   ! (momentum_scheme=velocity) scheme carries uv0 and needs the initial velocity preserved.
    !
    if (wind) then
       !

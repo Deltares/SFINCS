@@ -65,8 +65,20 @@ Parameters for model input
 	  :units:		m/s2
 	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
-	  :max:			9999  
-	alpha	
+	  :max:			9999
+	advection_umax_factor
+	  :description:		Only for 'momentum_scheme = velocity'. Scales the cap on the advective speeds in the advection term, umax = advection_umax_factor * (sqrt(g*hu) + abs(u)). The cap keeps the advection stable where the cell-mean depth is much smaller than the face depth hu (e.g. steep subgrid valleys). A value of 1 is the strict characteristic-speed bound, but it also clips the momentum flux into supercritical run-up fronts (breaking run-up 20-25 % too low in the NTHMP BP04 benchmark); the default 3 leaves such fronts unclamped.
+	  :units:		-
+	  :default:		3.0
+	  :min:			1.0 (recommended)
+	  :max:			-
+	momentum_scheme
+	  :description:		Form of the momentum equation: 'bates' (flux form, default) or 'velocity' (velocity form). The velocity form is used for the advective tsunami and landslide applications in combination with the non-hydrostatic option.
+	  :units:		-
+	  :default:		bates
+	  :min:			bates
+	  :max:			velocity
+	alpha
 	  :description:		Numerical time step reduction for CFL-condition. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
 	  :default:		0.5		
