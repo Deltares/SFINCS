@@ -51,6 +51,7 @@ program sfincs
       ! 
       bmi = .false. 
       use_qext = .false.
+      use_dzbext = .false.
       ! 
       ierr = sfincs_initialize()
       ! 

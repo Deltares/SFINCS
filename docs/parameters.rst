@@ -312,6 +312,13 @@ More parameters for model input (only for advanced users)
 	  :min:			2 values
 	  :max:			-	  
 	
+	movingbed_filter
+	  :description:		Width factor of the depth filter applied to an external bed increment before the free surface is lifted with it (and before it is used as the non-hydrostatic moving-bed source). Gaussian with a standard deviation of movingbed_filter times the mean depth of the moving cells (Kajiura-type attenuation); 0 = raw increment, no filter.
+	  :units:		-
+	  :default:		0.8
+	  :min:			0.0
+	  :max:			-
+	
 Different parameters influencing the given output by SFINCS can be changed, see below. 
 
 Parameters for model output
@@ -438,6 +445,10 @@ Parameters for model output
 	  :description:		Flag to turn on writing away the maximum water volume 'zvolmax' in subgrid cells on 'dtmaxout' interval during simulation (storezvolmax = 1). Used for improved downscaling of flood maps. Only for subgrid models, and only if dtmaxout > 0.
 	  :units:		-
 	  :default:		1
+	store_dynamic_bed_level
+	  :description:		Flag to turn on writing away the bed level 'zb' on 'dtmapout' interval during simulation (store_dynamic_bed_level = 1), for bed levels that change during the run (e.g. set through the BMI 'dzbext' array). For subgrid mode 'zb' holds the minimum subgrid bed level per cell (z_zmin). Works for regular, subgrid and quadtree grids; the bed level at observation points (used for the water depth in sfincs_his.nc) follows the moving bed as well.
+	  :units:		-
+	  :default:		0
 	storestoragevolume
 	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
 	  :units:		-

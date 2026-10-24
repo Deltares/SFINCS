@@ -188,7 +188,7 @@ In case of netcdf output, the given parameters mean the following:
 	  :standard_name:	projection_y_coordinate	  
 	  :units:		m in projected reference system  
 	zb
-	  :description:		Bed level elevation (in case of subgrid version of SFINCS, this elevation is not used in the model but the sbgfile with subgrid tables is used instead).
+	  :description:		Bed level elevation (in case of subgrid version of SFINCS, this elevation is not used in the model but the sbgfile with subgrid tables is used instead). With store_dynamic_bed_level = 1, zb is written on every map output time (time-varying bed through the BMI 'dzbext' array); for subgrid models it then holds the minimum subgrid bed level per cell.
 	  :standard_name:	altitude	  
 	  :units:		m above reference level
 	msk
