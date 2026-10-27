@@ -105,6 +105,7 @@ The SFINCS team also includes Koen van Asselt, Tycho Bovenschen, Ap van Dongeren
    :caption: User manual:
 
    input
+   input_quadtree
    input_forcing
    input_structures
 

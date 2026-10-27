@@ -598,7 +598,7 @@ Domain
 	  :required:		yes
 	  :format:		asc	 
 	qtrfile = sfincs.nc
-	  :description:		Quadtree grid file with the cell locations, refinement levels, neighbour indices and mask of a quadtree model. If specified, mmax, nmax, dx, dy, depfile, mskfile and indexfile are not used. See 'Quadtree grid' in the user manual.
+	  :description:		Quadtree grid file with the cell locations, refinement levels, neighbour indices and mask of a quadtree model. If specified, mmax, nmax, dx, dy, depfile, mskfile and indexfile are not used. See 'User manual - quadtree'.
 	  :units:		-
 	  :required:		Only for quadtree models
 	  :format:		net
