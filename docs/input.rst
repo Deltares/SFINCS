@@ -47,14 +47,14 @@ Example of sfincs.inp
 
 	advection	= 1
 	alpha           = 0.5
-	huthresh	= 0.05
+	huthresh	= 0.01
 	manning         = 0.04	
 	theta 		= 1.0
 	qinf            = 0.0
         viscosity       = 1
 
-	dtout           = 3600
-	dtmaxout        = 86400	
+	dtmapout        = 3600
+	dtmaxout        = 86400
 	dthisout        = 600
 
 	inputformat     = bin
@@ -69,24 +69,25 @@ Example of sfincs.inp
 
 .. code-block:: python
 	
+	from datetime import datetime
+
+	# Grid keywords (x0, y0, mmax, ...) are set by sf.grid.create, see 'Grid characteristics'
 	sf.config.update(
-		**{
-		"x0": 0,
-		"y0": 0,
-		"mmax": 250,
-		"nmax": 150,
-		"dx": 100,
-		"dy": 100,
-		"rotation": 45,
-		"tref": "20090106 210000",
-		"tstart": "20090106 210000",
-		"tstop": "20090111 000000",
-		"dtmaxout": 86400,
-		"dtout": 3600,
-		"obsfile": "sfincs.obs",
+		{
+			"tref": datetime(2009, 1, 6, 21, 0, 0),
+			"tstart": datetime(2009, 1, 6, 21, 0, 0),
+			"tstop": datetime(2009, 1, 11, 0, 0, 0),
+			"dtmapout": 3600,
+			"dtmaxout": 86400,
+			"dthisout": 600,
+			"storevelmax": 1,
 		}
 	)
 
+	# Single keywords can also be set one at a time
+	sf.config.set("storecumprcp", 1)
+
+	# Writes sfincs.inp (sf.write() writes all model files, including sfincs.inp)
 	sf.config.write()
 
 	More information: 
@@ -107,7 +108,8 @@ Some of these are required (elevation, active cells, indexfile in case of binary
 Grid characteristics
 ^^^^^
 
-SFINCS uses a staggered equidistant recti-linear grid, grid sizes for x- a y-direction can be different. SFINCS can only be used in cartesian coordinates (e.g. UTM zone). 
+SFINCS uses a staggered equidistant recti-linear grid, grid sizes for x- a y-direction can be different. A projected coordinate system (e.g. UTM zone) is recommended; for geographic coordinates (longitude/latitude in degrees) specify 'crsgeo = 1'.
+To use finer grid cells only where needed, the grid can be refined locally, see 'Quadtree grid' below.
 The grid is initialised by stating an origin location of the cell edges (x0, y0), a number of grid cells in x-&y-direction (mmax, nmax) and the grid sizes in x-&y-direction (dx,dy).
 If desired the grid can also be rotated using 'rotation', in degrees from the x-axis (east) in anti-clockwise direction.
 
@@ -137,7 +139,7 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 		y0=5040000,
 		dx=50.0,
 		dy=50.0,
-		nmax=107,
+		nmax=157,
 		mmax=250,
 		rotation=27,
 		epsg=32633,
@@ -146,15 +148,129 @@ If desired the grid can also be rotated using 'rotation', in degrees from the x-
 	# Alternatively, we can also use a shape/geojson file to define the grid:
 
 	sf.grid.create_from_region(
-		region = {'geom': 'data/region.geojson'},
-		res= 50,
+		region={"geom": "data/region.geojson"},
+		res=50,
 		rotated=True,
-		crs=32633
+		crs=32633,  # or "utm" to select the UTM zone automatically
 	)
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsGrid.create_from_region.html
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html	
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
+
+Quadtree grid
+^^^^^^^^^^^^^
+
+On a regular grid all cells have the same size, so the resolution needed in the area of interest (e.g. a city or a narrow inlet) has to be used everywhere.
+A quadtree grid avoids this: it starts from a coarse regular grid, and cells are split into 4 smaller cells (half the size in x- and y-direction) only where more detail is needed.
+Splitting can be repeated, so a quadtree grid consists of several refinement levels:
+
+* level 1 has the cell size of the coarse grid (dx, dy);
+* level 2 has cells of dx/2 by dy/2;
+* level n has cells of dx/2^(n-1) by dy/2^(n-1).
+
+For example, with dx = dy = 400 m and 4 refinement levels, the cells are 400, 200, 100 and 50 m.
+This typically reduces the number of active cells, and with that the runtime, by an order of magnitude compared to a regular grid at the finest resolution.
+
+.. figure:: ./figures/SFINCS_quadtree_grid.png
+   :width: 400px
+   :align: center
+
+   Example of a quadtree grid with 3 refinement levels.
+
+Some rules and properties of a quadtree grid:
+
+* Neighbouring cells differ at most 1 refinement level. So a coarse cell borders at most 2 finer cells on each side. HydroMT-SFINCS takes care of this when building the grid.
+* The coarse grid is still defined by x0, y0, dx, dy, mmax, nmax and rotation, just like a regular grid. These values are stored in the quadtree file, so they do not have to be specified in sfincs.inp.
+* Quadtree grids are typically combined with subgrid tables (sbgfile, see 'Subgrid tables'), so that the coarser cells still use the high-resolution elevation and roughness data.
+* Water level boundary cells, observation points, discharge points, structures and all other input with x/y-coordinates work in the same way as on a regular grid; SFINCS finds the quadtree cell or cell interface at each location itself.
+* Spatially varying input per cell (e.g. 'inffile', 'manningfile', 'inifile') must follow the cell order of the quadtree file; HydroMT-SFINCS writes these files in this order.
+* The viscosity coefficient 'nuvisc' is multiplied with the cell size per refinement level, and at refinement level transitions it is increased by the factor 'nuviscfac' (default 100) to prevent instabilities.
+* The non-hydrostatic solver (nonh = 1) does not support quadtree grids with more than one refinement level.
+
+**qtrfile = sfincs.nc**
+
+A quadtree grid is supplied to SFINCS in a single netcdf file, specified with 'qtrfile'.
+When 'qtrfile' is given, the keywords mmax, nmax, dx, dy, x0, y0 and rotation, and the files 'depfile', 'mskfile' and 'indexfile' are not needed.
+The file follows the UGRID conventions (dimension 'mesh2d_nFaces' for the cells) and contains:
+
+* global attributes 'x0', 'y0', 'dx', 'dy', 'mmax', 'nmax', 'rotation' and 'nr_levels' describing the coarse grid;
+* per cell: the refinement level ('level'), the indices within that level ('n', 'm'), the indices of the neighbouring cells in each direction ('mu', 'mu1', 'mu2', 'md', 'md1', 'md2', 'nu', 'nu1', 'nu2', 'nd', 'nd1', 'nd2'), the bed level ('z') and the mask ('mask', with the same values 0-3 as described in 'Mask file').
+
+.. code-block:: text
+
+	e.g. in sfincs.inp:
+
+	qtrfile         = sfincs.nc
+	sbgfile         = sfincs_subgrid.nc
+	epsg            = 32633
+
+Map output of a quadtree model is written on the quadtree mesh in 'sfincs_map.nc', which can for instance be directly visualised in QGIS.
+In the special case of a quadtree file with only one refinement level, the map output is written as a regular grid, unless 'output_on_quadtree_mesh = 1' is specified.
+
+.. figure:: ./figures/sfincs_quadtree_logo_frames_banner_calm_floodframe_0440.png
+   :width: 800px
+   :align: center
+
+   Even the SFINCS logo can be meshed: a quadtree grid refines along the edges of the letters and the sphinx, and stays coarse elsewhere.
+
+**Python example using HydroMT-SFINCS**
+
+In HydroMT-SFINCS the quadtree versions of the grid components are named 'quadtree_grid', 'quadtree_mask', 'quadtree_subgrid', etc.
+They are used in the same way as their regular counterparts.
+The refinement is specified with polygons with a column 'refinement_level', giving the number of times the cells within the polygon are split (so 'refinement_level' = 1 gives level 2 cells, of dx/2).
+Optionally, a 'zmin' and/or 'zmax' column limits the refinement to cells with a bed level within that range.
+
+.. code-block:: python
+
+	import geopandas as gpd
+
+	# Polygons with a 'refinement_level' column, e.g. 1 along the coast and 2 in the city
+	gdf_refinement = gpd.read_file("data/refinement_polygons.geojson")
+
+	sf.quadtree_grid.create(
+		x0=318650,
+		y0=5040000,
+		dx=200.0,
+		dy=200.0,
+		nmax=40,
+		mmax=63,
+		rotation=27,
+		epsg=32633,
+		refinement_polygons=gdf_refinement,
+	)
+
+	# Or, analogous to sf.grid.create_from_region:
+	sf.quadtree_grid.create_from_region(
+		region={"geom": "data/region.geojson"},
+		res=200,
+		rotated=True,
+		crs="utm",
+		refinement_polygons=gdf_refinement,
+	)
+
+	elevation_list = [{"elevation": "merit_hydro", "zmin": 0.001}, {"elevation": "gebco"}]
+	roughness_list = [{"lulc": "vito_2015", "reclass_table": "vito_mapping.csv"}]
+
+	# Bed level per quadtree cell, used to define the mask
+	sf.quadtree_elevation.create(elevation_list=elevation_list)
+
+	# Active cells and water level boundary cells
+	sf.quadtree_mask.create_active(zmin=-5)
+	sf.quadtree_mask.create_boundary(btype="waterlevel", zmax=-5)
+
+	# Subgrid tables for all quadtree cells
+	sf.quadtree_subgrid.create(
+		elevation_list=elevation_list,
+		roughness_list=roughness_list,
+		nr_subgrid_pixels=8,
+	)
+
+	# Writes sfincs.nc (qtrfile), sfincs_subgrid.nc (sbgfile) and sfincs.inp
+	sf.write()
+
+	More information:
+	https://deltares.github.io/hydromt_sfincs/latest/
 
 Depth file
 ^^^^^
@@ -186,10 +302,11 @@ The reference level is not known to SFINCS (and not relevant for the computation
 	
 	# In this example we want to combine 2 elevation datasets, merit_hydro as elevation and gebco as bathymetry, in that order.
 
-	datasets_dep = [{"elevtn": "merit_hydro", "zmin": 0.001}, {"elevtn": "gebco"}]
+	# NOTE: from the 1st dataset (merit_hydro) only elevation above 0.001 m is used, gebco fills the remaining cells
+	elevation_list = [{"elevation": "merit_hydro", "zmin": 0.001}, {"elevation": "gebco"}]
 
 	# Add depth information to modelgrid based on these chosen datasets
-	sf.elevation.create(elevation_list=datasets_dep)
+	sf.elevation.create(elevation_list=elevation_list)
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsElevation.create.html
@@ -238,6 +355,7 @@ And afterwards with the function 'mask.create_boundary' to define of the active 
 	sf.mask.create_boundary(btype="waterlevel", zmax=-5, reset_bounds=True)
 
 	# Here we add outflow cells, only where clicked in shapefile along part of the lateral boundaries
+	gdf_include = sf.data_catalog.get_geodataframe("data/outflow_boundary_polygon.geojson")
 	sf.mask.create_boundary(btype="outflow", include_polygon=gdf_include, reset_bounds=True)
 
 	More information: 
@@ -270,12 +388,15 @@ Recommended Netcdf file input option available from SFINCS 2024.01 release onwar
 
 .. code-block:: python
 	
+	# Elevation datasets as in 'Depth file', roughness from a landuse map and a reclass table
+	elevation_list = [{"elevation": "merit_hydro", "zmin": 0.001}, {"elevation": "gebco"}]
+	roughness_list = [{"lulc": "vito_2015", "reclass_table": "vito_mapping.csv"}]
+
 	sf.subgrid.create(
-		elevation_list=datasets_dep,
-		roughness_list=datasets_rgh,
-		river_list=datasets_riv,
-		nlevels=10,
-		nr_subgrid_pixels=10,
+		elevation_list=elevation_list,
+		roughness_list=roughness_list,
+		nr_levels=10,  # number of levels in the subgrid tables
+		nr_subgrid_pixels=10,  # number of subgrid pixels per grid cell (in each direction)
 		write_dep_tif=True,
 		write_man_tif=True,
 	)
@@ -337,8 +458,10 @@ For spatially varying friction values per cell use the manningfile option, with 
 
 .. code-block:: python
 	
+	roughness_list = [{"lulc": "vito_2015", "reclass_table": "vito_mapping.csv"}]
+
 	sf.roughness.create(
-	    roughness_list=datasets_rgh,
+	    roughness_list=roughness_list,
 	    manning_land=0.04,
 	    manning_sea=0.02,
 	    rgh_lev_land=0,  # the minimum elevation of the land
@@ -428,12 +551,11 @@ For spatially varying infiltration values per cell use ``inffile`` with ``inftyp
 
 .. code-block:: python
 	
-	sf.infiltration.create_constant(
-		qinf=None,
-		lulc=None,
-		reclass_table=None,
-		reproj_method='average'
-	)
+	# From a raster with infiltration rates in mm/hr
+	sf.infiltration.create_constant(qinf="infiltration_rates.tif")
+
+	# Or from a landuse map with a reclass table that gives the infiltration rate per landuse class
+	sf.infiltration.create_constant(lulc="vito_2015", reclass_table="infiltration_mapping.csv")
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInfiltration.create_constant.html
@@ -761,9 +883,14 @@ Alternatively, you can specify initial conditions using a restart file, see belo
 
 .. code-block:: python
 
-	sf.initial_conditions.create(
-		ini ="ini_raster.geotiff",
-	)
+	# Spatially uniform: set the keyword
+	sf.config.set("zsini", 1.0)
+
+	# Spatially varying: from a raster with initial water levels
+	sf.initial_conditions.create(zsini="ini_raster.tif")
+
+	# Or with a constant value within a polygon
+	sf.initial_conditions.create_from_polygon(zsini="lake.geojson", zsini_value=2.5)
 	
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.grid.SfincsInitialConditions.create.html
@@ -789,6 +916,16 @@ This currently entails 'type 1', meaning both the water level, fluxes and mean v
 
 	rstfile 	= ./simulation_01/sfincs.rst
 
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: python
+
+	# First simulation: write a restart file 2 days after 'tref'
+	sf.config.set("trstout", 172800)
+
+	# Second simulation: start from that restart file
+	sf.config.set("rstfile", "../simulation_01/sfincs.rst")
+
 Model settings
 -----
 
@@ -809,21 +946,40 @@ The format is 'yyyymmdd HHMMSS', see below:
 	tstop 			= yyyymmdd HHMMSS
 	
 	e.g.
-	tref            = 20180000 000000
-	tstart          = 20180000 000000
-	tstop           = 20180001 000000	
+	tref            = 20180101 000000
+	tstart          = 20180101 000000
+	tstop           = 20180102 000000
+
+If 'tref' is not specified, it is set to 'tstart'. All times in the input and output files are in seconds since 'tref'.
 
 Also the output date interval can be controlled.
-For the map output there is data output every 'dtout' seconds, for optional observation points this is 'dthisout' seconds.
+For the map output there is data output every 'dtmapout' seconds (the old keyword 'dtout' is still accepted), for optional observation points this is 'dthisout' seconds.
 It also possible to get the maximum output data over a specific interval (e.g. every day), specify using 'dtmaxout' in seconds.
 When using a spiderweb-file for the wind input, the values are updated every 'dtwnd' seconds.
 
 .. code-block:: text
 
-	dtout 		= 3600
+	dtmapout 	= 3600
 	dtmaxout 	= 86400
 	dthisout 	= 600
 	dtwnd 		= 1800
+
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: python
+
+	from datetime import datetime
+
+	sf.config.update(
+		{
+			"tref": datetime(2018, 1, 1),
+			"tstart": datetime(2018, 1, 1),
+			"tstop": datetime(2018, 1, 2),
+			"dtmapout": 3600,
+			"dtmaxout": 86400,
+			"dthisout": 600,
+		}
+	)
 
 Timestep analysis
 ^^^^^
@@ -846,7 +1002,7 @@ U/V point, its coordinates, and how often it was the bottleneck.
 Input format
 ^^^^^
 
-The depth/mask/index-files can be binary or ASCII files. 
+The depth/mask/index-files of a regular grid can be binary or ASCII files (a quadtree grid is always a netcdf file).
 For the former specify 'inputformat = bin' (default), for the latter specify 'inputformat = asc'.
 
 .. code-block:: text
@@ -877,7 +1033,8 @@ For more options, see the tab 'Input parameters'.
 
 **huthresh**
 
-'huthresh' is the flow depth limiter in SFINCS, by default set to 0.05 meters, controlling what minimal water depth should be exceeded to call a cell wet, and start calculating fluxes.
+'huthresh' is the flow depth limiter in SFINCS, controlling what minimal water depth should be exceeded to call a cell wet, and start calculating fluxes.
+The default is 0.05 meters, but for new models the preferred value is 0.01 meters (as written by HydroMT-SFINCS).
 It is recommended to use values within the range [0.001 <> 0.1].
 
 **alpha**
@@ -902,7 +1059,7 @@ Recommended is to turn the advection term always on.
 
 .. code-block:: text
 
-	huthresh 	= 0.05
+	huthresh 	= 0.01
 	alpha 		= 0.5
 	theta 		= 1.0
 	advection 	= 1
@@ -914,6 +1071,7 @@ Recommended is to turn the advection term always on.
 **viscosity**
 
 'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1).
+It is off by default for backwards compatibility, but turning it on is preferred for new models (as written by HydroMT-SFINCS).
 The recommended value of 'nuvisc', the viscosity coefficient 'per meter of grid cell length' to add to your model is 0.01.
 This coefficient is multiplied internally with the grid cell size (per quadtree level in quadtree mesh mode).
 For ease, this is displayed when running the model:	'Viscosity - nuvisc=   [0.1000000 - 0.5000000]'. 
@@ -932,14 +1090,15 @@ Increasing the value of 'nuvisc' increases the viscosity term and effectively in
 
 The wind drag coefficients are varying with wind speed and implemented as in Delft3D. 
 The default values are based on Vatvani et al. (2012). 
-There is specified for how many points 'cd_nr' a velocity 'cd_wnd' and a drag coefficient 'cd_val' is specified, the following are the default values:
+There is specified for how many points 'cdnrb' a velocity 'cdwnd' and a drag coefficient 'cdval' is specified.
+If 'cdnrb' is not specified, the following default values are used:
 
 .. code-block:: text
 
-	cd_nr 		= 3 
+	cdnrb 		= 3
 
-	cd_wnd 		= 0 28 50 
+	cdwnd 		= 0 28 50
 
-	cd_val 		= 0.0010 0.0025 0.0015 
+	cdval 		= 0.0010 0.0025 0.0015
 	
 

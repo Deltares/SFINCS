@@ -200,27 +200,27 @@ In case of netcdf output, the given parameters mean the following:
 	  :standard_name:	time	  
 	  :units:		seconds since 'tref'	  
 	zs
-	  :description:		Instantaneous water level per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous water level per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_surface_height_above_mean_sea_level	  
 	  :units:		m above reference level
 	h
-	  :description:		Instantaneous water depth per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous water depth per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	depth	  
 	  :units:		m
 	u
-	  :description:		Instantaneous flow velocity in u-direction per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous flow velocity in u-direction per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_water_x_velocity	  
 	  :units:		m/s
 	v
-	  :description:		Instantaneous flow velocity in v-direction per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous flow velocity in v-direction per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_water_y_velocity	  
 	  :units:		m/s	
 	subgrid_volume
-	  :description:		Instantaneous subgrid volume per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous subgrid volume per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	subgrid_volume_in_cell	  
 	  :units:		m^3
 	storage_volume
-	  :description:		Instantaneous storage volume per 'dtout' timestep, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous storage volume per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	storage_volume_in_cell	  
 	  :units:		m^3	  
 	timemax
@@ -254,7 +254,7 @@ In case of netcdf output, the given parameters mean the following:
 	  :description:		Cumulative precipitation depth over whole simulation.
 	  :units:		m	  	  
 	bucket_volume
-	  :description:		Current bucket storage per 'dtout' timestep, only given for inftype = bkt.
+	  :description:		Current bucket storage per 'dtmapout' timestep, only given for inftype = bkt.
 	  :units:		m
 	inp
 	  :description:		Copy of all the supplied input to SFINCS from 'sfincs.inp'.
