@@ -89,6 +89,7 @@ module sfincs_snapwave
    integer,   dimension(:,:), allocatable    :: snapwave_connected_nodes
    integer*4, dimension(:),   allocatable    :: index_snapwave_in_sfincs
    integer*4, dimension(:),   allocatable    :: index_sfincs_in_snapwave
+   logical,   dimension(:),   allocatable    :: snapwave_extrapolated ! SnapWave node outside SFINCS mask, coupled to nearest SFINCS point
    integer*4, dimension(:),   allocatable    :: index_sw_in_qt ! used in sfincs_ncoutput (copy of index_snapwave_in_quadtree from snapwave_data)
    real*4                                    :: snapwave_hsmean
    real*4                                    :: snapwave_tpmean
@@ -116,7 +117,7 @@ contains
    logical       :: crsgeo
    !
    build_revision = '$Rev: git SFINCS_SnapWave:main' 
-   build_date     = '$Date: 2026-10-07'
+   build_date     = '$Date: 2026-10-22'
    !
    call write_log('', 1)
    call write_log('----------- Welcome to SnapWave ---------', 1)
@@ -263,12 +264,14 @@ contains
    logical :: nearest_warning
    !   
    allocate(index_sfincs_in_snapwave(snapwave_no_nodes))
+   allocate(snapwave_extrapolated(snapwave_no_nodes))
    allocate(index_snapwave_in_sfincs(np))
    allocate(index_sw_in_qt(quadtree_nr_points))
    !
    nearest_warning = .false.
    !
    index_sfincs_in_snapwave = 0
+   snapwave_extrapolated    = .false.
    index_snapwave_in_sfincs = 0
    index_sw_in_qt = 0
    counter = 0
@@ -322,6 +325,8 @@ contains
                  ! To conform shapes
                  ipsf = closest_index(1)
                  !
+                 snapwave_extrapolated(ipsw) = .true.
+                 !
              endif       
              !        
          endif         
@@ -347,7 +352,7 @@ contains
    !
    if (nearest_warning) then
       if (snapwave_use_nearest) then
-          write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation '
+          write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, so water depth and wind conditions from the nearest SFINCS point within 1000 km are used for SnapWave calculation (water level 0.0 when that point is dry)'
       else
           write(logstr,'(a,i0,a)')'SnapWave: Info   : ',counter,' SnapWave node(s) do not have a matching SFINCS point, water level at these points is set to 0.0 '          
       endif      
@@ -380,6 +385,7 @@ contains
    real*4,    dimension(:), allocatable       :: fwx0
    real*4,    dimension(:), allocatable       :: fwy0
    integer   :: ip, nm, nmu, idir
+   real*4    :: zsd, zbd
    real*8    :: t
    real(8)   :: t3, t4
    !
@@ -403,16 +409,41 @@ contains
          !
          ! A matching SFINCS point is found
          !
-
          if (wavemaker) then
             !
-            snapwave_depth(nm) = max(zsm(ip) - snapwave_z(nm), 0.00001)
+            zsd = zsm(ip)
             !
-         else   
+         else
             !
-            snapwave_depth(nm) = max(zs(ip) - snapwave_z(nm), 0.00001)      
+            zsd = zs(ip)
             !
-         endif   
+         endif
+         !
+         if (snapwave_extrapolated(nm)) then
+            !
+            ! Node lies outside the SFINCS mask and takes the water level of the nearest SFINCS point.
+            ! When that point is dry, its water level is merely its bed level (e.g. on land), which
+            ! would give a far too large depth here. Use the 0.0 water level instead.
+            !
+            if (subgrid) then
+               !
+               zbd = subgrid_z_zmin(ip)
+               !
+            else
+               !
+               zbd = zb(ip)
+               !
+            endif
+            !
+            if (zsd - zbd <= huthresh) then
+               !
+               zsd = 0.0
+               !
+            endif
+            !
+         endif
+         !
+         snapwave_depth(nm) = max(zsd - snapwave_z(nm), 0.00001)
          !
       else
          !
@@ -586,19 +617,31 @@ contains
    !
    ! FIXME - should we limit snapwave_fwmaxfac to a certain range?
    !
-   ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
-   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
+   ! Loop over points and set H, Tp, cg and direction to 0 where H and/or H_ig are zero,
+   ! or where the depth is below hmin (dry nodes).
+   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0.
+   ! For dry nodes the solver skips the output update, so H keeps a small waveps-based value (> 0)
+   ! and Tp stays at Tpini; checking depth(k) <= hmin (same test as in the solver) catches these.
+   !
    do k = 1, no_nodes
-       if (snapwave_H(k) <= 0.0) then
-           snapwave_Tp(k) = 0.0
-           snapwave_mean_direction(k) = 0.0
-           snapwave_cg(k) = 0.0
-       endif
-       !
-       if (snapwave_H_ig(k) <= 0.0) then
-           snapwave_Tp_ig(k) = 0.0        
-       endif       
-   enddo   
+      !
+      if (depth(k) <= hmin .or. snapwave_H(k) <= 0.0) then
+         !
+         snapwave_H(k)              = 0.0
+         snapwave_Tp(k)             = 0.0
+         snapwave_mean_direction(k) = 0.0
+         snapwave_cg(k)             = 0.0
+         !
+      endif
+      !
+      if (depth(k) <= hmin .or. snapwave_H_ig(k) <= 0.0) then
+         !
+         snapwave_H_ig(k)  = 0.0
+         snapwave_Tp_ig(k) = 0.0
+         !
+      endif
+      !
+   enddo
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    !

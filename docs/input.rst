@@ -913,13 +913,15 @@ Recommended is to turn the advection term always on.
 
 **viscosity**
 
-'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1).
+'viscosity' turns on the viscosity term in the momentum equation (viscosity = 1, default).
+From the 2026.02 release onwards viscosity is on by default; set 'viscosity = 0' to turn it off (the default before 2026.02).
+Viscosity is only used with theta = 1.0: if 'theta' < 1.0, viscosity is always turned off (also when 'viscosity = 1' is specified), so older models that use theta smoothing run as before.
 The recommended value of 'nuvisc', the viscosity coefficient 'per meter of grid cell length' to add to your model is 0.01.
 This coefficient is multiplied internally with the grid cell size (per quadtree level in quadtree mesh mode).
 For ease, this is displayed when running the model:	'Viscosity - nuvisc=   [0.1000000 - 0.5000000]'. 
 Increasing the value of 'nuvisc' increases the viscosity term and effectively internal smoothing of the flow.
 	
-**NOTE - It is recommended to EITHER have smoothing using viscosity=1 OR through numerical smoothing with theta<1.0 BUT NOT BOTH**
+**NOTE - Smoothing is EITHER through viscosity=1 (with theta=1.0) OR through numerical smoothing with theta<1.0, NOT BOTH: with theta<1.0 viscosity is turned off**
 
 .. code-block:: text
 
