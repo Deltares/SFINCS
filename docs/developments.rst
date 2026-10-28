@@ -1,13 +1,13 @@
 Developments
 =====
 
-SFINCS has continuely being developed since 2017, and many great features have been added over the years.
+SFINCS has continuously been developed since 2016 (10 years and counting!), and many great features have been added over the years.
 
 Development status
 -----
 
 See here a table overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
-Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality.
+Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality and yellow existing 'stable' functionality.
 See the legend for more details regarding the GA/Stable/Prototype/Concept status differentiation.
 
 .. figure:: ./figures/SFINCS_development_status_Hautacam_2026_02_release.png
@@ -85,7 +85,7 @@ Bugfixes:
 
 Advanced user options - currently as concept/prototype functionality:
 
-* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+* **NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.**
 
 * Prototype - Bucket model for infiltration and losses (inftype = bkt, via inffile).
 * Prototype - Urban drainage zones (urbfile), draining zones of cells to an outfall at a design rate.

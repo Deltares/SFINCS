@@ -12,11 +12,13 @@ SFINCS is a super-fast open-source flood model developed at Deltares.
 It enables rapid simulation of storm surge, riverine (fluvial) flooding, rainfall-runoff (pluvial), and wave-driven flooding from national, regional to local scales. 
 Designed to run in minutes instead of days, SFINCS supports scenario testing, operational forecasting, and climate adaptation planning worldwide. 
 
-.. figure:: ./figures/SFINCS_banner_floodadapt_style.png
-   :width: 800px
-   :align: center
-   
-   
+.. raw:: html
+
+   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
+     <source src="_static/sfincs_2026.02_release_3d.mp4" type="video/mp4">
+   </video>
+   <p><em>The SFINCS logo flooding on a quadtree mesh, simulated with SFINCS (v2.5.0 Hautacam release).</em></p>
+
 **Open source & licensing:** 
 
 The SFINCS source code is released under the GNU GPL v3.0 license. You can: 
@@ -33,11 +35,16 @@ While basic user help is provided free of charge, Deltares also offers structure
 These packages (e.g. Basic and Advanced) include guaranteed support hours, faster response time, consulting and configuration help, model setup, etc. 
 For more, see “Support Packages” or contact software@deltares.nl 
 
+.. figure:: ./figures/SFINCS_banner_floodadapt_style.png
+   :width: 800px
+   :align: center
+
+   
 **Scientific Foundation and model adoptation:** 
 
 SFINCS has been widely validated and applied in numerous scientific studies and practical applications worldwide.
-The model has been adopted by both the scientific community, where the main SFINCS publications have reached 200+ citations and are listed below for reference.
-SFINCS has also been adopted by practitioners for flood risk assessment, emergency planning, and climate adaptation strategies, with 1000+ downloads of the SFINCS executable and counting...
+The model has been adopted by both the scientific community, where the main SFINCS publications have reached 240+ citations and are listed below for reference.
+SFINCS has also been adopted by practitioners for flood risk assessment, emergency planning, and climate adaptation strategies, with 2000+ downloads of the SFINCS executable and counting...
 
 Key publications:
 
