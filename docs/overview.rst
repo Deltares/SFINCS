@@ -14,6 +14,13 @@ For super-critical flow conditions or when modelling waves, the advection term n
 For this purpose, the SFINCS-SSWE version can be used (including advection).
 For more information see Leijnse et al. (2020): https://doi.org/10.1016/j.coastaleng.2020.103796
 
+.. raw:: html
+
+   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
+     <source src="_static/hernani_SFINCS_coastview_orbit_60s.mp4" type="video/mp4">
+   </video>
+   <p><em>Typhoon waves flooding Hernani (Eastern Samar, Philippines), simulated with SFINCS coupled to SnapWave (including infragravity waves).</em></p>
+
 Why SFINCS?
 ^^^^^^^^^^^
 Compound flooding during tropical cyclones and other extreme events result in tremendous amounts of property damage and loss of life. Early warning systems and multi-hazard risk analysis can reduce these impacts. 
