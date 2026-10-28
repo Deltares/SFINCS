@@ -85,7 +85,7 @@ Parameters for model input
 	  :min:			0.001 (recommended)
 	  :max:			0.1 (recommended)	  
 	theta
-	  :description:		Numerical smoothing factor in momentum equation. Default of 1.0 means no smoothing.
+	  :description:		Numerical smoothing factor in momentum equation. Default of 1.0 means no smoothing. Values < 1.0 turn viscosity off.
 	  :units:		-
 	  :default:		1.0
 	  :min:			0.8
@@ -103,7 +103,7 @@ Parameters for model input
 	  :min:			0
 	  :max:			1
 	viscosity
-	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0.
+	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1, default from the 2026.02 release onwards). Only used with theta = 1.0; if theta < 1.0, viscosity is always turned off.
 	  :units:		-
 	  :default:		1
 	  :min:			0

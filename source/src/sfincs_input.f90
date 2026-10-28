@@ -156,7 +156,7 @@ contains
       call get_keyword(500, 'usespwprecip',                    use_spw_precip,                  .true.)            ! use precipitation field from spiderweb file
       call get_keyword(500, 'global_model',                    global,                          .false., ['global'])  ! treat grid as global (wrap in x)
       call get_keyword(500, 'nuvisc',                          nuviscdim,                       0.01)              ! viscosity coefficient (m2/s)
-      call get_keyword(500, 'viscosity',                       viscosity,                       .false.)           ! enable horizontal viscosity term
+      call get_keyword(500, 'viscosity',                       viscosity,                       .true.)            ! enable horizontal viscosity term
       call get_keyword(500, 'spinup_meteo',                    spinup_meteo,                    .false.)           ! ramp wind/pressure from zero during tspinup
       call get_keyword(500, 'waveage',                         waveage,                         -999.0)            ! wave age (for SnapWave wind growth)
       call get_keyword(500, 'snapwave',                        snapwave,                        .false.)           ! enable coupled SnapWave wave solver
@@ -529,6 +529,17 @@ contains
       !
       thetasmoothing = .false.
       if (theta < 0.9999) thetasmoothing = .true.      ! use 0.9999 instead of 1.0 for numerical robustness
+      !
+      ! Viscosity is on by default, but only combined with theta = 1.0. Use either viscosity
+      ! or theta smoothing, not both, so that old models with theta < 1.0 run as before.
+      !
+      if (thetasmoothing .and. viscosity) then
+         !
+         viscosity = .false.
+         !
+         call write_log('Info    : viscosity turned off, as theta < 1.0. It is recommended to use either viscosity or theta smoothing, not both!', 0)
+         !
+      endif
       !
       wavemaker          = .false.
       wavemaker_spectrum = .true.
