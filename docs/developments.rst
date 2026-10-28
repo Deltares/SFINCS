@@ -82,6 +82,11 @@ Bugfixes:
 * Fixed reading the initial water level from a quadtree netcdf file.
 * Fixed cross-sections crossing more than 1000 uv points, and the uv point count of thin dams.
 * Fixed division by zero for time-series forced wavemakers: 'wavemaker_tpmin' now also applies there.
+* Fixed precipitation time series (precipfile) and uniform wind time series (wndfile) outside the time range of the file: the first or last value is now used.
+* Fixed uniform wind direction (wndfile) in rotated quadtree models, which used the sfincs.inp rotation instead of the grid rotation.
+* Fixed OpenMP race conditions in the SnapWave infragravity source term, which could give different results with more than one thread.
+* Fixed run-up gauges with sample points outside the grid or in inactive cells, and models with a rugfile but no obsfile stopping with an error.
+* Fixed the internal point of downstream river boundaries in quadtree models with inactive cells, which used the water level of an unrelated cell.
 
 Advanced user options - currently as concept/prototype functionality:
 
