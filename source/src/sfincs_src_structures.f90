@@ -983,7 +983,8 @@ contains
       ! for his output. Sign convention: qq > 0 means flow from endpoint 1
       ! to endpoint 2.
       !
-      ! Called AFTER update_discharges, which zeros qsrc first.
+      ! Called after update_discharges; qsrc is reset to zero at the end of
+      ! the previous continuity update (sfincs_continuity).
       !
       ! Atomic updates on qsrc(nm) guard against two structures (or a river
       ! and a structure) writing to the same cell under parallel execution.
