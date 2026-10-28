@@ -504,7 +504,7 @@ contains
                   ysect=[y(ind1), y(ind2)]
                   call intersect_angle(x(k), y(k), theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                else
-                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cos(y(k)*180.0/pi)
+                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cos(y(k)*pi/180.0)
                   ysect=[y(ind1)-y(k), y(ind2)-y(k)]*circumf_pole/360.0
                   call intersect_angle(0.d0, 0.d0, theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                endif               
@@ -608,6 +608,8 @@ contains
    !
    ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
+   implicit none
+   !
    real*8,  dimension(no_nodes),                 intent(in)  :: xn,yn              ! coordinates of network nodes
    real*4,  dimension(no_nodes),                 intent(in)  :: zn                 ! coordinates of network nodes
    integer,                                      intent(in)  :: no_nodes           ! number of network nodes
@@ -625,9 +627,15 @@ contains
    integer, dimension(4)                        :: kpts, edge
    integer, dimension(np)                       :: surr_points
    integer, dimension(np)                       :: surr_pts
-   real*4,  dimension(np)                       :: xp,yp,zp              ! x,y,z of sorted surrounding nodes for each node
+   real*8,  dimension(np)                       :: xp,yp                 ! x,y of sorted surrounding nodes for each node
+   real*4,  dimension(np)                       :: zp                    ! z of sorted surrounding nodes for each node
    real*8                                       :: circumf_eq=40075017.,circumf_pole=40007863.
-   real*4                                       :: dxp,dyp
+   real*8                                       :: dxp,dyp
+   real*8                                       :: sxz,syz,sx2,sy2
+   real*8                                       :: pi
+   integer                                      :: k,inode,knode,kn,kcell,isp,isp2,ip,j,jj,next
+   !
+   pi = 4.0d0*atan(1.0d0)
    !
    allocate(no_connected_cells(no_nodes))
    allocate(connected_cells(12,no_nodes))
@@ -730,10 +738,10 @@ contains
                sx2=sx2+(xp(j)-xn(kn))**2
                sy2=sy2+(yp(j)-yn(kn))**2
             else
-               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cos(yn(kn)*180.0/pi)
+               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cos(yn(kn)*pi/180.0)
                dyp=(yp(j)-yn(kn))*circumf_pole/360.0
                sxz=sxz+dxp*(zp(j)-zn(kn))
-               syz=syz+(yp(j)-yn(kn))*(zp(j)-zn(kn))
+               syz=syz+dyp*(zp(j)-zn(kn))
                sx2=sx2+dxp**2
                sy2=sy2+dyp**2
             endif
