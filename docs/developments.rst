@@ -55,6 +55,10 @@ The code consists of all functionality of the 2026.01 'v2.4.0 Galibier' release,
 * New run-off coefficient infiltration method (inftype = r2d, via inffile), with thanks to IMDC!
 * Improved drainage structure file in 'toml' format, with new detailed culvert (rectangular or circular barrel) and gate types.
 * New output options: per-source river discharge (store_river_discharge), urban drainage discharge and cumulative depth (store_urban_drainage_discharge, store_cumulative_urban_drainage).
+* Consistent fill values in the netCDF output (sfincs_map.nc and sfincs_his.nc): map, maximum and his output now use one rule, and write the fill value (read as NaN) where a cell or station is dry, where there are no waves, or where a quantity is undefined. 
+  A cell or station is dry when the water depth (zs - zb, or zs - subgrid_z_zmin for subgrid) is at or below 'huthresh'. Per output type:
+  **Note: this can be a breaking change for post-processing scripts that expected zeros (or the bed level) in dry cells.**
+  Use e.g. NaN-aware functions or fill the NaNs where needed.
 * Clarified and improved documentation for quadtree grids, input parameters, output and HydroMT-SFINCS usage.
 
 Kernel improvements:

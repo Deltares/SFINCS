@@ -195,6 +195,46 @@ Note that the file being read may not yet contain the latest output timestep, an
 Output description
 =====
 
+Fill values: dry cells and undefined quantities
+-----
+
+All variables in sfincs_map.nc and sfincs_his.nc have a fill value of -99999.0, set as the '_FillValue' attribute, so that most tools (e.g. xarray, QGIS, Matlab ncread with fill value handling) read these as NaN.
+From **SFINCS v2.5.0 (Hautacam release) onwards**, the map, maximum and his output use one rule: the fill value is written where a cell or observation point is dry, where there are no waves, or where a quantity is undefined.
+Cells that are inactive (msk = 0) or fall outside the quadtree/regular output grid are fill value as well.
+
+A cell or observation point is considered dry when its water depth is at or below 'huthresh' (default 0.05 m), with the water depth computed as zs - zb (regular) or zs - subgrid_z_zmin (subgrid).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Variables
+     - Fill value where
+   * - zs, h, point_zs, point_h
+     - the cell or point is dry
+   * - zsmax, hmax
+     - the cell has not been wet during the simulation (maximum water depth at or below 'huthresh')
+   * - u, v, point_u, point_v, point_uvmag
+     - the cell or point is dry
+   * - point_uvdir
+     - the point is dry, or there is no flow (direction undefined)
+   * - vmax, qmax
+     - the cell has not been wet during the simulation (only applied when 'zsmax' is stored as well)
+   * - t_zsmax
+     - no maximum water level time was recorded in the cell (t_zsmax not larger than 0)
+   * - point_wind_dir
+     - there is no wind (direction undefined)
+   * - hm0, hm0ig (map and his)
+     - there are no waves (H = 0, e.g. on dry SnapWave nodes)
+   * - tp, wavdir, cg, wave forces, beta, dw, df, srcig, alphaig
+     - there are no incident waves (H = 0), as these are undefined there
+   * - tpig, dwig, dfig
+     - there are no infragravity waves (H_ig = 0)
+   * - snapwavedepth
+     - the SnapWave depth is at or below the SnapWave 'hmin'
+
+**Note for post-processing**: dry cells therefore do not contain a water depth or velocity of 0, but NaN. Use NaN-aware functions (e.g. numpy.nanmax, xarray's default skipna) when computing statistics, and fill the NaNs with 0 yourself where a zero depth or velocity is needed (e.g. ds['h'].fillna(0.0)).
+
 Parameters netcdf file global (sfincs_map.nc)
 -----
 
