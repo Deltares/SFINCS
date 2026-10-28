@@ -364,7 +364,7 @@ contains
    end subroutine
    !
    !
-   pure function evaluate_rule(rule_id, z1, z2, t) result(fired)
+   pure function evaluate_rule(rule_id, z1, z2, t, ops, atoms, cmps, thresholds, starts, lengths) result(fired)
    !
    ! Fixed-depth stack machine that evaluates a compiled rule against
    ! the two water levels z1 (intake) and z2 (outfall) and the model
@@ -373,14 +373,27 @@ contains
    ! t keeps its full resolution; for the z atoms this gives the same
    ! result as a single-precision comparison.
    !
+   ! The bytecode arrays are passed in rather than read from this module,
+   ! so that on the GPU the routine uses the device copies made present
+   ! by the caller's data region (module variables referenced inside an
+   ! acc routine would resolve to an unsynchronised device copy of the
+   ! module data). Callers pass rule_opcode, rule_atom, rule_cmp,
+   ! rule_threshold, rule_start and rule_length.
+   !
    ! Input:
-   !   rule_id : id of the rule
-   !   z1      : water level at the intake [m]
-   !   z2      : water level at the outfall [m]
-   !   t       : current model time [s since tref]
+   !   rule_id    : id of the rule
+   !   z1         : water level at the intake [m]
+   !   z2         : water level at the outfall [m]
+   !   t          : current model time [s since tref]
+   !   ops        : opcode stream (rule_opcode)
+   !   atoms      : atom stream (rule_atom)
+   !   cmps       : comparator stream (rule_cmp)
+   !   thresholds : threshold stream (rule_threshold) [m or s]
+   !   starts     : start index per rule_id in the streams (rule_start)
+   !   lengths    : number of ops per rule_id (rule_length)
    !
    ! Returns:
-   !   fired   : true when the rule condition holds
+   !   fired      : true when the rule condition holds
    !
    ! Called from: initialize_src_structures (sfincs_src_structures),
    !   update_src_structures (sfincs_src_structures)
@@ -392,6 +405,9 @@ contains
    integer, intent(in) :: rule_id
    real,    intent(in) :: z1, z2
    real*8,  intent(in) :: t
+   integer, intent(in) :: ops(:), atoms(:), cmps(:)
+   real,    intent(in) :: thresholds(:)
+   integer, intent(in) :: starts(:), lengths(:)
    logical             :: fired
    !
    logical :: stack(expr_stack_max)
@@ -403,8 +419,8 @@ contains
    !
    if (rule_id <= 0) return
    !
-   rs = rule_start(rule_id)
-   rl = rule_length(rule_id)
+   rs = starts(rule_id)
+   rl = lengths(rule_id)
    !
    if (rl <= 0) return
    !
@@ -414,11 +430,11 @@ contains
       !
       idx = rs + k - 1
       !
-      select case (rule_opcode(idx))
+      select case (ops(idx))
          !
          case (op_cmp)
             !
-            select case (rule_atom(idx))
+            select case (atoms(idx))
                !
                case (atom_z1)
                   !
@@ -449,9 +465,9 @@ contains
             if (sp >= expr_stack_max) return
             sp = sp + 1
             !
-            thr = rule_threshold(idx)
+            thr = thresholds(idx)
             !
-            select case (rule_cmp(idx))
+            select case (cmps(idx))
                !
                case (cmp_lt)
                   !
