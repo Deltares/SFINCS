@@ -1059,7 +1059,8 @@ module sfincs_ncinput
    character (len=256)            :: x_varname
    character (len=256)            :: y_varname
    character (len=256), parameter :: time_varname   = 'time'
-   character (len=256), parameter :: prcp_varname   = 'Precipitation' ! Does the first character 'p' here need to be lower or upper case?!
+   character (len=256), parameter :: prcp_varname   = 'Precipitation' 
+   ! We first check for 'Precipitation' with uppercase 'P', but if not found, we will try 'precipitation' with lowercase 'p'
    character (len=256), parameter :: units          = 'units'
    !
    !   if (crsgeo) then
