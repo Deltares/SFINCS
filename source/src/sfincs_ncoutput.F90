@@ -137,6 +137,77 @@
 ! ============================================================================
 module sfincs_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF output of the map file (sfincs_map.nc) and the his file (sfincs_his.nc). See the
+   ! description above the module statement.
+   !
+   ! Subroutines / functions:
+   !
+   !   ncoutput_map_init()
+   !     Create the map file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_his_init()
+   !     Create the his file: define dimensions, variables and attributes, and write the
+   !     static fields.
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   ncoutput_update_map(t, ntmapout)
+   !     Write the time-varying fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_his(t, nthisout)
+   !     Write the time series at observation points, cross-sections and structures to the
+   !     his file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_update_max(t, ntmaxout)
+   !     Write the maximum-value fields to the map file.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   ncoutput_map_finalize()
+   !     Write the run statistics to the map file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_his_finalize()
+   !     Write the run statistics to the his file and close it.
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   ncoutput_add_params(ncid, varid)
+   !     Add the user input parameters as attributes to a netCDF file.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput),
+   !       ncoutput_map_init (sfincs_ncoutput)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use netcdf
    use sfincs_ncoutput_helpers
    !
@@ -150,6 +221,8 @@ contains
    ! Merged init for both regular and quadtree grids.
    ! 1. Initialise dimensions/variables/attributes
    ! 2. Write grid/msk/zb to file
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_date
    use sfincs_data
@@ -411,6 +484,12 @@ contains
               standard_name='psi')
       elseif (inftype == 'hor') then
          call def_static_cell_float('qinf', map_file%qinf_varid, 'm', 'initial infiltration rate - Horton', standard_name='f0')
+      elseif (inftype == 'bkt') then
+         call def_static_cell_float('qinf', map_file%qinf_varid, 'mm', 'maximum bucket storage capacity', &
+              standard_name='bucket_capacity')
+      elseif (inftype == 'r2d') then
+         call def_static_cell_float('qinf', map_file%qinf_varid, '%', 'run-off coefficient - constant in time', &
+              standard_name='runoff')
       else
          call def_static_cell_float('qinf', map_file%qinf_varid, 'mm h-1', 'infiltration rate - constant in time', &
               standard_name='qinf')
@@ -460,7 +539,7 @@ contains
    ! -------------------------------------------------------
    call def_time_cell_float('zs', map_file%zs_varid, 'm', 'Water level', standard_name='sea_surface_height_above_reference_level')
    !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (.not. subgrid .or. store_hsubgrid) then
       call def_time_cell_float('h', map_file%h_varid, 'm', 'Water depth', standard_name='water_depth')
    endif
    !
@@ -494,6 +573,9 @@ contains
       call def_time_cell_float('sigma', map_file%infstate_varid, '-', 'maximum soil moisture deficit', standard_name='sigma')
    elseif (inftype == 'hor') then
       call def_time_cell_float('f', map_file%infstate_varid, 'mm h-1', 'current infiltration capacity', standard_name='f')
+   elseif (inftype == 'bkt') then
+      call def_time_cell_float('bucket_volume', map_file%infstate_varid, 'm', 'current bucket storage', &
+           standard_name='bucket_volume')
    endif
    !
    ! -------------------------------------------------------
@@ -509,6 +591,11 @@ contains
    if (store_maximum_waterlevel) then
       call def_maxtime_cell_float('zsmax', map_file%zsmax_varid, 'm', 'Maximum water level', &
            standard_name='maximum_sea_surface_height_above_reference_level')
+   endif
+   !
+   if (store_zvolume_max) then
+      call def_maxtime_cell_float('zvolmax', map_file%zvolmax_varid, 'm3', 'Maximum subgrid volume in cell', &
+           standard_name='maximum_subgrid_volume_in_cell')
    endif
    !
    if (store_cumulative_precipitation) then
@@ -527,7 +614,7 @@ contains
    endif
    !
    if (store_maximum_waterlevel) then
-      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      if (.not. subgrid .or. store_hsubgrid) then
          call def_maxtime_cell_float('hmax', map_file%hmax_varid, 'm', 'Maximum water depth', &
               standard_name='sea_floor_depth_below_sea_surface', cell_methods='time: maximum')
       endif
@@ -554,6 +641,11 @@ contains
    !
    if (store_cumulative_precipitation .and. infiltration) then
       call def_maxtime_cell_float('cuminf', map_file%cuminf_varid, 'm', 'cumulative_infiltration_depth', cell_methods='time: sum')
+   endif
+   !
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      call def_maxtime_cell_float('urban_drainage_cumulative_depth', map_file%cumulative_urbdrain_varid, 'm', &
+           'cumulative_urban_drainage_depth', cell_methods='time: sum')
    endif
    !
    ! -------------------------------------------------------
@@ -756,8 +848,18 @@ contains
    if (infiltration) then
       if (inftype == 'con' .or. inftype == 'c2d') then
          call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE, scale=3.6e6)
+      elseif (inftype == 'bkt') then
+         ! Bucket model: write the maximum storage capacity (m -> mm)
+         if (allocated(bucket_capacity)) then
+            call put_static_cell_float(map_file%ncid, map_file%qinf_varid, bucket_capacity, FILL_VALUE, scale=1000.0)
+         endif
+      elseif (inftype == 'r2d') then
+         ! Run-off coefficient: qinffield holds the infiltrating fraction, write back the run-off coefficient as specified (%)
+         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, 100.0 * (1.0 - qinffield), FILL_VALUE)
       else
-         call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
+         if (allocated(qinffield)) then
+            call put_static_cell_float(map_file%ncid, map_file%qinf_varid, qinffield, FILL_VALUE)
+         endif
       endif
    endif
    !
@@ -781,9 +883,14 @@ contains
    ! 1. Initialise dimensions/variables/attributes
    ! 2. write grid/msk/zb to file
    !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_date
-   use sfincs_data   
+   use sfincs_data
    use sfincs_structures
+   use sfincs_src_structures, only: nr_src_structures, src_struc_name, src_struc_type, structure_dike_breach
+   use sfincs_discharges,     only: src_name, nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones, urb_zone_name
    !
    implicit none
    !
@@ -798,7 +905,11 @@ contains
    real*4, dimension(:), allocatable :: thindam_x
    real*4, dimension(:), allocatable :: thindam_y
    !
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains or run-up gauges; his file is not created        
+   character*256, dimension(:), allocatable :: drain_name_buf
+   character*256, dimension(:), allocatable :: river_name_buf
+   character*256, dimension(:), allocatable :: urbdrain_name_buf
+   !
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. .not. (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge) .and. nr_runup_gauges==0) then ! If no observation points, cross-sections, structures, drains, river sources, urban drainage zones or run-up gauges; his file is not created
       return
    endif
    !
@@ -818,11 +929,19 @@ contains
       NF90(nf90_def_dim(his_file%ncid, 'crosssections', nrcrosssections, his_file%crosssections_dimid)) ! nr of crosssections
    endif
    !
-   if (ndrn>0) then   
-      NF90(nf90_def_dim(his_file%ncid, 'drainage', ndrn, his_file%drain_dimid)) ! nr of drainage structures
+   if (nr_src_structures>0) then
+      NF90(nf90_def_dim(his_file%ncid, 'drainage', nr_src_structures, his_file%drain_dimid)) ! nr of drainage structures
    endif
    !
-   if (nrstructures>0) then   
+   if (nr_discharge_points>0 .and. store_river_discharge) then
+      NF90(nf90_def_dim(his_file%ncid, 'rivers', nr_discharge_points, his_file%river_dimid)) ! nr of river point sources
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      NF90(nf90_def_dim(his_file%ncid, 'urban_drainage_zones', nr_urban_drainage_zones, his_file%urbdrain_dimid)) ! nr of urban drainage zones
+   endif
+   !
+   if (nrstructures>0) then
       NF90(nf90_def_dim(his_file%ncid, 'structures', nrstructures, his_file%structures_dimid)) ! nr of structures (weir)
    endif   
    !
@@ -863,9 +982,21 @@ contains
    !
    if (nr_runup_gauges > 0) then
       NF90(nf90_def_var(his_file%ncid, 'runup_gauge_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%runup_gauges_dimid/), his_file%runup_gauge_name_varid))
-   endif      
+   endif
    !
-   !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews   
+   if (nr_src_structures > 0) then
+      NF90(nf90_def_var(his_file%ncid, 'drainage_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%drain_dimid/), his_file%drain_name_varid))
+   endif
+   !
+   if (nr_discharge_points > 0 .and. store_river_discharge) then
+      NF90(nf90_def_var(his_file%ncid, 'river_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%river_dimid/), his_file%river_name_varid))
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      NF90(nf90_def_var(his_file%ncid, 'urban_drainage_zone_name', NF90_CHAR, (/his_file%pointnamelength_dimid, his_file%urbdrain_dimid/), his_file%urbdrain_name_varid))
+   endif
+   !
+   !NF90(nf90_put_att(his_file%ncid, his_file%station_name_varid, 'units', '-')) !not wanted in fews
    !
    ! Domain
    ! Station coordinates: input lat/lon or x/y (CRS-aware via crsgeo)
@@ -929,7 +1060,7 @@ contains
    call def_time_point_float('point_zs', his_file%zs_varid, 'm', 'Water level', &
         standard_name='sea_surface_height_above_reference_level')
    !
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (.not. subgrid .or. store_hsubgrid) then
       call def_time_point_float('point_h', his_file%h_varid, 'm', 'Water depth', standard_name='depth')
    endif
    !
@@ -958,6 +1089,10 @@ contains
          call def_time_point_float('point_S', his_file%S_varid, 'm', 'current moisture storage (Se) capacity')
       elseif (inftype == 'gai') then
          call def_time_point_float('point_S', his_file%S_varid, 'm', 'maximum soil moisture deficit')
+      elseif (inftype == 'hor') then
+         call def_time_point_float('point_S', his_file%S_varid, 'mm hr-1', 'current infiltration capacity')
+      elseif (inftype == 'bkt') then
+         call def_time_point_float('point_S', his_file%S_varid, 'm', 'current bucket storage')
       endif
    endif
    !
@@ -1035,9 +1170,29 @@ contains
            'm3 s-1', 'discharge', coordinates='crosssection_name')
    endif
    !
-   if (ndrn>0) then
+   if (nr_src_structures>0) then
+      !
       call ncdef_float_var(his_file%ncid, 'drainage_discharge', (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_varid, &
-           'm3 s-1', 'discharge through drainage structure')
+           'm3 s-1', 'discharge through drainage structure', coordinates='drainage_name')
+      !
+      if (any(src_struc_type == structure_dike_breach)) then
+         call ncdef_float_var(his_file%ncid, 'breach_width', (/his_file%drain_dimid, his_file%time_dimid/), his_file%breach_width_varid, &
+              'm', 'dike breach width', coordinates='drainage_name')
+      endif
+      !
+      call ncdef_float_var(his_file%ncid, 'drainage_fraction_open', (/his_file%drain_dimid, his_file%time_dimid/), his_file%drain_fraction_open_varid, &
+           '1', 'gate open fraction (1 = fully open, 0 = fully closed)', coordinates='drainage_name')
+      !
+   endif
+   !
+   if (nr_discharge_points>0 .and. store_river_discharge) then
+      call ncdef_float_var(his_file%ncid, 'river_discharge', (/his_file%river_dimid, his_file%time_dimid/), his_file%river_varid, &
+           'm3 s-1', 'river point discharge', coordinates='river_name')
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      call ncdef_float_var(his_file%ncid, 'urban_drainage_discharge', (/his_file%urbdrain_dimid, his_file%time_dimid/), his_file%urbdrain_varid, &
+           'm3 s-1', 'urban drainage zone net outfall discharge', coordinates='urban_drainage_zone_name')
    endif
    !
    if (nr_runup_gauges > 0) then
@@ -1082,7 +1237,62 @@ contains
    !
    if (nr_runup_gauges > 0) then
       NF90(nf90_put_var(his_file%ncid, his_file%runup_gauge_name_varid, runup_gauge_name))  ! write rug name
-   endif   
+   endif
+   !
+   if (nr_src_structures > 0) then
+      !
+      ! Copy src_struc_name (length src_struc_name_len = 128) into a length-256 buffer
+      ! to match the pointnamelength netCDF dimension used for all his_file name
+      ! variables.
+      !
+      allocate(drain_name_buf(nr_src_structures))
+      !
+      do istruc = 1, nr_src_structures
+         !
+         drain_name_buf(istruc) = src_struc_name(istruc)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_name_varid, drain_name_buf))  ! write drainage_name
+      !
+      deallocate(drain_name_buf)
+      !
+   endif
+   !
+   if (nr_discharge_points > 0 .and. store_river_discharge) then
+      !
+      ! Copy src_name (length src_name_len) into a length-256 buffer to match
+      ! the pointnamelength netCDF dimension.
+      !
+      allocate(river_name_buf(nr_discharge_points))
+      !
+      do istruc = 1, nr_discharge_points
+         !
+         river_name_buf(istruc) = src_name(istruc)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%river_name_varid, river_name_buf))  ! write river_name
+      !
+      deallocate(river_name_buf)
+      !
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      !
+      allocate(urbdrain_name_buf(nr_urban_drainage_zones))
+      !
+      do istruc = 1, nr_urban_drainage_zones
+         !
+         urbdrain_name_buf(istruc) = urb_zone_name(istruc)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_name_varid, urbdrain_name_buf))  ! write urban_drainage_zone_name
+      !
+      deallocate(urbdrain_name_buf)
+      !
+   endif
    !
    if (nrstructures>0) then
       !
@@ -1145,6 +1355,12 @@ contains
    ! and the two precompute helpers (compute_uv_at_cell_centers,
    ! compute_pnh_unwrapped) below.
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmapout : index of the map output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_nonhydrostatic
    use sfincs_snapwave
@@ -1176,7 +1392,7 @@ contains
    endif
    !
    ! h = zs - zref. Quadtree filters wet cells (legacy); regular keeps all.
-   if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+   if (.not. subgrid .or. store_hsubgrid) then
       if (subgrid) then
          call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, &
               check_wet=use_quadtree)
@@ -1213,11 +1429,17 @@ contains
    ! Infiltration state
    ! -------------------------------------------------------
    if (inftype == 'cnb') then
+      !$acc update host(scs_Se)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, scs_Se,   ntmapout)
    elseif (inftype == 'gai') then
+      !$acc update host(GA_sigma)
       call write_cell_var(map_file%ncid, map_file%infstate_varid, GA_sigma, ntmapout)
    elseif (inftype == 'hor') then
-      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout)
+      !$acc update host(qinfmap)
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, qinfmap,  ntmapout, scale=3600000.0)
+   elseif (inftype == 'bkt') then
+      !$acc update host(bucket_volume)
+      call write_cell_var(map_file%ncid, map_file%infstate_varid, bucket_volume, ntmapout)
    endif
    !
    ! -------------------------------------------------------
@@ -1279,19 +1501,27 @@ contains
    !
    ! Write time, zs, u, v, prcp etc. at observation points.
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   nthisout : index of the his output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use sfincs_crosssections
    use sfincs_runup_gauges
    use sfincs_snapwave
+   use sfincs_src_structures, only: nr_src_structures, src_struc_q_now, src_struc_breach_width, src_struc_type, structure_dike_breach, src_struc_fraction_open
+   use sfincs_discharges,     only: qtsrc, nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones, urban_drainage_q_total
    !
    implicit none
    !
-   integer :: iobs, nm, idrn
+   integer :: iobs, nm
    integer :: nthisout
    real*8  :: t
    real*4, dimension(nobs) :: uobs, vobs, uvmag, uvdir
    real*4, dimension(nobs) :: twndmag, twnddir
-   real*4, dimension(ndrn) :: q_drain
    real*4, dimension(:), allocatable :: qq, zz
    !
    NF90(nf90_put_var(his_file%ncid, his_file%time_varid, t, (/nthisout/)))
@@ -1314,7 +1544,7 @@ contains
       !
       NF90(nf90_put_var(his_file%ncid, his_file%zs_varid, zobs, (/1, nthisout/)))
       !
-      if (subgrid .eqv. .false. .or. store_hsubgrid .eqv. .true.) then
+      if (.not. subgrid .or. store_hsubgrid) then
          NF90(nf90_put_var(his_file%ncid, his_file%h_varid, hobs, (/1, nthisout/)))
       endif
       !
@@ -1323,13 +1553,21 @@ contains
       if (store_meteo .and. wind)  call compute_wind_at_obs_points(twndmag, twnddir)
       !
       if (infiltration) then
-         ! 
+         !
+         !$acc update host(qinfmap)
          call write_point_var(his_file%qinf_varid, qinfmap, nthisout, scale=3600000.0)
          !
          if (inftype == 'cnb') then
+            !$acc update host(scs_Se)
             call write_point_var(his_file%S_varid, scs_Se, nthisout)
          elseif (inftype == 'gai') then
+            !$acc update host(GA_sigma)
             call write_point_var(his_file%S_varid, GA_sigma, nthisout)
+         elseif (inftype == 'hor') then
+            call write_point_var(his_file%S_varid, qinfmap, nthisout, scale=3600000.0)
+         elseif (inftype == 'bkt') then
+            !$acc update host(bucket_volume)
+            call write_point_var(his_file%S_varid, bucket_volume, nthisout)
          endif
          !
       endif
@@ -1410,18 +1648,33 @@ contains
       if (allocated(zz)) deallocate(zz)
    endif
    !
-   if (ndrn>0) then
+   if (nr_src_structures>0) then
+      !
+      !$acc update host(src_struc_q_now, src_struc_fraction_open)
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, src_struc_q_now, (/1, nthisout/))) ! write per-structure discharge
+      NF90(nf90_put_var(his_file%ncid, his_file%drain_fraction_open_varid, src_struc_fraction_open, (/1, nthisout/))) ! write per-structure gate open fraction
+      !
+      if (any(src_struc_type == structure_dike_breach)) then
+         !$acc update host(src_struc_breach_width)
+         NF90(nf90_put_var(his_file%ncid, his_file%breach_width_varid, src_struc_breach_width, (/1, nthisout/))) ! write breach width
+      endif
+      !
+   endif
+   !
+   if (nr_discharge_points>0 .and. store_river_discharge) then
       !
       !$acc update host(qtsrc)
-      ! Get fluxes through drainage structure
       !
-      idrn = 0
-      do iobs = nsrc + 1, nsrcdrn, 2 !TL: as in sfincs_output.f90
-         idrn = idrn + 1
-         q_drain(idrn) = qtsrc(iobs)
-      enddo
+      NF90(nf90_put_var(his_file%ncid, his_file%river_varid, qtsrc, (/1, nthisout/))) ! write per-river-source discharge
       !
-      NF90(nf90_put_var(his_file%ncid, his_file%drain_varid, q_drain, (/1, nthisout/)))
+   endif
+   !
+   if (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge) then
+      !
+      !$acc update host(urban_drainage_q_total)
+      !
+      NF90(nf90_put_var(his_file%ncid, his_file%urbdrain_varid, urban_drainage_q_total, (/1, nthisout/))) ! write per-zone total discharge
       !
    endif
    !
@@ -1438,14 +1691,22 @@ contains
    !
    ! Write maximum values to map file (handles both regular and quadtree grids)
    !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   ntmaxout : index of the maximum output time
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    use quadtree
+   use sfincs_urban_drainage, only: urban_drainage_cumulative_volume
    !
    implicit none
    !
    real*8                            :: t
    integer                           :: ntmaxout, nm
-   real*4, dimension(:), allocatable :: hmax_out, hmean
+   real*4, dimension(:), allocatable :: hmax_out, hmean, zvolmax_out
+   real*4, dimension(:), allocatable :: urbdrain_depth
    !
    ! Scalar time of this max-record (defined only when store_maximum_waterlevel)
    if (store_maximum_waterlevel) then
@@ -1459,6 +1720,19 @@ contains
       else
          call write_cell_var_wet(map_file%ncid, map_file%zsmax_varid, zsmax, zb,             ntmaxout)
       endif
+   endif
+   !
+   ! Maximum subgrid volume (same wet mask as zsmax)
+   if (store_zvolume_max) then
+      allocate(zvolmax_out(np))
+      zvolmax_out = FILL_VALUE
+      do nm = 1, np
+         if ( (zsmax(nm) - subgrid_z_zmin(nm)) > huthresh) then
+            zvolmax_out(nm) = zvolmax(nm)
+         endif
+      enddo
+      call write_cell_var(map_file%ncid, map_file%zvolmax_varid, zvolmax_out, ntmaxout, check_kcs=.true.)
+      deallocate(zvolmax_out)
    endif
    !
    ! Maximum water depth (optional, supports subgrid mean-depth)
@@ -1499,6 +1773,21 @@ contains
       endif
    endif
    !
+   ! Cumulative urban drainage depth (drained volume / cell area)
+   if (store_cumulative_urban_drainage .and. urban_drainage) then
+      !$acc update host(urban_drainage_cumulative_volume)
+      allocate(urbdrain_depth(np))
+      do nm = 1, np
+         if (crsgeo) then
+            urbdrain_depth(nm) = urban_drainage_cumulative_volume(nm) / cell_area_m2(nm)
+         else
+            urbdrain_depth(nm) = urban_drainage_cumulative_volume(nm) / cell_area(z_flags_iref(nm))
+         endif
+      enddo
+      call write_cell_var(map_file%ncid, map_file%cumulative_urbdrain_varid, urbdrain_depth, ntmaxout)
+      deallocate(urbdrain_depth)
+   endif
+   !
    ! Maximum flow velocity / flux
    if (store_maximum_velocity) then
       call write_cell_var(map_file%ncid, map_file%vmax_varid, vmax, ntmaxout, check_kcs=.true.)
@@ -1530,9 +1819,12 @@ contains
    !
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
-   !   
-   implicit none   
+   use sfincs_timers, only: timer_elapsed
+   !
+   implicit none
    !
    if (store_tsunami_arrival_time) then
       !
@@ -1544,9 +1836,9 @@ contains
        !
        call ncoutput_write_timestep_analysis()
        !
-   endif   
+   endif
    !
-   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, tfinish_all - tstart_all))
+   NF90(nf90_put_var(map_file%ncid, map_file%total_runtime_varid, real(timer_elapsed('simulation'), 4)))
    NF90(nf90_put_var(map_file%ncid, map_file%average_dt_varid,  dtavg))
    NF90(nf90_put_var(map_file%ncid, map_file%status_varid,  error))
    !
@@ -1560,19 +1852,25 @@ contains
    subroutine ncoutput_his_finalize()
    ! Add total runtime, dtavg to file and close
    !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
-   !   
-   implicit none   
-   !   
+   use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
+   use sfincs_timers,         only: timer_elapsed
+   !
+   implicit none
+   !
    ! Mirror the early-return condition from ncoutput_his_init exactly: if
    ! none of these are present, no his file was created. (Note: thindams
-   ! alone do NOT trigger his-file creation in init, so they're not in
+   ! alone do NOT trigger his-file creation in init, so they are not in
    ! this list either.)
-   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. ndrn==0 .and. nr_runup_gauges==0) then
+   if (nobs==0 .and. nrcrosssections==0 .and. nrstructures==0 .and. nr_src_structures==0 .and. .not. (nr_discharge_points>0 .and. store_river_discharge) .and. .not. (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge) .and. nr_runup_gauges==0) then
       return
    endif
    !
-   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, tfinish_all - tstart_all)) 
+   NF90(nf90_put_var(his_file%ncid, his_file%total_runtime_varid, real(timer_elapsed('simulation'), 4)))
    NF90(nf90_put_var(his_file%ncid, his_file%average_dt_varid,  dtavg)) 
    NF90(nf90_put_var(his_file%ncid, his_file%status_varid,  error))       
    !   
@@ -1584,11 +1882,20 @@ contains
    !
    subroutine ncoutput_add_params(ncid, varid)
    ! Add user params to netcdf file (both map & his)
+   !
+   ! Input:
+   !   ncid  : netCDF file id
+   !   varid : id of the variable that holds the parameters as attributes
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput), ncoutput_map_init (sfincs_ncoutput)
+   !
    use sfincs_data
+   use sfincs_src_structures, only: drnfile
+   use sfincs_discharges,     only: srcfile, disfile, netsrcdisfile
    !
    ! Because of overlapping names, only important specific values from snapwave_data
    use snapwave_data, only: gamma, gammax, alpha, hmin, fw0, fw0_ig, dt, tol, dtheta, crit, nr_sweeps, baldock_exponent, baldock_ratio, &
-       igwaves_opt, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, herbers_opt, tpig_opt, eeinc2ig, tinc2ig, &
+       igwaves, alpha_ig, gamma_ig, gamma_fac_br, shinc2ig, alphaigfac, baldock_ratio_ig, ig_opt, igherbers, tpig_opt, eeinc2ig, tinc2ig, &
        snapwave_jonswapfile, snapwave_encfile, snapwave_bndfile, snapwave_bhsfile, snapwave_btpfile, snapwave_bwdfile, snapwave_bdsfile, upwfile, gridfile, &
        jonswapgam, Tpini, sector, fwratio, fwigratio   
    !
@@ -1739,7 +2046,9 @@ contains
         NF90(nf90_put_att(ncid, varid, 'amvfile',amvfile))  
         NF90(nf90_put_att(ncid, varid, 'ampfile',ampfile))              
         NF90(nf90_put_att(ncid, varid, 'amprfile',amprfile))  
-        NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))   
+        NF90(nf90_put_att(ncid, varid, 'inffile',inffile))
+        NF90(nf90_put_att(ncid, varid, 'inftype',inftype))
+        NF90(nf90_put_att(ncid, varid, 'qinffile',qinffile))
         NF90(nf90_put_att(ncid, varid, 'scsfile',scsfile)) 
         NF90(nf90_put_att(ncid, varid, 'smaxfile',smaxfile)) 
         NF90(nf90_put_att(ncid, varid, 'sefffile',sefffile)) 
@@ -1752,11 +2061,6 @@ contains
         NF90(nf90_put_att(ncid, varid, 'z0lfile',z0lfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_wvmfile',wavemaker_wvmfile))
         NF90(nf90_put_att(ncid, varid, 'wavemaker_timeseries_wvmfile',wavemaker_timeseries_wvmfile))
-        !
-        ! Infiltration configuration
-        !
-        NF90(nf90_put_att(ncid, varid, 'infiltration_file',infiltrationfile))
-        NF90(nf90_put_att(ncid, varid, 'infiltration_type',inftype))
         !
         ! Netcdf input
         NF90(nf90_put_att(ncid, varid, 'netbndbzsbzifile',netbndbzsbzifile))
@@ -1772,25 +2076,25 @@ contains
         NF90(nf90_put_att(ncid, varid, 'nobs',nobs))                    
         NF90(nf90_put_att(ncid, varid, 'crsfile',crsfile))   
         !
-        NF90(nf90_put_att(ncid, varid, 'storevelmax',storevelmax)) 
-        NF90(nf90_put_att(ncid, varid, 'storefluxmax',storefluxmax))        
-        NF90(nf90_put_att(ncid, varid, 'storevel',storevel)) 
-        NF90(nf90_put_att(ncid, varid, 'storecumprcp',storecumprcp)) 
-        NF90(nf90_put_att(ncid, varid, 'storetwet',storetwet)) 
-        NF90(nf90_put_att(ncid, varid, 'storehsubgrid',storehsubgrid)) 
-        NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold)) 
-        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time))) 
-        NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold)) 
-        NF90(nf90_put_att(ncid, varid, 'storeqdrain',storeqdrain)) 
-        NF90(nf90_put_att(ncid, varid, 'storezvolume',storezvolume)) 
-        NF90(nf90_put_att(ncid, varid, 'writeruntime',wrttimeoutput)) 
-        NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug))) 
-        NF90(nf90_put_att(ncid, varid, 'storemeteo',storemeteo)) 
+        NF90(nf90_put_att(ncid, varid, 'storevelmax',logical2int(store_maximum_velocity)))
+        NF90(nf90_put_att(ncid, varid, 'storefluxmax',logical2int(store_maximum_flux)))
+        NF90(nf90_put_att(ncid, varid, 'storevel',logical2int(store_velocity)))
+        NF90(nf90_put_att(ncid, varid, 'storecumprcp',logical2int(store_cumulative_precipitation)))
+        NF90(nf90_put_att(ncid, varid, 'storetwet',logical2int(store_twet)))
+        NF90(nf90_put_att(ncid, varid, 'storehsubgrid',logical2int(store_hsubgrid)))
+        NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold))
+        NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time)))
+        NF90(nf90_put_att(ncid, varid, 'tsunami_arrival_threshold',tsunami_arrival_threshold))
+        NF90(nf90_put_att(ncid, varid, 'storezvolume',logical2int(store_zvolume)))
+        NF90(nf90_put_att(ncid, varid, 'storezvolmax',logical2int(store_zvolume_max)))
+        NF90(nf90_put_att(ncid, varid, 'writeruntime',logical2int(write_time_output)))
+        NF90(nf90_put_att(ncid, varid, 'debug',logical2int(debug)))
+        NF90(nf90_put_att(ncid, varid, 'storemeteo',logical2int(store_meteo)))
         NF90(nf90_put_att(ncid, varid, 'storemaxwind',logical2int(store_wind_max))) 
         NF90(nf90_put_att(ncid, varid, 'storefw',logical2int(store_wave_forces)))         
         NF90(nf90_put_att(ncid, varid, 'storewavdir', logical2int(store_wave_direction)))
-        NF90(nf90_put_att(ncid, varid, 'storetzsmax',storetzsmax))
-        NF90(nf90_put_att(ncid, varid, 'storestoragevolume',storestoragevolume))
+        NF90(nf90_put_att(ncid, varid, 'storetzsmax',logical2int(store_t_zsmax)))
+        NF90(nf90_put_att(ncid, varid, 'storestoragevolume',logical2int(store_storagevolume)))
         NF90(nf90_put_att(ncid, varid, 'storehmean',logical2int(store_hmean)))
         NF90(nf90_put_att(ncid, varid, 'timestep_analysis',logical2int(timestep_analysis)))
         NF90(nf90_put_att(ncid, varid, 'store_dynamic_bed_level',logical2int(store_dynamic_bed_level)))
@@ -1837,7 +2141,7 @@ contains
         ! SnapWave IG
         !
         NF90(nf90_put_att(ncid, varid, 'snapwave_jonswapgamma',jonswapgam))
-        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',igwaves_opt))
+        NF90(nf90_put_att(ncid, varid, 'snapwave_igwaves',logical2int(igwaves)))
         NF90(nf90_put_att(ncid, varid, 'snapwave_alpha_ig',alpha_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_gammaig',gamma_ig))
         NF90(nf90_put_att(ncid, varid, 'snapwave_gamma_fac_br',gamma_fac_br))
@@ -1845,7 +2149,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'snapwave_alphaigfac',alphaigfac)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_baldock_ratio_ig',baldock_ratio_ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_ig_opt',ig_opt)) 
-        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',herbers_opt)) 
+        NF90(nf90_put_att(ncid, varid, 'snapwave_use_herbers',logical2int(igherbers))) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_tpig_opt',tpig_opt)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_eeinc2ig',eeinc2ig)) 
         NF90(nf90_put_att(ncid, varid, 'snapwave_Tinc2ig',Tinc2ig)) 

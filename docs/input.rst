@@ -1,5 +1,5 @@
-﻿User manual - general
-=====
+﻿General
+=======
 
 Overview
 -----
@@ -359,12 +359,39 @@ SFINCS allows the specification of the following options for accounting for infi
 3.	The Curve Number method: empirical rainfall-runoff model 
 4.	The Green-Ampt method: empirical rainfall-runoff model
 5.	The Horton infiltration method
+6.	The bucket model: linear reservoir with losses
+7.	Spatially varying constant-in-time run-off coefficient
 
-Infiltration is specified with either constant in time values in mm/hr (both uniform and spatially varying), or using more detailed parameters for the Curve Number method, The Green-Ampt method or Horton method.
+Spatially uniform infiltration is still specified directly in sfincs.inp with ``qinf``. All modern spatially varying infiltration and bucket-model input should be provided through ``inffile`` together with ``inftype``. The older binary keywords (``qinffile``, ``scsfile``, ``smaxfile``, ``sefffile``, ``ksfile``, ``psifile``, ``sigmafile``, ``f0file``, ``fcfile`` and ``kdfile``) remain available for backward compatibility only and will be removed in a future release of SFINCS.
 
 **NOTE - Infiltration in SFINCS is only turned on when any rainfall is forced** 
 
 **NOTE - Infiltration methods in SFINCS are not designed to be stacked**
+
+
+NetCDF infiltration input (recommended):
+%%%%%
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+For all spatially varying infiltration methods the recommended interface is:
+
+.. code-block:: text
+
+	inffile = sfincs.infiltration.nc
+	inftype = c2d | cna | cnb | gai | hor | bkt | r2d
+
+The required variables in ``inffile`` depend on ``inftype``:
+
+* ``c2d``: ``qinf``
+* ``cna``: ``scs``
+* ``cnb``: ``smax``, ``seff``, ``ks``
+* ``gai``: ``psi``, ``sigma``, ``ks``
+* ``hor``: ``f0``, ``fc``, ``kd``
+* ``bkt``: ``bucket_smax``, ``bucket_k``, ``bucket_loss``
+* ``r2d``: ``runoff``
+
+The older separate binary infiltration keywords are still supported for backward compatibility only.
 
 
 Spatially uniform constant in time:
@@ -383,7 +410,7 @@ Specify the keyword:
 Spatially varying constant in time:
 %%%%%
 
-For spatially varying infiltration values per cell use the qinffile option, with the same grid based input as the depfile using a binary file.
+For spatially varying infiltration values per cell use ``inffile`` with ``inftype = c2d``. The ``qinffile`` option below is kept for backward compatibility only and will be removed in a future release of SFINCS.
 
 **qinffile = sfincs.qinf**
 
@@ -426,7 +453,7 @@ where Smax = the soil's maximum moisture storage capacity. Smax typically derive
 
 **Without recovery**
 
-For spatially varying infiltration values per cell using the Curve Number method without recovery use the scsfile option, with the same grid based input as the depfile using a binary file. Note here that in pre-processing the wanted CN values should be converted to S values following:
+For spatially varying infiltration values per cell using the Curve Number method without recovery use ``inffile`` with ``inftype = cna``. The ``scsfile`` option below is kept for backward compatibility only and will be removed in a future release of SFINCS. Note here that in pre-processing the wanted CN values should be converted to S values following:
 * scsfile: maximum soil moisture storage capacity in inches
 
 .. code-block:: text
@@ -458,7 +485,7 @@ This option doesn't support restart functionality.
 
 **With recovery**
 
-Within SFINCS, the Curve number method with recovery can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+Within SFINCS, the Curve number method with recovery is preferably supplied through ``inffile`` with ``inftype = cnb``. The separate binary files listed below are kept for backward compatibility only. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
 
 * smaxfile: maximum soil moisture storage capacity in m
 * sefffile: soil moisture storage capacity at the start in m
@@ -498,7 +525,7 @@ The basic form of the Green-Ampt equation is expressed as follows:
 
 In which t is time, K is the saturated hydraulic conductivity, delta_theta is defined as the soil capacity (the difference between the saturated and initial moisture content) and sigma is the soil suction head.
 
-Within SFINCS, the Green-Ampt method can be used as follows. The user needs to provide the following variables. For a range of typical values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+Within SFINCS, the Green-Ampt method is preferably supplied through ``inffile`` with ``inftype = gai``. The separate binary files listed below are kept for backward compatibility only. For a range of typically values see Table 1. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
 
 * ksfile: saturated hydraulic conductivity in mm/hr
 * sigmafile: soil moisture deficit in [-]
@@ -522,7 +549,7 @@ The basic form of the Horton equation is expressed as follows:
 
 In which f_t is the infiltration rate at time, f_c is the final, constant infiltration rate, f_0 is the initial infiltration rate, k is a decay constant and t is the time since the start of infiltration.
 
-Within SFINCS, the Horton method can be used as follows. The user needs to provide the following variables. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
+Within SFINCS, the Horton method is preferably supplied through ``inffile`` with ``inftype = hor``. The separate binary files listed below are kept for backward compatibility only. For all variables, one needs to specify these values per cell with the same grid based input as the depfile using a binary file:
 
 * f0file: maximum (Initial) Infiltration Capacity in mm/hr
 * fcfile: Minimum (Asymptotic) Infiltration Rate in mm/hr
@@ -531,6 +558,57 @@ Within SFINCS, the Horton method can be used as follows. The user needs to provi
 The recovery of the infiltration rate during dry weather (kr) is calculated as factor of the empirical decay constant. By default, this keyword (horton_kr_kd) is set to 10.0 meaning that the recovery goes 10 times as slow as the decay.
 
 This option also supports restart functionality. 
+
+
+The bucket model:
+%%%%%
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+
+The bucket model is a linear-reservoir representation of infiltration and losses. It is configured with:
+
+.. code-block:: text
+
+	inffile = sfincs.infiltration.nc
+	inftype = bkt
+
+The ``inffile`` must contain the following variables:
+
+* ``bucket_smax``: maximum bucket storage in mm
+* ``bucket_k``: drainage coefficient in 1/hr
+* ``bucket_loss``: loss fraction in the range 0-1
+
+The map output contains the current bucket storage per cell (``bucket_volume``, in m) and the his output contains it per observation point (``point_S``).
+
+
+The run-off coefficient method:
+%%%%%
+
+**NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
+
+With the run-off coefficient method, a fixed percentage of the rainfall in a cell runs off, and the remainder infiltrates.
+Where the spatially varying constant in time method (``c2d``) removes an absolute infiltration rate in mm/hr, this method removes a relative part of the rainfall:
+
+**qinf = (1 - runoff / 100) * precipitation**
+
+A run-off coefficient of 100 % therefore means that all rainfall runs off (no infiltration), and a value of 0 % means that all rainfall infiltrates.
+Values outside the range 0-100 are not accepted.
+The method only acts on the rainfall of the current time step, so water that is already in a cell does not infiltrate.
+
+For spatially varying run-off coefficients per cell use ``inffile`` with ``inftype = r2d``, for both regular and quadtree grids:
+
+.. code-block:: text
+
+	inffile = sfincs.infiltration.nc
+	inftype = r2d
+
+The ``inffile`` must contain the following variable:
+
+* ``runoff``: run-off coefficient in %
+
+**NOTE - The run-off coefficient method is only available through the NetCDF ``inffile``, there is no separate binary file option**
 
 
 Storage volume

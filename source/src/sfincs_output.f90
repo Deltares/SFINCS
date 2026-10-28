@@ -1,4 +1,93 @@
 module sfincs_output
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Model output: decides when map, maximum, his and restart output is due and writes it,
+   ! in netCDF (through sfincs_ncoutput) or in binary/ASCII format.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_output(tmapout, tmaxout, thisout, trstout)
+   !     Set the output times and create the output files.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   write_output(...)
+   !     Write the map, maximum, his and restart output that is due at time t.
+   !     Called from: sfincs_update (sfincs_lib), finalize_output (sfincs_output)
+   !
+   !   reset_max_output()
+   !     Reset the maximum-value arrays at the start of a new maximum-output interval.
+   !     Called from: sfincs_update (sfincs_lib), write_output (sfincs_output)
+   !
+   !   finalize_output(t, ntmaxout, tmaxout)
+   !     Write the last maximum output if still needed and close the output files.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
+   !   open_map_output()
+   !     Open the binary or ASCII map output file(s).
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   open_max_output()
+   !     Open the binary maximum output file(s).
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   write_map_output()
+   !     Write the time-varying fields to the binary or ASCII map output.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   write_max_output()
+   !     Write the maximum-value fields to the binary maximum output.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   close_map_output()
+   !     Close the binary or ASCII map output file(s).
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   close_max_output()
+   !     Close the binary maximum output file(s).
+   !     Called from: finalize_output (sfincs_output)
+   !
+   !   open_his_output()
+   !     Delete existing ASCII his output files (zst.txt, prcp.txt, qt.txt).
+   !     Called from: initialize_output (sfincs_output)
+   !
+   !   write_his_output(t)
+   !     Write the time series at observation points and cross-sections to the ASCII his
+   !     output.
+   !     Called from: write_output (sfincs_output)
+   !
+   !   write_rst_file(t)
+   !     Write a binary restart file for time t.
+   !     Called from: write_output (sfincs_output)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_ncoutput
    use sfincs_log
@@ -7,7 +96,20 @@ module sfincs_output
 
    subroutine initialize_output(tmapout,tmaxout,thisout, trstout)
    !
+   ! Set the output times and create the output files.
+   !
+   ! Output:
+   !   tmapout : time of the first map output [s]
+   !   tmaxout : time of the first maximum output [s]
+   !   thisout : time of the first his output [s]
+   !   trstout : time of the first restart output [s]
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
+   !
    use sfincs_data
+   use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
    implicit none
    !
@@ -15,6 +117,12 @@ module sfincs_output
    real*8   :: tmaxout
    real*8   :: trstout
    real*8   :: thisout
+   !
+   logical  :: his_rivers
+   logical  :: his_urban
+   !
+   his_rivers = (nr_discharge_points > 0 .and. store_river_discharge)
+   his_urban  = (nr_urban_drainage_zones > 0 .and. store_urban_drainage_discharge)
    !
    if (dtmapout>1.0e-6) then
       tmapout     = t0out
@@ -28,7 +136,7 @@ module sfincs_output
    endif
    !
    if (dtmaxout>1.0e-6) then
-      tmaxout     = t0out + dtmaxout
+      tmaxout     = min(t0out + dtmaxout, t1out) ! last window may be shorter, ending at t1out
       if (outputtype_map /= 'net') then
          call open_max_output()   ! For netcdf output this is written to mapfile
       endif
@@ -56,13 +164,13 @@ module sfincs_output
       !
    endif
    !
-   ! Create his file if either observation points, cross-sections, structures or drains present
+   ! Create his file if either observation points, cross-sections, structures, drains, stored river discharges or stored urban drainage present
    !
-   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. ndrn>0 .or. nr_runup_gauges>0 )) then
+   if (dthisout>1.0e-6 .and. (nobs>0 .or. nrcrosssections>0 .or. nrstructures>0 .or. nrthindams>0 .or. nr_src_structures>0 .or. his_rivers .or. his_urban .or. nr_runup_gauges>0 )) then
       !
-      thisout     = t0
+      thisout     = t0out
       !
-      if (outputtype_his == 'net') then    
+      if (outputtype_his == 'net') then
          call ncoutput_his_init()
       else      
          call open_his_output()
@@ -77,30 +185,42 @@ module sfincs_output
    end subroutine
 
    
-   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout,tloop)
+   subroutine write_output(t,write_map,write_his,write_max,write_rst,ntmapout,ntmaxout,nthisout)
+   !
+   ! Write the map, maximum, his and restart output that is due at time t.
+   !
+   ! Input:
+   !   t         : current model time [s since tref]
+   !   write_map : write map output at this time
+   !   write_his : write his output at this time
+   !   write_max : write maximum output at this time
+   !   write_rst : write a restart file at this time
+   !   ntmapout  : index of the map output time
+   !   ntmaxout  : index of the maximum output time
+   !   nthisout  : index of the his output time
+   !
+   ! Called from: sfincs_update (sfincs_lib), finalize_output (sfincs_output)
    !
    use sfincs_data
+   use sfincs_timers
+   use sfincs_src_structures, only: nr_src_structures
+   use sfincs_discharges,     only: nr_discharge_points
+   use sfincs_urban_drainage, only: nr_urban_drainage_zones
    !
    implicit none
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !
-   logical  :: write_map   
+   logical  :: write_map
    logical  :: write_max
-   logical  :: write_his   
-   logical  :: write_rst   
+   logical  :: write_his
+   logical  :: write_rst
    !
-   integer  :: ntmapout 
+   integer  :: ntmapout
    integer  :: ntmaxout
-   integer  :: nthisout      
+   integer  :: nthisout
    !
    real*8   :: t
    !
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('output')
    !
    ! Time-varying water level output maps
    !
@@ -126,6 +246,14 @@ module sfincs_output
          !
          !$acc update host(q)
          !$acc update host(uvmean)
+         !
+         if (inftype == 'cnb') then
+            !$acc update host(scs_Se)
+         elseif (inftype == 'gai') then
+            !$acc update host(GA_sigma, GA_F)
+         elseif (inftype == 'hor') then
+            !$acc update host(rain_T1)
+         endif
          !
       endif
       !
@@ -196,35 +324,8 @@ module sfincs_output
          !      
       endif
       !
-      if (store_maximum_waterlevel) then
-         zsmax = -999.0 ! Set zsmax back to a small value
-         !$acc update device(zsmax)
-      endif
+      call reset_max_output()
       !
-      if (store_maximum_velocity) then
-         vmax = -999.0 ! Set vmax back to a small value
-         !$acc update device(vmax)
-      endif
-      !
-      if (store_maximum_flux) then
-         qmax = -999.0 ! Set qmax back to a small value
-         !$acc update device(qmax)
-      endif      
-      !      
-!      if (precip .and. store_cumulative_precipitation) then
-!         cumprcp = 0.0 ! Set cumprcp back to a 0.0
-!         !$acc update device(cumprcp)
-!      endif            
-      !
-      if (store_twet) then
-         twet = 0.0 ! Set twet back to 0.0
-         !$acc update device(twet)
-      endif
-      !      
-      if (store_t_zsmax) then
-         t_zsmax = -999.0 ! Set t_zsmax back to a small value
-         !$acc update device(t_zsmax)
-      endif
    endif
    !
    !      
@@ -238,7 +339,9 @@ module sfincs_output
    !      
    ! Water level time series
    !
-   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_runup_gauges>0)) then
+   if (write_his .and. (nobs>0 .or. nrcrosssections>0 .or. nr_src_structures>0 .or. nr_runup_gauges>0 .or. &
+       (nr_discharge_points>0 .and. store_river_discharge) .or. &
+       (nr_urban_drainage_zones>0 .and. store_urban_drainage_discharge))) then
       !      
       if (outputtype_his == 'net') then
          !      
@@ -252,12 +355,69 @@ module sfincs_output
       !
    endif
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !   
+   call timer_stop('output')
+   !
    end subroutine
-   
-   subroutine finalize_output(t, ntmaxout, tloopoutput, tmaxout)
+
+
+   subroutine reset_max_output()
+   !
+   ! Reset the running maxima (and wet duration) to start a new max output window.
+   !
+   ! Called from: write_output (after each max write) and sfincs_update (sfincs_lib)
+   ! when t0out is crossed, so the first window only covers t >= t0out.
+   !
+   use sfincs_data
+   !
+   implicit none
+   !
+   if (store_maximum_waterlevel) then
+      zsmax = -999.0 ! Set zsmax back to a small value
+      !$acc update device(zsmax)
+   endif
+   !
+   if (store_zvolume_max) then
+      zvolmax = 0.0 ! Set zvolmax back to zero
+      !$acc update device(zvolmax)
+   endif
+   !
+   if (store_maximum_velocity) then
+      vmax = -999.0 ! Set vmax back to a small value
+      !$acc update device(vmax)
+   endif
+   !
+   if (store_maximum_flux) then
+      qmax = -999.0 ! Set qmax back to a small value
+      !$acc update device(qmax)
+   endif
+   !
+   ! Note: cumprcp is deliberately not reset; it is cumulative since t=0 and used by the Curve Number infiltration
+   !
+   if (store_twet) then
+      twet = 0.0 ! Set twet back to 0.0
+      !$acc update device(twet)
+   endif
+   !
+   if (store_t_zsmax) then
+      t_zsmax = -999.0 ! Set t_zsmax back to a small value
+      !$acc update device(t_zsmax)
+   endif
+   !
+   end subroutine
+
+
+   subroutine finalize_output(t, ntmaxout, tmaxout)
+   !
+   ! Write the last maximum output if still needed and close the output files.
+   !
+   ! Input:
+   !   t        : current model time [s since tref]
+   !   tmaxout  : time of the next maximum output [s]
+   !
+   ! Input/output:
+   !   ntmaxout : index of the maximum output time
+   !
+   ! Called from: sfincs_finalize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -265,19 +425,20 @@ module sfincs_output
    !
    integer  :: ntmaxout
    real*8   :: t, t2
-   real     :: tloopoutput 
-   real*8   :: tmaxout   
-   !   
-   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then 
-       !write dtmax output if 1) value for dtmaxout wasn't achieved yet, 
+   real*8   :: tmaxout
+   !
+   if (dtmaxout>1.e-6 .and. ntmaxout == 0) then
+       !write dtmax output if 1) value for dtmaxout wasn't achieved yet,
        !or 2) in the last timeinterval, the full 'dtmaxout' wasn't achieved yet, but we still want the max over this interval
-      ! 
+      !
       call write_log('', 1)
       call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...', 1)
       ntmaxout = 1
-      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)
+      call write_output(t,.false.,.false.,.true.,.false.,0,ntmaxout,0)
       !
-   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout) then
+   elseif (dtmaxout>1.e-6 .and. ntmaxout>0 .and. t < tmaxout .and. tmaxout <= t1out) then
+      !
+      ! tmaxout > t1out means the last max window (ending at t1out) has already been written
       !
       call write_log('', 1)
       call write_log('Info : Write maximum values at final timestep since t=dtmaxout was not reached yet for final interval...', 1)
@@ -286,7 +447,7 @@ module sfincs_output
       ! Write 'tstop' as timemax instead of actual (unrounded) 't'
       t2 = t1
       !
-      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0,tloopoutput)       
+      call write_output(t2,.false.,.false.,.true.,.false.,0,ntmaxout,0)
       !
    endif
    !
@@ -313,6 +474,10 @@ module sfincs_output
    
    subroutine open_map_output()
    !
+   ! Open the binary or ASCII map output file(s).
+   !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -337,6 +502,10 @@ module sfincs_output
    
    
    subroutine open_max_output()
+   !
+   ! Open the binary maximum output file(s).
+   !
+   ! Called from: initialize_output (sfincs_output)
    !
    use sfincs_data
    !
@@ -374,6 +543,10 @@ module sfincs_output
    
 
    subroutine write_map_output()
+   !
+   ! Write the time-varying fields to the binary or ASCII map output.
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    !
@@ -456,6 +629,10 @@ module sfincs_output
 
    subroutine write_max_output()
    !
+   ! Write the maximum-value fields to the binary maximum output.
+   !
+   ! Called from: write_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -521,6 +698,10 @@ module sfincs_output
    
    subroutine close_map_output()
    !
+   ! Close the binary or ASCII map output file(s).
+   !
+   ! Called from: finalize_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -538,6 +719,10 @@ module sfincs_output
    end subroutine
 
    subroutine close_max_output()
+   !
+   ! Close the binary maximum output file(s).
+   !
+   ! Called from: finalize_output (sfincs_output)
    !
    use sfincs_data
    !
@@ -566,6 +751,10 @@ module sfincs_output
 
    subroutine open_his_output()
    !
+   ! Delete existing ASCII his output files (zst.txt, prcp.txt, qt.txt).
+   !
+   ! Called from: initialize_output (sfincs_output)
+   !
    use sfincs_data
    !
    implicit none
@@ -580,10 +769,6 @@ module sfincs_output
       open(unit = 966, file = trim('qt.txt'))
       close(unit = 966 ,status='delete')
    endif
-   if (nsrcdrn>0) then
-      open(unit = 970, file = trim('qdrain.txt'))
-      close(unit = 970 ,status='delete')
-   endif
    !
    ! Delete existing files
    !
@@ -591,6 +776,13 @@ module sfincs_output
 
 
    subroutine write_his_output(t)
+   !
+   ! Write the time series at observation points and cross-sections to the ASCII his output.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_crosssections
@@ -645,16 +837,16 @@ module sfincs_output
       !
    endif
    !
-   if (ndrn>0 .and. store_qdrain) then
-      !$acc update host(qtsrc)
-      open(unit = 970, file = trim('qdrain.txt'), access='append')
-      write(970,'(f12.1,10000f9.3)')t,(qtsrc(iobs), iobs = nsrc + 1, nsrcdrn, 2)
-      close(970)
-   endif
-   !
    end subroutine
    
    subroutine write_rst_file(t)
+   !
+   ! Write a binary restart file for time t.
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: write_output (sfincs_output)
    !
    use sfincs_data
    use sfincs_date

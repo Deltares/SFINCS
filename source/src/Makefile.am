@@ -49,11 +49,12 @@ libsfincs_la_SOURCES = \
 	../third_party_open/utils/toml-f/src/tomlf/build.f90 \
 	../third_party_open/utils/toml-f/src/tomlf/all.f90 \
 	../third_party_open/utils/toml-f/src/tomlf.f90 \
+	sfincs_data.f90 \
+	sfincs_timers.f90 \
 	sfincs_log.f90 \
 	sfincs_date.f90 \
 	sfincs_read.f90 \
 	sfincs_spiderweb.f90 \
-	sfincs_data.f90 \
         ../third_party_open/Delft3D/astro.f90 \
 	../third_party_open/utils/geometry.f90 \
 	sfincs_error.f90 \
@@ -67,19 +68,24 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_infragravity.f90 \
 	snapwave/snapwave_boundaries.f90 \
 	snapwave/snapwave_date.f90 \
+	snapwave/snapwave_input.f90 \
 	snapwave/snapwave_domain.f90 \
 	snapwave/snapwave_windsource.f90 \
 	snapwave/snapwave_RFtable.f90 \
 	snapwave/snapwave_solver.f90 \
-	sfincs_input.f90 \
 	sfincs_initial_conditions.f90 \
 	sfincs_boundaries.f90 \
-	sfincs_continuity.f90 \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
+	sfincs_rule_expression.f90 \
+	sfincs_src_structures.f90 \
+	sfincs_input.f90 \
+	utils/sfincs_polygons.f90 \
+	sfincs_urban_drainage.f90 \
 	sfincs_subgrid.F90 \
-	sfincs_timestep_analysis.f90 \	
-	sfincs_infiltration.f90 \	
+	sfincs_timestep_analysis.f90 \
+	sfincs_infiltration.f90 \
+	sfincs_continuity.f90 \
 	sfincs_domain.f90 \
 	sfincs_structures.f90 \
 	sfincs_obspoints.f90 \

@@ -1,4 +1,79 @@
 module snapwave_boundaries
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! SnapWave boundary conditions: reads the wave boundary points and time series, and
+   ! updates the wave spectra, wind field and directional grid at the boundary every wave
+   ! time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_boundary_data()
+   !     Read the SnapWave wave boundary input (single point, time series or netCDF) and
+   !     find the boundary indices.
+   !     Called from: read_snapwave_boundary_data (sfincs_bathtub),
+   !       couple_snapwave (sfincs_snapwave)
+   !
+   !   read_boundary_enclosure()
+   !     Read the boundary enclosure (enc) file.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   read_boundary_data_singlepoint()
+   !     Read the wave and water level time series for a single boundary point.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   read_boundary_data_timeseries()
+   !     Read the wave boundary points and their time series of wave height, period,
+   !     direction and spreading.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   find_boundary_indices()
+   !     Determine, for each boundary node, the indices and weights of the two nearest
+   !     boundary input points.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   find_nearest_depth_for_boundary_points()
+   !     Find the water depth at the grid node nearest to each boundary input point.
+   !     Called from: update_boundary_points (snapwave_boundaries)
+   !
+   !   update_boundary_conditions(t)
+   !     Update all wave boundary conditions (boundary points, theta grid, wind field,
+   !     spectra) for time t.
+   !     Called from: compute_snapwave (sfincs_snapwave)
+   !
+   !   update_boundary_points(t, just_time_series)
+   !     Interpolate the boundary time series to time t, and determine the infragravity
+   !     boundary conditions.
+   !     Called from: update_snapwave_boundary_data (sfincs_bathtub),
+   !       update_boundary_conditions (snapwave_boundaries)
+   !
+   !   update_wind_field()
+   !     Update the wind speed and direction at all grid nodes.
+   !     Called from: update_boundary_conditions (snapwave_boundaries)
+   !
+   !   make_theta_grid(central_theta)
+   !     Make the directional (theta) grid around the given central direction.
+   !     Called from: update_boundary_conditions (snapwave_boundaries),
+   !       update_boundary_points (snapwave_boundaries)
+   !
+   !   build_boundary_support_points_spectra()
+   !     Build the directional spectra at the boundary support points on the current theta
+   !     grid.
+   !     Called from: update_boundary_conditions (snapwave_boundaries)
+   !
+   !   update_boundaries()
+   !     Interpolate the boundary spectra and wave conditions to the boundary nodes.
+   !     Called from: update_boundary_conditions (snapwave_boundaries)
+   !
+   !   weighted_average(val1, val2, fac, iopt, val3)
+   !     Weighted average of two values, either regular (iopt=1) or of two angles in
+   !     radians.
+   !     Called from: update_boundary_points (snapwave_boundaries)
+   !
+   !   mod2(a, b)
+   !     Modulo of a and b, mapped onto the range 1 to b.
+   !     Called from: make_theta_grid (snapwave_boundaries)
+   !
 
    use sfincs_log
    use sfincs_error   
@@ -6,6 +81,12 @@ module snapwave_boundaries
 contains   
    
    subroutine read_boundary_data()
+   !
+   ! Read the SnapWave wave boundary input (single point, time series or netCDF) and find
+   ! the boundary indices.
+   !
+   ! Called from: read_snapwave_boundary_data (sfincs_bathtub),
+   !   couple_snapwave (sfincs_snapwave)
    !
    ! Reads bnd, bhs, spw etc. files
    !Boundary conditions > lever tp, Hs en wave dir aand (ook dirspr?) en zet om naar spectrum op de randcellen (ntheta, nsigma) > JONSWAP met gamma als user waarde
@@ -78,27 +159,41 @@ contains
       ! Also needed:
       allocate(deptht_bwv(nwbnd))      
       !
-   endif    
-   !
-   ! Convert to cartesian, going-to, radians - independent of input type
-   !
-   wd_bwv = (270.0 - wd_bwv)*pi/180
-   !   
-   ! Convert directional spreading input to radians - independent of input type
-   ds_bwv = ds_bwv * pi / 180      
+   endif
    !
    ! Write number of input points sounds - independent of input type
    write(logstr,*)'Input wave boundary points found: ',nwbnd
    call write_log(logstr, 0)
    !
+   if (nwbnd == 0) then
+      !
+      ! No wave boundary conditions: only allowed with wind growth
+      !
+      if (.not. wind) then
+         call stop_sfincs('Error ! SnapWave has no wave boundary conditions (snapwave_bndfile, snapwave_jonswapfile or netsnapwavefile) and snapwave_wind = 0 !', 1)
+      endif
+      !
+      call write_log('Info SnapWave - no wave boundary conditions given, running with wind growth only (zero wave energy at boundary cells)', 0)
+      !
+      return
+      !
+   endif
+   !
+   ! Convert to cartesian, going-to, radians - independent of input type
+   !
+   wd_bwv = (270.0 - wd_bwv)*pi/180
+   !
+   ! Convert directional spreading input to radians - independent of input type
+   ds_bwv = ds_bwv * pi / 180
+   !
    ! Check length time-series - independent of input type
    !
    if ((t_bwv(1) > (t0 + 1.0)) .or. (t_bwv(ntwbnd) < (t1 - 1.0))) then
-       ! 
-       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
-       call write_log(logstr, 1)   
        !
-   endif      
+       write(logstr,'(a)')' WARNING! Times in wave boundary conditions file do not cover entire simulation period!'
+       call write_log(logstr, 1)
+       !
+   endif
    !
    end subroutine
 
@@ -106,6 +201,8 @@ contains
    subroutine read_boundary_enclosure ()
    !
    ! Reads enc file
+   !
+   ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
    use snapwave_data
    !
@@ -140,6 +237,8 @@ contains
    !
    ! Reads jonswap and water level file for single point
    ! t(s) Hm0 Tp dir ms zst
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
    !
    use snapwave_data   
    !
@@ -186,6 +285,11 @@ contains
 
    
    subroutine read_boundary_data_timeseries()
+   !
+   ! Read the wave boundary points and their time series of wave height, period, direction
+   ! and spreading.
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
    !
    ! Reads bnd, bhs, spw etc. files
    ! Boundary conditions > lever tp, Hs en wave dir aand (ook dirspr?) en zet om naar spectrum op de randcellen (ntheta, nsigma) > JONSWAP met gamma als user waarde
@@ -296,6 +400,11 @@ contains
    !
    subroutine find_boundary_indices()
    !
+   ! Determine, for each boundary node, the indices and weights of the two nearest boundary
+   ! input points.
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
+   !
    use snapwave_data
    !
    implicit none
@@ -405,6 +514,8 @@ subroutine find_nearest_depth_for_boundary_points()
     ! Find nearest grid index in (xgb,ygb) for every boundary input point (x_bwv(ib), y_bwv(ib))
     ! Output is: deptht_bwv    
     !
+    ! Called from: update_boundary_points (snapwave_boundaries)
+    !
     use snapwave_data
     !
     implicit none
@@ -472,6 +583,11 @@ subroutine update_boundary_conditions(t)
    !
    ! Update all wave boundary conditions
    !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: compute_snapwave (sfincs_snapwave)
+   !
    use snapwave_data
    !
    implicit none
@@ -508,9 +624,9 @@ subroutine update_boundary_conditions(t)
       !
    endif 
    !
-   ! Build spectra on the boundary support points
+   ! Build spectra on the boundary support points (on the final theta grid)
    !
-   !call build_boundary_support_points_spectra() TODO - TL: later can clean up this code by also using this function
+   call build_boundary_support_points_spectra()
    !
    ! Update boundary conditions at grid points
    !
@@ -521,6 +637,14 @@ end subroutine
 subroutine update_boundary_points(t, just_time_series)
    !
    ! Update vardens at boundary points
+   !
+   ! Input:
+   !   t                : current model time [s since tref]
+   !   just_time_series : only interpolate the time series, skip the infragravity boundary
+   !                      conditions
+   !
+   ! Called from: update_snapwave_boundary_data (sfincs_bathtub),
+   !   update_boundary_conditions (snapwave_boundaries)
    !
    use snapwave_data
    use snapwave_infragravity
@@ -543,6 +667,19 @@ subroutine update_boundary_points(t, just_time_series)
    ! First interpolate boundary conditions in timeseries to boundary points
    !
    update_grid_boundary_points = .true.
+   !
+   if (nwbnd == 0) then
+      !
+      ! No wave boundary conditions (wind-only run): no boundary spectra, safe mean values
+      !
+      hsmean_bwv    = 0.0
+      tpmean_bwv    = Tpini
+      tpmean_bwv_ig = Tpini * Tinc2ig
+      wdmean_bwv    = 0.0
+      !
+      return
+      !
+   endif
    !
    ! Interpolate boundary conditions in time
    !
@@ -711,40 +848,16 @@ subroutine update_boundary_points(t, just_time_series)
       call make_theta_grid(u10dmean)
    endif 
    !
-   ! Build spectra on wave boundary support points
+   ! Spectra on the support points are built in build_boundary_support_points_spectra,
+   ! after the final theta grid is known (see update_boundary_conditions)
    !
-   do ib = 1, nwbnd ! Loop along boundary points
-      !
-      E0   = 0.0625 * rho * g * hst_bwv(ib)**2
-      ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0      
-      !
-      eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
-      !      
-   enddo
-   !
-   ! Build IG spectra on wave boundary support points   
-   if (igwaves) then   
-      if (igherbers) then 
-          do ib = 1, nwbnd ! Loop along boundary points    
-             !          
-             E0_ig   = 0.0625 * rho * g * hst_bwv_ig(ib)**2
-             ms   = 1.0 / dst_bwv(ib)**2 - 1.0
-             dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-             where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0                  
-             !         
-             eet_bwv_ig(:,ib) = dist / sum(dist) * E0_ig / dtheta          
-             !      
-          enddo
-      endif
-   endif
-   !         
 end subroutine update_boundary_points
 !
 subroutine update_wind_field()
    !
    ! Update wind field at all grid cells
+   !
+   ! Called from: update_boundary_conditions (snapwave_boundaries)
    !
    use snapwave_data
    !
@@ -778,6 +891,12 @@ end subroutine update_wind_field
 subroutine make_theta_grid(central_theta)
    !
    ! make theta grid based on boundary mean wave direction
+   !
+   ! Input:
+   !   central_theta : central direction of the theta grid
+   !
+   ! Called from: update_boundary_conditions (snapwave_boundaries),
+   !   update_boundary_points (snapwave_boundaries)
    !
    use snapwave_data
    !
@@ -831,23 +950,86 @@ end subroutine make_theta_grid
 !
 subroutine build_boundary_support_points_spectra()
    !
-   ! Update directional spectra on boundary points from time series
+   ! Build directional spectra on the wave boundary support points on the current theta
+   ! grid, centered on the mean imposed wave direction (wdmean_bwv), which is not the
+   ! grid center (thetamean) when the grid is made around the wind direction
+   !
+   ! Called from: update_boundary_conditions (snapwave_boundaries)
    !
    use snapwave_data
    !
    implicit none
    !
-   integer :: ib
+   integer :: ib, nbin, nbin360
    !
-   real*4  :: E0, ms
-   !  
+   real*4  :: E0, ms, E0_ig, sdist
+   logical, save :: warned_truncated = .false.
+   logical, save :: warned_outside   = .false.
+   !
+   ! With wind the theta grid is made around the mean wind direction, so part (or all) of the
+   ! imposed spectrum (+-90 degrees around wdmean_bwv) can fall outside the grid. The spectrum
+   ! is normalized over the bins that are on the grid, so energy is only lost without overlap
+   !
+   if (wind .and. ntwbnd > 0 .and. ntheta < ntheta360) then
+      !
+      nbin    = count(abs(mod(pi + theta    - wdmean_bwv, 2.0*pi) - pi) <= 0.999*pi/2.0)
+      nbin360 = count(abs(mod(pi + theta360 - wdmean_bwv, 2.0*pi) - pi) <= 0.999*pi/2.0)
+      !
+      if (nbin == 0) then
+         !
+         if (.not. warned_outside) then
+            write(logstr,'(a,f6.1,a)') 'Warning SnapWave - imposed wave direction is outside the directional grid around the mean wind direction (snapwave_sector = ', &
+               sector, ') : no wave energy imposed at the boundary'
+            call write_log(logstr, 1)
+            warned_outside = .true.
+         endif
+         !
+      elseif (nbin < nbin360) then
+         !
+         if (.not. warned_truncated) then
+            write(logstr,'(a,f6.1,a)') 'Warning SnapWave - imposed wave spectrum is truncated by the directional grid around the mean wind direction (snapwave_sector = ', &
+               sector, ') : total energy is preserved, but mean wave direction shifts towards the wind'
+            call write_log(logstr, 1)
+            warned_truncated = .true.
+         endif
+         !
+      endif
+      !
+   endif
+   !
    do ib = 1, nwbnd ! Loop along boundary points
-      E0   = 0.0625*rho*g*hst_bwv(ib)**2
-      ms = 1.0/dst_bwv(ib)**2-1.0
-      dist = sign(1.0,cos(theta - thetamean))*abs(cos(theta - thetamean))**ms
-      where (abs(mod(pi+theta - thetamean,2.0*pi)-pi)>0.999*pi/2.0) dist = 0.0
-      eet_bwv(:,ib) = dist/sum(dist)*E0/dtheta
+      !
+      E0   = 0.0625 * rho * g * hst_bwv(ib)**2
+      ms   = 1.0 / dst_bwv(ib)**2 - 1.0
+      dist = sign(1.0, cos(theta - wdmean_bwv)) * abs(cos(theta - wdmean_bwv))**ms
+      where (abs(mod(pi + theta - wdmean_bwv, 2.0*pi) - pi) > 0.999*pi/2.0) dist = 0.0
+      sdist = sum(dist)
+      if (sdist > 0.0) then
+         eet_bwv(:,ib) = dist / sdist * E0 / dtheta
+      else
+         eet_bwv(:,ib) = 0.0
+      endif
+      !
    enddo
+   !
+   if (igwaves) then
+      if (igherbers) then
+         do ib = 1, nwbnd ! Loop along boundary points
+            !
+            E0_ig = 0.0625 * rho * g * hst_bwv_ig(ib)**2
+            ms    = 1.0 / dst_bwv(ib)**2 - 1.0
+            dist  = sign(1.0, cos(theta - wdmean_bwv)) * abs(cos(theta - wdmean_bwv))**ms
+            where (abs(mod(pi + theta - wdmean_bwv, 2.0*pi) - pi) > 0.999*pi/2.0) dist = 0.0
+            sdist = sum(dist)
+            if (sdist > 0.0) then
+               eet_bwv_ig(:,ib) = dist / sdist * E0_ig / dtheta
+            else
+               eet_bwv_ig(:,ib) = 0.0
+            endif
+            !
+         enddo
+      endif
+   endif
    !
 end subroutine build_boundary_support_points_spectra
 !
@@ -855,13 +1037,18 @@ subroutine update_boundaries()
    !
    ! Update values at boundary points
    !
+   ! Called from: update_boundary_conditions (snapwave_boundaries)
+   !
    use snapwave_data
    !
    implicit none
    !
    integer ib, i, k
    !
-   !      
+   ! No wave boundary conditions (wind-only run): ee and ee_ig at msk=2 cells stay 0 (set in initialize_snapwave_domain)
+   !
+   if (nwbnd == 0) return
+   !
    ! Set wave parameters in all boundary points on grid
    !
    ! Loop through grid boundary points
@@ -911,6 +1098,19 @@ subroutine update_boundaries()
    
    subroutine weighted_average(val1,val2,fac,iopt,val3) ! as in sfincs_boundaries.f90
    !
+   ! Weighted average of two values, either regular (iopt=1) or of two angles in radians.
+   !
+   ! Input:
+   !   val1 : first value
+   !   val2 : second value
+   !   fac  : weight of val1 (0 to 1)
+   !   iopt : 1 for a regular average, otherwise an average of angles [rad]
+   !
+   ! Output:
+   !   val3 : weighted average
+   !
+   ! Called from: update_boundary_points (snapwave_boundaries)
+   !
    implicit none
    !
    integer, intent(in)    :: iopt
@@ -951,6 +1151,18 @@ subroutine update_boundaries()
    end subroutine
    
    function mod2 (a,b) result (c)
+   !
+   ! Modulo of a and b, mapped onto the range 1 to b.
+   !
+   ! Input:
+   !   a : dividend
+   !   b : divisor
+   !
+   ! Returns:
+   !   c : a modulo b, in the range 1 to b
+   !
+   ! Called from: make_theta_grid (snapwave_boundaries)
+   !
    integer a,b,c
    !
    c = mod(a,b)

@@ -1,4 +1,88 @@
 module sfincs_domain
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Model domain set-up: builds the computational mesh (regular or quadtree), indices,
+   ! masks and neighbours, and initializes bathymetry, boundaries, roughness, storage volume
+   ! and the hydrodynamic state.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_domain()
+   !     Initialize the complete model domain by calling the routines below in order.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   initialize_processes()
+   !     Set the flags of the physical processes that are active in this run.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_mesh()
+   !     Build the SFINCS mesh: cell and uv indices, flags and neighbours.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_bathymetry()
+   !     Read the bed levels (dep file, quadtree file or subgrid tables) and set them at
+   !     cells and uv points.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   compute_zbuvmx()
+   !     Compute the bed level threshold zbuvmx at the uv points (highest adjacent bed level
+   !     plus huthresh).
+   !     Called from: update_zbuv (sfincs_bmi)
+   !
+   !   initialize_boundaries()
+   !     Count the boundary cells per type and set up the boundary index arrays.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_roughness()
+   !     Set the Manning roughness at the uv points (uniform, land/sea or from file).
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_storage_volume()
+   !     Read the spatially-varying storage volume per cell (e.g. for green infrastructure).
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   set_advection_mask()
+   !     Set the mask that switches off advection at uv points next to boundaries and wave
+   !     makers.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   initialize_hydro()
+   !     Allocate and initialize the hydrodynamic variables (zs, q, uv, etc.).
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   deallocate_quadtree()
+   !     Deallocate the quadtree arrays that are no longer needed after initialization.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_log
    use sfincs_error
@@ -6,6 +90,10 @@ module sfincs_domain
 contains
 
    subroutine initialize_domain()
+   !
+   ! Initialize the complete model domain by calling the routines below in order.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use quadtree
@@ -24,8 +112,6 @@ contains
    call initialize_boundaries()
    !
    call initialize_roughness()
-   !
-   call initialize_infiltration() ! see: sfincs_infiltration.f90
    !
    call initialize_storage_volume()
    !
@@ -59,6 +145,8 @@ contains
    subroutine initialize_processes()
    !
    ! Initialize physical processes
+   !
+   ! Called from: initialize_domain (sfincs_domain)
    !
    use sfincs_data
    !
@@ -143,6 +231,8 @@ contains
    subroutine initialize_mesh()
    !
    ! Initialize SFINCS domain (indices, flags and neighbors)
+   !
+   ! Called from: initialize_domain (sfincs_domain)
    !
    use sfincs_data
    use quadtree
@@ -1587,6 +1677,11 @@ contains
 
    subroutine initialize_bathymetry()
    !
+   ! Read the bed levels (dep file, quadtree file or subgrid tables) and set them at cells
+   ! and uv points.
+   !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    use sfincs_data
    use sfincs_subgrid
    use quadtree
@@ -1745,6 +1840,11 @@ contains
    
    subroutine compute_zbuvmx()
    !
+   ! Compute the bed level threshold zbuvmx at the uv points (highest adjacent bed level
+   ! plus huthresh).
+   !
+   ! Called from: update_zbuv (sfincs_bmi)
+   !
    use sfincs_data
    !
    integer :: ip
@@ -1763,6 +1863,10 @@ contains
    end subroutine
 
    subroutine initialize_boundaries()
+   !
+   ! Count the boundary cells per type and set up the boundary index arrays.
+   !
+   ! Called from: initialize_domain (sfincs_domain)
    !
    use sfincs_data
    !
@@ -1959,8 +2063,13 @@ contains
 
    subroutine initialize_roughness()
    !
+   ! Set the Manning roughness at the uv points (uniform, land/sea or from file).
+   !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    use sfincs_data
    use sfincs_ncinput   
+   use sfincs_read, only: is_netcdf_file
    !
    implicit none
    !
@@ -1970,7 +2079,6 @@ contains
    integer :: nmu
    logical :: ok
    !
-   integer :: nchar
    character*256 :: varname
    !
    ! FRICTION COEFFICIENTS (only for regular bathymetry, as for subgrid the Manning's n values are stored in the tables)
@@ -1991,11 +2099,9 @@ contains
          write(logstr,'(a,a)')'Info    : reading roughness file ',trim(manningfile)
          call write_log(logstr, 0)
          !
-         nchar = len_trim(manningfile)
-         !         
          ok = check_file_exists(manningfile, 'Roughness file', .true.)
          !
-         if (manningfile(nchar - 1 : nchar) == 'nc') then
+         if (is_netcdf_file(manningfile)) then
             !
             ! Call the generic quadtree nc file reader function
             varname = 'manning'
@@ -2063,14 +2169,18 @@ contains
 
    subroutine initialize_storage_volume()
    !
+   ! Read the spatially-varying storage volume per cell (e.g. for green infrastructure).
+   !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    use sfincs_data
    use sfincs_ncinput
+   use sfincs_read, only: is_netcdf_file
    !
    implicit none
    !
-   integer :: nchar
    logical :: ok
-   character*256 :: varname   
+   character*256 :: varname
    !
    if (use_storage_volume) then 
       !
@@ -2086,11 +2196,9 @@ contains
       write(logstr,'(a,a)')'Info    : reading vol file ',trim(volfile)
       call write_log(logstr, 0)
       !
-      nchar = len_trim(volfile)
-      !
       ok = check_file_exists(volfile, 'Storage volume vol file', .true.)
       !
-      if (volfile(nchar - 1 : nchar) == 'nc') then
+      if (is_netcdf_file(volfile)) then
          !
          ! Call the generic quadtree nc file reader function
          varname = 'vol'
@@ -2112,6 +2220,11 @@ contains
 
 
    subroutine set_advection_mask()
+   !
+   ! Set the mask that switches off advection at uv points next to boundaries and wave
+   ! makers.
+   !
+   ! Called from: initialize_domain (sfincs_domain)
    !
    use sfincs_data
    !
@@ -2184,6 +2297,8 @@ contains
    !
    ! Initialize SFINCS variables (qx, qy, zs etc.)
    !
+   ! Called from: initialize_domain (sfincs_domain)
+   !
    use sfincs_data
    use sfincs_subgrid
    use sfincs_initial_conditions
@@ -2202,12 +2317,18 @@ contains
    allocate(uv0(npuv + ncuv + 1))
    !
    allocate(kfuv(npuv))
-   ! 
-   zs  = 0.0
-   q   = 0.0
-   q0  = 0.0
-   uv  = 0.0
-   uv0 = 0.0
+   !
+   ! Cell-wise discharge accumulator (point sources + drainage structures),
+   ! read by sfincs_continuity.
+   !
+   allocate(qsrc(np))
+   !
+   zs   = 0.0
+   q    = 0.0
+   q0   = 0.0
+   uv   = 0.0
+   uv0  = 0.0
+   qsrc = 0.0
    !
    kfuv = 0 
    !
@@ -2242,6 +2363,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       allocate(zsmax(np))
+   endif
+   !
+   if (store_zvolume_max) then
+      allocate(zvolmax(np))
    endif
    !
    if (store_maximum_velocity) then
@@ -2295,6 +2420,10 @@ contains
    !
    if (store_maximum_waterlevel) then
       zsmax = -999.0
+   endif
+   !
+   if (store_zvolume_max) then
+      zvolmax = 0.0
    endif
    !
    if (store_maximum_velocity) then
@@ -2414,6 +2543,8 @@ contains
    subroutine deallocate_quadtree()
    !
    ! De-allocate arrays that are no longer necessary
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    use quadtree

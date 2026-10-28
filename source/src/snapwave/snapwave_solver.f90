@@ -1,4 +1,70 @@
 ﻿module snapwave_solver
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! SnapWave solver: stationary 2D wave energy balance for incident and infragravity waves,
+   ! including breaking, bottom friction, wind growth and vegetation.
+   !
+   ! Subroutines / functions:
+   !
+   !   compute_wave_field()
+   !     Compute the wave field for the current conditions: celerities, energy balance and
+   !     derived output.
+   !     Called from: compute_snapwave (sfincs_snapwave)
+   !
+   !   solve_energy_balance2Dstat(...)
+   !     Solve the stationary 2D wave energy (and wave action) balance by sweeping over the
+   !     nodes.
+   !     Called from: compute_wave_field (snapwave_solver)
+   !
+   !   solve_tridiag(a, b, c, d, x, n)
+   !     Solve a tridiagonal system of equations.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   baldock(rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
+   !     Wave breaking dissipation according to Baldock et al. (1998).
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   determine_infragravity_source_sink_term(...)
+   !     Determine the infragravity source/sink term from the incident wave energy (Leijnse
+   !     et al., 2024).
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
+   !     Estimate the infragravity shoaling parameter alphaig from the bed slope and
+   !     relative depth.
+   !     Called from: determine_infragravity_source_sink_term (snapwave_solver)
+   !
+   !   hpsort_eps_epw(n, ra, ind, eps)
+   !     Sort an array in ascending order with heapsort, treating values within eps as
+   !     equal.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   timer(t)
+   !     Return the wall-clock time in seconds from system_clock.
+   !     Called from: compute_wave_field (snapwave_solver)
+   !
+   !   vegatt(...)
+   !     Wave energy dissipation due to vegetation.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   swvegatt(...)
+   !     Short-wave dissipation due to vegetation, per vertical vegetation section.
+   !     Called from: vegatt (snapwave_solver)
+   !
+   !   bulkdragcoeff(...)
+   !     Bulk drag coefficient for vegetation from the Keulegan-Carpenter number.
+   !     Called from: not called (the call in vegatt is commented out)
+   !
+   !   momeqveg(...)
+   !     Wave-induced force on vegetation from the nonlinear orbital velocities.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   !   swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)
+   !     Nonlinear wave shape (orbital velocity and surface elevation) from the
+   !     Rienecker-Fenton table.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    
    use sfincs_log
     
@@ -7,6 +73,11 @@
 contains
    
    subroutine compute_wave_field()
+      !
+      ! Compute the wave field for the current conditions: celerities, energy balance and
+      ! derived output.
+      !
+      ! Called from: compute_snapwave (sfincs_snapwave)
       !
       use snapwave_data
       !
@@ -197,6 +268,109 @@ contains
                                          betamean, srcig, alphaig, Dw_ig, Df_ig, &       
                                          vegetation, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, Dveg, &
                                          zb, nwav, ig_opt, alfa_ig, gamma_ig, gamma_fac_br, eeinc2ig, Tinc2ig, alphaigfac, shinc2ig, iterative_srcig)
+   !
+   ! Solve the stationary 2D wave energy (and wave action) balance by sweeping over the
+   ! nodes.
+   !
+   ! Input:
+   !   x                   : x coordinates of the nodes
+   !   y                   : y coordinates of the nodes
+   !   dhdx                : bed slope in x direction
+   !   dhdy                : bed slope in y direction
+   !   no_nodes            : number of grid nodes
+   !   w                   : weights of the two upwind nodes, per direction and node
+   !   ds                  : distance to the upwind point, per direction and node
+   !   prev                : indices of the two upwind nodes, per direction and node
+   !   neumannconnected    : Neumann boundary node connected to each inner node (0 if none)
+   !   theta               : wave directions [rad]
+   !   ntheta              : number of wave directions
+   !   thetamean           : mean offshore wave direction [rad]
+   !   depth               : water depth [m]
+   !   fw                  : wave friction factor [-]
+   !   T_ig                : infragravity wave period [s]
+   !   dt                  : time step [s]
+   !   rho                 : water density [kg/m3]
+   !   alfa                : coefficient alpha of the Baldock breaking model [-]
+   !   gamma               : breaker index gamma [-]
+   !   gammax              : maximum ratio of wave height to water depth [-]
+   !   wind                : wind growth on or off
+   !   windspreadfac       : directional distribution of the wind input [-]
+   !   u10                 : wind speed at 10 m [m/s]
+   !   niter               : maximum number of iterations
+   !   crit                : relative accuracy of the stopping criterion
+   !   hmin                : minimum water depth [m]
+   !   baldock_ratio       : ratio H/Hmax above which incident waves break
+   !   baldock_ratio_ig    : ratio H/Hmax above which infragravity waves break
+   !   baldock_exponent    : exponent of the extra factor on the Baldock dissipation
+   !   jadcgdx             : 1 to include the group velocity gradient in the wind input, 0
+   !                         not to
+   !   sigmin              : minimum wave frequency [rad/s]
+   !   sigmax              : maximum wave frequency [rad/s]
+   !   relax_factor_DoverE : under-relaxation factor for D/E (1.0 disables)
+   !   relax_factor_DoverA : under-relaxation factor for D/A (1.0 disables)
+   !   c_dispT             : coefficient of the wave period dissipation
+   !   Tpini               : initial peak period [s]
+   !   igwaves             : infragravity waves on or off
+   !   kwav_ig             : infragravity wave number [rad/m]
+   !   cg_ig               : infragravity group velocity [m/s]
+   !   ctheta_ig           : infragravity refraction speed [rad/s]
+   !   Hmx_ig              : maximum infragravity wave height [m]
+   !   fw_ig               : infragravity friction factor [-]
+   !   vegetation          : vegetation on or off
+   !   no_secveg           : number of vertical vegetation sections
+   !   veg_ah              : height of the vertical vegetation sections [m]
+   !   veg_bstems          : stem diameter per section [m]
+   !   veg_Nstems          : number of stems per unit area, per section [1/m2]
+   !   veg_Cd              : bulk drag coefficient per section [-]
+   !   zb                  : bed level [m]
+   !   nwav                : ratio of group to phase velocity n [-]
+   !   ig_opt              : infragravity wave option
+   !   alfa_ig             : coefficient alpha of the Baldock model for infragravity waves
+   !                         [-]
+   !   gamma_ig            : breaker index for infragravity waves [-]
+   !   gamma_fac_br        : factor on gamma for the maximum incident wave height in the
+   !                         shoaling term
+   !   eeinc2ig            : ratio of infragravity to incident energy at the boundary
+   !   Tinc2ig             : ratio of infragravity to incident period
+   !   alphaigfac          : factor on the infragravity shoaling source term
+   !   shinc2ig            : fraction of the infragravity source term that is taken from the
+   !                         incident waves
+   !   iterative_srcig     : compute the infragravity source term implicitly within the
+   !                         iterations
+   !
+   ! Input/output:
+   !   inner               : mask of the inner nodes (not on a boundary)
+   !   kwav                : wave number [rad/m]
+   !   cg                  : group velocity [m/s]
+   !   ctheta              : refraction speed, per direction and node [rad/s]
+   !   Tp                  : peak wave period [s]
+   !   sinhkh              : sinh(k h)
+   !   Hmx                 : maximum wave height [m]
+   !   ee                  : wave energy density, per direction and node
+   !   aa                  : wave action density, per direction and node
+   !   sig                 : mean wave frequency [rad/s]
+   !   DoverE              : ratio of dissipation to energy D/E
+   !   ee_ig               : infragravity energy density, per direction and node
+   !
+   ! Output:
+   !   H                   : wave height [m]
+   !   Dw                  : wave breaking dissipation [W/m2]
+   !   F                   : wave force Dw/C/rho/h
+   !   Df                  : bottom friction dissipation [W/m2]
+   !   thetam              : mean wave direction [rad]
+   !   WsorE               : wind input of wave energy, per direction and node
+   !   WsorA               : wind input of wave action, per direction and node
+   !   SwE                 : directionally integrated wind input of energy
+   !   SwA                 : directionally integrated wind input of action
+   !   H_ig                : infragravity wave height [m]
+   !   betamean            : mean local bed slope parameter
+   !   srcig               : directionally averaged infragravity source term
+   !   alphaig             : mean infragravity shoaling parameter
+   !   Dw_ig               : infragravity breaking dissipation [W/m2]
+   !   Df_ig               : infragravity friction dissipation [W/m2]
+   !   Dveg                : wave dissipation by vegetation [W/m2]
+   !
+   ! Called from: compute_wave_field (snapwave_solver)
    !
    use snapwave_windsource
    !
@@ -1137,6 +1311,20 @@ contains
 
    subroutine solve_tridiag(a, b, c, d, x, n)
    !
+   ! Solve a tridiagonal system of equations.
+   !
+   ! Input:
+   !   a : sub-diagonal
+   !   b : main diagonal
+   !   c : super-diagonal
+   !   d : right-hand side
+   !   n : number of equations
+   !
+   ! Output:
+   !   x : solution
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    implicit none
    !
    !	 a - sub-diagonal (means it is the diagonal below the main diagonal)
@@ -1179,6 +1367,24 @@ contains
    end subroutine solve_tridiag
 
    subroutine baldock (rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
+   !
+   ! Wave breaking dissipation according to Baldock et al. (1998).
+   !
+   ! Input:
+   !   rho   : water density [kg/m3]
+   !   g     : gravitational acceleration [m/s2]
+   !   alfa  : coefficient alpha of the Baldock breaking model [-]
+   !   gamma : breaker index gamma [-]
+   !   depth : water depth [m]
+   !   H     : wave height [m]
+   !   T     : wave period [s]
+   !   iexp  : exponent of the extra factor on the dissipation
+   !   Hmax  : maximum wave height [m]
+   !
+   ! Output:
+   !   Dw    : wave breaking dissipation [W/m2]
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
    !
    real*4, intent(in)                :: rho
    real*4, intent(in)                :: g
@@ -1229,6 +1435,33 @@ contains
     ! in: the rest
     !
     ! NOTE - This is based on the energy in the previous SnapWave timestep 'ee' and 'ee_ig', and waveheight 'H', which should therefore be made available.
+    !
+    ! Input:
+    !   inner         : mask of the inner nodes (not on a boundary)
+    !   no_nodes      : number of grid nodes
+    !   ntheta        : number of wave directions
+    !   w             : weights of the two upwind nodes, per direction and node
+    !   ds            : distance to the upwind point, per direction and node
+    !   prev          : indices of the two upwind nodes, per direction and node
+    !   dtheta        : directional resolution [rad]
+    !   cg_ig         : infragravity group velocity [m/s]
+    !   nwav          : ratio of group to phase velocity n [-]
+    !   depth         : water depth [m]
+    !   zb            : bed level [m]
+    !   H             : wave height [m]
+    !   ee            : wave energy density, per direction and node
+    !   ee_ig         : infragravity energy density, per direction and node
+    !   ig_opt        : infragravity wave option
+    !   alphaigfac    : factor on the infragravity shoaling source term
+    !   gamma         : breaker index gamma [-]
+    !   gamma_fac_br  : factor on gamma for the maximum incident wave height
+    !
+    ! Input/output:
+    !   alphaig_local : local infragravity shoaling parameter, per direction and node
+    !   beta_local    : local bed slope, per direction and node
+    !   srcig_local   : infragravity source/sink term, per direction and node
+    !
+    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
     !   
     implicit none
     !  
@@ -1448,6 +1681,18 @@ contains
    
    subroutine estimate_shoaling_parameter_alphaig(beta, gam, alphaig)
    !
+   ! Estimate the infragravity shoaling parameter alphaig from the bed slope and relative
+   ! depth.
+   !
+   ! Input:
+   !   beta    : local bed slope [-]
+   !   gam     : ratio of wave height to water depth [-]
+   !
+   ! Output:
+   !   alphaig : infragravity shoaling parameter
+   !
+   ! Called from: determine_infragravity_source_sink_term (snapwave_solver)
+   !
    real*4, intent(in)                :: beta
    real*4, intent(in)                :: gam 
    real*4, intent(out)               :: alphaig
@@ -1496,6 +1741,19 @@ contains
    end subroutine estimate_shoaling_parameter_alphaig 
    
    subroutine hpsort_eps_epw (n, ra, ind, eps)
+   !
+   ! Sort an array in ascending order with heapsort, treating values within eps as equal.
+   !
+   ! Input:
+   !   n   : length of ra
+   !   eps : values that differ by less than eps count as equal
+   !
+   ! Input/output:
+   !   ra  : array to sort, sorted on output
+   !   ind : index array; initialised when ind(1) = 0 on input, sorted along with ra
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    !---------------------------------------------------------------------
    ! sort an array ra(1:n) into ascending order using heapsort algorithm,
    ! and considering two elements being equal if their values differ
@@ -1637,13 +1895,43 @@ contains
    end subroutine hpsort_eps_epw
 
    subroutine timer(t)
+   !
+   ! Return the wall-clock time in seconds from system_clock.
+   !
+   ! Output:
+   !   t : wall-clock time [s]
+   !
+   ! Called from: compute_wave_field (snapwave_solver)
+   !
    real*4,intent(out)               :: t
-   integer*4                        :: count,count_rate,count_max
+   integer*8                        :: count,count_rate,count_max
    call system_clock (count,count_rate, count_max)
-   t = real(count) / count_rate
+   t = real(dble(count) / dble(count_rate), 4)
    end subroutine timer
 
    subroutine vegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg) 
+        !
+        ! Wave energy dissipation due to vegetation.
+        !
+        ! Input:
+        !   sigm       : mean wave frequency [rad/s]
+        !   no_nodes   : number of grid nodes
+        !   kwav       : wave number [rad/m]
+        !   no_secveg  : number of vertical vegetation sections
+        !   veg_ah     : height of the vertical vegetation sections [m]
+        !   veg_bstems : stem diameter per section [m]
+        !   veg_Nstems : number of stems per unit area, per section [1/m2]
+        !   veg_Cd     : bulk drag coefficient per section [-]
+        !   depth      : water depth [m]
+        !   rho        : water density [kg/m3]
+        !   g          : gravitational acceleration [m/s2]
+        !   H          : wave height [m]
+        !
+        ! Output:
+        !   Dveg       : wave dissipation by vegetation [W/m2]
+        !
+        ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+        !
         use snapwave_domain
 		
         implicit none
@@ -1700,6 +1988,28 @@ contains
     end subroutine vegatt
     
     subroutine swvegatt(sigm, no_nodes, kwav, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, g, H, Dveg)! Short wave dissipation by vegetation
+        !
+        ! Short-wave dissipation due to vegetation, per vertical vegetation section.
+        !
+        ! Input:
+        !   sigm       : mean wave frequency [rad/s]
+        !   no_nodes   : number of grid nodes
+        !   kwav       : wave number [rad/m]
+        !   no_secveg  : number of vertical vegetation sections
+        !   veg_ah     : height of the vertical vegetation sections [m]
+        !   veg_bstems : stem diameter per section [m]
+        !   veg_Nstems : number of stems per unit area, per section [1/m2]
+        !   veg_Cd     : bulk drag coefficient per section [-]
+        !   depth      : water depth [m]
+        !   rho        : water density [kg/m3]
+        !   g          : gravitational acceleration [m/s2]
+        !   H          : wave height [m]
+        !
+        ! Output:
+        !   Dveg       : wave dissipation by vegetation [W/m2]
+        !
+        ! Called from: vegatt (snapwave_solver)
+        !
         !use snapwave_data
         !use snapwave_domain
         !
@@ -1768,6 +2078,22 @@ contains
 		!    Michele Bendoni: subroutine to calculate bulk drag coefficient for short wave
 		!    energy dissipation based on the Keulegan-Carpenter number (adapted from XBeach)
 		!    Ozeren et al. (2013) or Mendez and Losada (2004)	 
+      !
+      ! Input:
+      !   ahh        : total plant height [m]
+      !   m          : index of the vegetation section
+      !   no_nodes   : number of grid nodes
+      !   no_secveg  : number of vertical vegetation sections
+      !   depth      : water depth [m]
+      !   H          : wave height [m]
+      !   kwav       : wave number [rad/m]
+      !   veg_bstems : stem diameter per section [m]
+      !   sigm       : mean wave frequency [rad/s]
+      !
+      ! Output:
+      !   Cdterm     : bulk drag coefficient [-]
+      !
+      ! Called from: not called (the call in vegatt is commented out)
       !
 		implicit none
 	   !
@@ -1844,6 +2170,27 @@ contains
     end subroutine bulkdragcoeff
  
 subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd, depth, rho, H, Trep, unl, Fvw)
+    !
+    ! Wave-induced force on vegetation from the nonlinear orbital velocities.
+    !
+    ! Input:
+    !   no_nodes   : number of grid nodes
+    !   no_secveg  : number of vertical vegetation sections
+    !   veg_ah     : height of the vertical vegetation sections [m]
+    !   veg_bstems : stem diameter per section [m]
+    !   veg_Nstems : number of stems per unit area, per section [1/m2]
+    !   veg_Cd     : bulk drag coefficient per section [-]
+    !   depth      : water depth [m]
+    !   rho        : water density [kg/m3]
+    !   H          : wave height [m]
+    !   Trep       : representative wave period [s]
+    !   unl        : nonlinear orbital velocity over one wave period [m/s]
+    !
+    ! Output:
+    !   Fvw        : wave-induced force on the vegetation
+    !
+    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+    !
     ! INput: no_nodes, no_secveg, veg_ah(k,:), veg_bstems(k,:), veg_Nstems(k,:), veg_Cd(k,:), depth(k), rho, H(k), Tp(k), unl(k,:), Fvw(k)
     !
     implicit none
@@ -1892,6 +2239,24 @@ subroutine momeqveg(no_nodes, no_secveg, veg_ah, veg_bstems, veg_Nstems, veg_Cd,
 end subroutine momeqveg    
    
 subroutine swvegnonlin(no_nodes, kwav, depth, H, g, Trep, unl, etaw0)
+    !
+    ! Nonlinear wave shape (orbital velocity and surface elevation) from the
+    ! Rienecker-Fenton table.
+    !
+    ! Input:
+    !   no_nodes : number of grid nodes
+    !   kwav     : wave number [rad/m]
+    !   depth    : water depth [m]
+    !   H        : wave height [m]
+    !   g        : gravitational acceleration [m/s2]
+    !   Trep     : representative wave period [s]
+    !
+    ! Output:
+    !   unl      : nonlinear orbital velocity over one wave period, per node [m/s]
+    !   etaw0    : surface elevation over one wave period, per node [m]
+    !
+    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+    !
     use snapwave_RFtable
     !
     implicit none
