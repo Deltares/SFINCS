@@ -87,6 +87,7 @@ contains
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_length, &
    !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
@@ -145,6 +146,7 @@ contains
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_length, &
    !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
