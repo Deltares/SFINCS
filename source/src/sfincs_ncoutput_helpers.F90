@@ -114,7 +114,7 @@ module sfincs_ncoutput_helpers
    !     Define a station coordinate variable in the his file.
    !     Called from: ncoutput_his_init (sfincs_ncoutput)
    !
-   !   write_point_var(varid, source, nt, scale, use_sw_index)
+   !   write_point_var(varid, source, nt, scale, use_sw_index, min_value, mask)
    !     Write a variable at the observation points to the his file at time index nt.
    !     Called from: ncoutput_update_his (sfincs_ncoutput)
    !
@@ -291,7 +291,7 @@ contains
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   subroutine write_cell_var(ncid, varid, source, nt, use_sw_index, check_kcs, scale, min_value)
+   subroutine write_cell_var(ncid, varid, source, nt, use_sw_index, check_kcs, scale, min_value, mask)
       !
       ! Scatter SFINCS cell-centered source(:) into the file-shaped buffer
       ! and put it to the NetCDF variable at timestep nt.
@@ -300,6 +300,8 @@ contains
       !   scale               -> multiply source by scale on write (unit conversions)
       !   min_value           -> only write cells where source(nm) > min_value
       !                          (used for t_zsmax to mask never-reached cells)
+      !   mask                -> only write cells where mask(nm) > 0.0; same indexing
+      !                          as source (e.g. wave period/direction masked by wave height)
       !
       ! Called from: ncoutput_update_map (sfincs_ncoutput),
       !   ncoutput_update_max (sfincs_ncoutput)
@@ -312,15 +314,17 @@ contains
       real*4,  intent(in)           :: source(:)
       logical, intent(in), optional :: use_sw_index, check_kcs
       real*4,  intent(in), optional :: scale, min_value
+      real*4,  intent(in), optional :: mask(:)
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
-      logical :: use_sw, filt_kcs, filt_min
+      logical :: use_sw, filt_kcs, filt_min, filt_mask
       real*4  :: fac, vmin
       integer :: nm, nmq, nms
       !
-      use_sw   = .false.; if (present(use_sw_index)) use_sw   = use_sw_index
-      filt_kcs = .false.; if (present(check_kcs))    filt_kcs = check_kcs
-      filt_min = .false.; if (present(min_value))    filt_min = .true.
+      use_sw    = .false.; if (present(use_sw_index)) use_sw    = use_sw_index
+      filt_kcs  = .false.; if (present(check_kcs))    filt_kcs  = check_kcs
+      filt_min  = .false.; if (present(min_value))    filt_min  = .true.
+      filt_mask = .false.; if (present(mask))         filt_mask = .true.
       fac      = 1.0;     if (present(scale))        fac      = scale
       vmin     = 0.0;     if (present(min_value))    vmin     = min_value
       !
@@ -336,6 +340,9 @@ contains
             if (nm <= 0) cycle
             if (filt_kcs .and. kcs(nm) <= 0) cycle
             if (filt_min .and. source(nm) <= vmin) cycle
+            if (filt_mask) then
+               if (mask(nm) <= 0.0) cycle
+            endif
             buf_q(nmq) = fac * source(nm)
          enddo
          NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
@@ -351,6 +358,9 @@ contains
             if (nms <= 0) cycle
             if (filt_kcs .and. kcs(nm) <= 0) cycle
             if (filt_min .and. source(nms) <= vmin) cycle
+            if (filt_mask) then
+               if (mask(nms) <= 0.0) cycle
+            endif
             buf_r(z_index_z_m(nm), z_index_z_n(nm)) = fac * source(nms)
          enddo
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
@@ -1086,11 +1096,13 @@ contains
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   subroutine write_point_var(varid, source, nt, scale, use_sw_index)
+   subroutine write_point_var(varid, source, nt, scale, use_sw_index, min_value, mask)
    ! Gathers source(nmindobs(iobs)) for each obs point and writes to his_file.
    ! Optional scale is applied only to non-fill values.
    !   use_sw_index=.true. -> source is snapwave-indexed; map the obs cell to its
    !                          snapwave node via index_snapwave_in_sfincs first.
+   !   min_value           -> only write points where source > min_value
+   !   mask                -> only write points where mask > 0.0; same indexing as source
    !
    ! Input:
    !   varid        : netCDF variable id
@@ -1098,6 +1110,8 @@ contains
    !   nt           : index of the output time
    !   scale        : factor applied to the values (default: 1.0)
    !   use_sw_index : source is indexed on the SnapWave mesh (default: false)
+   !   min_value    : only write points where the value exceeds min_value (optional)
+   !   mask         : only write points where mask > 0.0, same indexing as source (optional)
    !
    ! Called from: ncoutput_update_his (sfincs_ncoutput)
    !
@@ -1106,8 +1120,9 @@ contains
       integer, intent(in)           :: varid
       real*4,  intent(in)           :: source(:)
       integer, intent(in)           :: nt
-      real*4,  intent(in), optional :: scale
+      real*4,  intent(in), optional :: scale, min_value
       logical, intent(in), optional :: use_sw_index
+      real*4,  intent(in), optional :: mask(:)
       real*4  :: obs(nobs)
       integer :: iobs, nm
       logical :: use_sw
@@ -1119,6 +1134,12 @@ contains
          if (use_sw) then
             nm = index_snapwave_in_sfincs(nm)
             if (nm <= 0) cycle
+         endif
+         if (present(min_value)) then
+            if (source(nm) <= min_value) cycle
+         endif
+         if (present(mask)) then
+            if (mask(nm) <= 0.0) cycle
          endif
          obs(iobs) = source(nm)
       enddo
@@ -1160,7 +1181,14 @@ contains
             uobs(iobs)  = cosrot * uz - sinrot * vz
             vobs(iobs)  = sinrot * uz + cosrot * vz
             uvmag(iobs) = sqrt(uobs(iobs)**2 + vobs(iobs)**2)
-            uvdir(iobs) = atan2(vobs(iobs), uobs(iobs)) * 180 / pi
+            !
+            ! Direction is undefined without flow, keep fill value there
+            !
+            if (uvmag(iobs) > 0.0) then
+               !
+               uvdir(iobs) = atan2(vobs(iobs), uobs(iobs)) * 180 / pi
+               !
+            endif
          endif
       enddo
    end subroutine compute_uv_at_obs_points
@@ -1183,9 +1211,16 @@ contains
          nm = nmindobs(iobs)
          if (nm > 0) then
             wmag(iobs) = sqrt(windu(nm)**2 + windv(nm)**2)
-            wdir(iobs) = 270.0 - atan2(windv(nm), windu(nm)) * 180 / pi
-            if (wdir(iobs) < 0.0)   wdir(iobs) = wdir(iobs) + 360.0
-            if (wdir(iobs) > 360.0) wdir(iobs) = wdir(iobs) - 360.0
+            !
+            ! Direction is undefined without wind, keep fill value there
+            !
+            if (wmag(iobs) > 0.0) then
+               !
+               wdir(iobs) = 270.0 - atan2(windv(nm), windu(nm)) * 180 / pi
+               if (wdir(iobs) < 0.0)   wdir(iobs) = wdir(iobs) + 360.0
+               if (wdir(iobs) > 360.0) wdir(iobs) = wdir(iobs) - 360.0
+               !
+            endif
          endif
       enddo
    end subroutine compute_wind_at_obs_points
