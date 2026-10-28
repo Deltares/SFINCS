@@ -1,4 +1,4 @@
-﻿General
+﻿User manual - General
 =======
 
 Overview
@@ -275,6 +275,13 @@ Hereby high-resolution elevation data is used to derive relations between the wa
 The derivation of these subgrid tables is a pre-processing step outside of the model, that only needs to be done once!
 The advantage of the subgrid version of SFINCS is that generally one can compute on coarser grid sizes, while still having accurate results utilizing the high-resolution elevation data to its full potential.
 Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2025, binary file option still possible for backwards compatability.
+
+The subgrid file ('sbgfile') contains two types of tables, which are the same for a regular and a quadtree grid:
+
+* a cell table for every cell (dimension 'np'), made from all subgrid pixels in that cell. It gives the water level 'z_level' at a number of equal volume steps (dimension 'levels') from 0 to 'z_volmax', the volume below the highest pixel 'z_zmax'. SFINCS uses it to convert the water volume in a cell to a water level. Below the lowest pixel 'z_zmin' the cell is dry, above 'z_zmax' the water level rises linearly with the volume.
+* a uv table for every velocity point (dimension 'npuv'), made from the pixels between the centres of the two neighbouring cells (side A in one cell, side B in the other). It gives the conveyance depth 'uv_havg', the wet fraction 'uv_pwet' and a representative Manning roughness 'uv_nrep' at water levels evenly spaced from 'uv_zmin' to 'uv_zmax'. SFINCS uses these in the momentum equation. Above 'uv_zmax' the depth increases linearly with the water level, and the roughness goes from 'uv_nrep' to the average roughness 'uv_navg' with fitting coefficient 'uv_ffit'.
+
+Between the table levels SFINCS interpolates linearly, so the number of levels ('nr_levels' in HydroMT-SFINCS, default 10) determines how well the tables follow the relations from the pixels.
 
 **Python example using HydroMT-SFINCS**
 

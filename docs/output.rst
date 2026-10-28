@@ -4,17 +4,17 @@ Output messages
 Interpreting the information on the screen
 -----
 
-When running SFINCS, some information will be written to the screen.
-This consists of what version was run (number/date not always completely up to date), some files that were read in and the number of active points.
-After 'Starting computation ...' appears the initialisation phase is finished.
+When running SFINCS, some information will be written to the screen, and the same information is written to the log file 'sfincs.log' in the model folder.
+This consists of what version was run, the input files that were read, the number of active points, and an overview of which processes are turned on.
+After '---------- Starting simulation -----------' appears the initialisation phase is finished.
 
-Once '0% complete,     Inf s remaining ...' appears, the model has actually started computing.
-The following times the percentual progress % is shown, a rough estimate of the time remaining untill completion of the model run is given.
+Once '0% complete,       - s remaining ...' appears, the model has actually started computing.
+The following times the percentual progress % is shown (every 'percentage_done' %, default 5%), with a rough estimate of the time remaining until completion of the model run.
 
-Once '---Simulation is finished---', your model has run succesfully and is writing away the model output files.
-Additionaly some information is written to the screen regarding total runtime, time consumption per section, the average time step, and the maximum occured water depth in the entire computation.
+Once '---------- Simulation finished -----------' appears, your model has run successfully and the model output files are written.
+Additionally some information is written to the screen regarding the total runtime, the time spent per section (input, boundaries, momentum, continuity, output, etc.) and the average time step.
+A very small average time step compared to what you expect can indicate that the model has encountered instabilities somewhere.
 With 'writeruntime = 1' the runtime per section is also written to a file 'runtimes.txt' (from SFINCS v2026.02 Hautacam release onwards).
-If you know the initial water depth, this can give an indication whether the model has encountered instabilities or not.
 Hereafter SFINCS is closed off, ready to start a new simulation.
 
 Normally SFINCS runs using OpenMP, utilising all computing power of available cores (e.g. all 4).
@@ -35,25 +35,64 @@ This does not make it efficient to runs multiple SFINCS runs in parallel, it is 
 	 @@@ @@@ @@      @@ @@  @@  @@@@@@ @@@ @@@
 	  @@@@@  @@      @@ @@   @   @@@@   @@@@@ 
 
+	              ..............              
+	          ......:@@@@@@@@:......          
+	       ..::::..@@........@@.:::::..       
+	     ..:::::..@@..::..::..@@.::::::..     
+    	.::::::..@@............@@.:::::::.    
+	   .::::::..@@..............@@.:::::::.   
+	  .::::::::..@@............@@..::::::::.  
+	 .:::::::::...@@.@..@@..@.@@..::::::::::. 
+	 .:::::::::...:@@@..@@..@@@:..:::::::::.. 
+	 ............@@.@@..@@..@@.@@............ 
+	 ^^^~~^^~~^^@@..............@@^^^~^^^~~^^ 
+	 .::::::::::@@..............@@.:::::::::. 
+	  .......:.@@.....@.....@....@@.:.......  
+	   .::....@@......@.@@@.@....@@.....::.   
+    	.:::~@@.:...:.@@...@@.:.:.@@~::::.    
+	     .::~@@@@@@@@@@.....@@@@@@@@@~::.     
+	       ..:~~~~~~~:.......:~~~~~~~:..      
+	          ......................          
+	              ..............              
+	 -----------------------------------------
+
+	By running a SFINCS pre-compiled executable
+	provided by Deltares, you accept the
+	conditions of the Deltares SFINCS FreeWare
+	Software License Agreement, see:
+	https://download.deltares.nl/sfincs
+
  	-----------------------------------------
 
- 	Build-Revision: $Rev: v0.0.1-alpha$
- 	Build-Date:     $Date: 2022-10-25$
+ 	Build-Revision: $Rev: v2.5.0 Hautacam
+ 	Build-Date:     $Date: 2026-10-08
 
-	Reading input file ...
- 	Info : Running SFINCS in subgrid mode ...
- 	Reading meteo data ...
- 	Info : Preparing SFINCS grid on regular mesh ...
- 	Reading sfincs.ind ...
- 	Reading sfincs.msk ...
- 	Number of active z points    :         4055
- 	Number of active u/v points  :         7972
- 	Reading sfincs.sbg ...
- 	Reading water level boundaries ...
- 	Reading observation points ...
- 	Initializing output ...
+	------ Preparing model simulation --------
 
-	 ---------- Starting simulation ----------
+	------------------------------------------
+	Computational mesh
+	------------------------------------------
+	Number of active z points      :      4055
+	Number of active u/v points    :      7972
+
+	------------------------------------------
+	Processes
+	------------------------------------------
+	Subgrid topography   : yes
+	Quadtree refinement  : no
+	Advection            : yes
+	Viscosity            : yes
+	Coriolis             : yes
+	Wind                 : no
+	Atmospheric pressure : no
+	Precipitation        : yes
+	Infiltration         : no
+	SnapWave             : no
+	Wave paddles         : no
+	Non-hydrostatic      : no
+	------------------------------------------
+
+	---------- Starting simulation -----------
 
 	   0% complete,       - s remaining ...
 	   5% complete,     0.9 s remaining ...
@@ -77,42 +116,20 @@ This does not make it efficient to runs multiple SFINCS runs in parallel, it is 
 	  95% complete,     0.1 s remaining ...
 	 100% complete,     0.0 s remaining ...
 
-	 Info : Write maximum values of final timestep since t=dtmaxout was not reached 
-	 yet...
+	Info : Write maximum values at final timestep since t=dtmaxout was not reached yet...
 
-	 ---------- Simulation finished ----------
-	              ..............              
-	          ......:@@@@@@@@:......          
-	       ..::::..@@........@@.:::::..       
-	     ..:::::..@@..::..::..@@.::::::..     
-    	.::::::..@@............@@.:::::::.    
-	   .::::::..@@..............@@.:::::::.   
-	  .::::::::..@@............@@..::::::::.  
-	 .:::::::::...@@.@..@@..@.@@..::::::::::. 
-	 .:::::::::...:@@@..@@..@@@:..:::::::::.. 
-	 ............@@.@@..@@..@@.@@............ 
-	 ^^^~~^^~~^^@@..............@@^^^~^^^~~^^ 
-	 .::::::::::@@..............@@.:::::::::. 
-	  .......:.@@.....@.....@....@@.:.......  
-	   .::....@@......@.@@@.@....@@.....::.   
-    	.:::~@@.:...:.@@...@@.:.:.@@~::::.    
-	     .::~@@@@@@@@@@.....@@@@@@@@@~::.     
-	       ..:~~~~~~~:.......:~~~~~~~:..      
-	          ......................          
-	              ..............              
-	 -----------------------------------------
+	---------- Simulation finished -----------
 
-	 Total time             :      1.211
-	 Total simulation time  :      1.198
-	 Time in input          :      0.013
-	 Time in boundaries     :      0.042 (  3.5%)
-	 Time in momentum       :      0.881 ( 73.5%)
-	 Time in continuity     :      0.207 ( 17.3%)
-	 Time in output         :      0.055 (  4.6%)
+	 Total time                   :      1.211
+	 Time in input                :      0.013
+	 Time in boundaries           :      0.042 (  3.5%)
+	 Time in momentum             :      0.881 ( 73.5%)
+	 Time in continuity           :      0.207 ( 17.3%)
+	 Time in output               :      0.055 (  4.6%)
 
 	 Average time step (s)  :     22.031
 
-	 ---------- Closing off SFINCS -----------
+	----------- Closing off SFINCS -----------
 
 
 Possible error messages and possible solutions
@@ -122,23 +139,27 @@ In case the following message is written to the screen, it means that something 
 
 .. code-block:: text
 
-	Maximum depth of 100.0 m reached!!! Simulation stopped.
+	Error! Minimum time step of 0.0050 s reached ! Current velocity exceeded uvmax 1000.0 m/s. Simulation stopped.
 
-This means that a too large water depth has occured somewhere in the domain, indicating that some input is probably not optimal.
+This means that the time step has become smaller than the minimum time step 'dtmin', which SFINCS computes from the maximum allowed flow velocity 'uvmax' (default 1000 m/s): dtmin = alpha * dx_min / (1.25 * uvmax).
+In other words, a too large flow velocity has occurred somewhere in the domain, indicating that the model has become unstable and some input is probably not optimal.
+Before stopping, SFINCS writes the map, his and max output of this last time step, so you can look up where the instability occurred (e.g. by plotting 'zs', 'h' or 'zsmax').
+
+**NOTE - Before SFINCS v2.1.1 Dollerup, the simulation was stopped on a maximum water depth ('stopdepth', message 'Maximum depth of 100.0 m reached!!! Simulation stopped.'). This keyword is no longer used.**
 
 Possible problems can be:
 
 * The provided elevation file has very rapid changes in elevation, that locally lead to large water level gradients and fluxes. Possible solution: locally smooth the elevation data and provide this as a new depfile.
 
-* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5), set a higher value for 'hmin_cfl' or set a low enough value of 'dtmax'.
+* In general the internal timesteps of SFINCS might be too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.4, default is 0.5), set a higher value for 'hmin_cfl' or set a low enough value of 'dtmax'.
 
 * To analyze which locations are limiting the global timestep, enable `timestep_analysis = 1` in `sfincs.inp` to write variables `average_required_timestep` and `percentage_limiting_timestep` to the sfincs_map.nc file. See the Timestep analysis section in the Model settings for more details.
 
 * When only forcing discharges in a for the rest entirely dry domain, the initial time steps can be too coarse to account for the needed timesteps when the discharge starts to flow. Possible solution: Make sure that part of the river/domain initially has water (limiting the time step) by specifying either 'zsini' or an 'inifile'.
 
-* When forcing waves, the bzifile time-series might contain too rapid changes in water level, the internal timesteps of SFINCS are too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.5).
+* When forcing waves, the bzifile time-series might contain too rapid changes in water level, the internal timesteps of SFINCS are too large. Possible solution: reduce timesteps by supplying a lower value of alpha (e.g. 0.4, default is 0.5).
 
-* **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the prodivided depfile and mskfile. Does map plots of these variables look weird? Probably something in your input file is not entirely correct!
+* **Tip to check your model**: specify netcdf output and load in the sfincs_map.nc file (e.g. QGIS, Quickplot, Panoply, Matlab, Python) and have a look at the variables 'zb' and 'msk'. Then you can see how SFINCS has interpreted the provided elevation and mask input. Do map plots of these variables look weird? Probably something in your input file is not entirely correct!
 
 * When more stability is needed still, have a look at the input parameter options of 'advlim' or 'hmin_cfl'.
 
@@ -146,7 +167,7 @@ Besides model instabilities, other recurring problems might be:
 
 * A specified (forcing) file/parameters is not read in > check whether you specified the name (e.g. netamuamvfile   = netamuamv.nc ) with **ONLY SPACES** in between the keyword and argument. SFINCS does not interpret a mixture of spaces and tabs well. This may cause a file or parameter to be read in as 'none', whereafter this is not used in the model simulation as wanted.
 
-* Also, check whether a certain expected forcing is coming through. SFINCS displays messages like "Turning on process: Precipitation", so if you force rainfall is this message is not visible in your log-file, something probably went wrong with the input file. Also for "Advection scheme", "Wind", "Atmospheric pressure", "Coriolis", "Viscosity", "Dynamic waves", "Infiltration XXX-type", "Precipitation from spwfile", "Storage Green Infrastructure".
+* Also, check whether a certain expected forcing is coming through. SFINCS writes an overview of the 'Processes' to the screen and to 'sfincs.log' (see the example above), so if you force rainfall but 'Precipitation' says 'no', something probably went wrong with the input file. The same holds for 'Subgrid topography', 'Quadtree refinement', 'Advection', 'Viscosity', 'Coriolis', 'Wind', 'Atmospheric pressure', 'Infiltration', 'Wave paddles' and 'Non-hydrostatic'.
 
 * SFINCS also gives input about certain files after reading in data and how these are snapped/interpreted. For instance for subgrid; "Number of subgrid levels : XXX", weirfile; "XXX structure u/v points found", wavemaker; "Number of wavemaker polylines found : XXX", observation points; "Warning : observation point XXX falls outside model domain.' - compare whether this is as expected.
 
@@ -177,7 +198,8 @@ Output description
 Parameters netcdf file global (sfincs_map.nc)
 -----
 
-In case of netcdf output, the given parameters mean the following:
+In case of netcdf output, the given parameters mean the following.
+For a quadtree model (see :ref:`quadtree`), the cell centre coordinates are 'mesh2d_face_x' and 'mesh2d_face_y' instead of 'x' and 'y', and all cell variables have the dimension 'mesh2d_nFaces' (UGRID conventions).
 
 	x
 	  :description:		x coordinate of cell centers in projected reference system
@@ -192,8 +214,8 @@ In case of netcdf output, the given parameters mean the following:
 	  :standard_name:	altitude	  
 	  :units:		m above reference level
 	msk
-	  :description:		Time-step global map output.
-	  :standard_name:	land_binary_mask	  
+	  :description:		Mask of active cells as interpreted by SFINCS: inactive (0), active (1), water level boundary (2) or outflow boundary (3) cell.
+	  :standard_name:	land_binary_mask
 	  :units:		-
 	time
 	  :description:		Time of global map output.
@@ -229,30 +251,53 @@ In case of netcdf output, the given parameters mean the following:
 	  :units:		seconds since 'tref'	  
 	zsmax
 	  :description:		Maximum water level per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
-	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
+	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level
 	  :units:		m above reference level
+	hmax
+	  :description:		Maximum water depth per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'. In subgrid mode only given with 'storehsubgrid = 1', see 'Input parameters'.
+	  :standard_name:	sea_floor_depth_below_sea_surface
+	  :units:		m
 	zvolmax
 	  :description:		Maximum subgrid volume in cell per 'dtmaxout' timestep, only given if dtmaxout>0, subgrid is used and storezvolmax = 1 (default), corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum_subgrid_volume_in_cell
 	  :units:		m^3
 	t_zsmax
-	  :description:		Time of max water level per cell and per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
-	  :standard_name:	maximum of sea_surface_height_above_mean_sea_level	  
-	  :units:		m above reference level	  
+	  :description:		Time of max water level per cell and per 'dtmaxout' timestep, only given if dtmaxout>0 and 'storetzsmax = 1', corresponding with netcdf variable 'timemax'.
+	  :standard_name:	t_zsmax
+	  :units:		seconds since 'tref'
+	tmax
+	  :description:		Duration that a cell was wet (water depth above 'twet_threshold') per 'dtmaxout' timestep, only given if 'storetwet = 1', corresponding with netcdf variable 'timemax'.
+	  :standard_name:	duration_wet
+	  :units:		s
 	vmax
-	  :description:		Maximum flow velocity proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
-	  :standard_name:	maximum_flow_velocity	  
-	  :units:		m/
+	  :description:		Maximum flow velocity proxy per 'dtmaxout' timestep, only given if dtmaxout>0 and 'storevelmax = 1', corresponding with netcdf variable 'timemax'.
+	  :standard_name:	maximum_flow_velocity
+	  :units:		m/s
 	qmax
-	  :description:		Maximum flow flux proxy per 'dtmaxout' timestep, only given if dtmaxout>0, corresponding with netcdf variable 'timemax'.
+	  :description:		Maximum flow flux proxy per 'dtmaxout' timestep, only given if dtmaxout>0 and 'storefluxmax = 1', corresponding with netcdf variable 'timemax'.
 	  :standard_name:	maximum_flux	  
 	  :units:		m^2/s	  	  	  
 	cuminf
-	  :description:		Cumulative infiltration depth over whole simulation.
-	  :units:		m	  
+	  :description:		Cumulative infiltration depth since the start of the simulation, only given if 'storecumprcp = 1' and infiltration is used, corresponding with netcdf variable 'timemax'.
+	  :units:		m
 	cumprcp
-	  :description:		Cumulative precipitation depth over whole simulation.
-	  :units:		m	  	  
+	  :description:		Cumulative precipitation depth since the start of the simulation, only given if 'storecumprcp = 1', corresponding with netcdf variable 'timemax'.
+	  :units:		m
+	urban_drainage_cumulative_depth
+	  :description:		Cumulative urban drainage depth (drained volume / cell area) since the start of the simulation, only given if 'store_cumulative_urban_drainage = 1' and 'urbfile' is specified, corresponding with netcdf variable 'timemax'.
+	  :units:		m
+	wind_u, wind_v
+	  :description:		Wind speed components per 'dtmapout' timestep, only given if 'storemeteo = 1' and wind input is given.
+	  :units:		m/s
+	windmax
+	  :description:		Maximum wind speed per 'dtmaxout' timestep, only given if 'storemeteo = 1', 'storemaxwind = 1' and spatially varying wind input is given.
+	  :units:		m/s
+	surface_air_pressure
+	  :description:		Atmospheric pressure per 'dtmapout' timestep, only given if 'storemeteo = 1' and pressure input is given.
+	  :units:		Pa
+	precipitation_rate
+	  :description:		Precipitation rate per 'dtmapout' timestep, only given if 'storemeteo = 1' and precipitation input is given.
+	  :units:		mm/hr
 	bucket_volume
 	  :description:		Current bucket storage per 'dtmapout' timestep, only given for inftype = bkt.
 	  :units:		m
@@ -296,8 +341,8 @@ This file is only created if at least one of the following is supplied: observat
 	  :standard_name:	projection_y_coordinate	  
 	  :units:		m in projected reference system	 
 	structure_height
-	  :description:		weir height on snapped location on SFINCS grid of weirs in projected reference system
-	  :standard_name:	projection_x_coordinate	  
+	  :description:		weir height on snapped location on SFINCS grid of weirs
+	  :standard_name:	structure_height
 	  :units:		m above reference level 	  	  
 	thindam_x
 	  :description:		x coordinate of snapped location on SFINCS grid of thin dams in projected reference system
@@ -336,19 +381,21 @@ This file is only created if at least one of the following is supplied: observat
 	  :standard_name:	sea_water_velocity
 	  :units:		m/s	  	
 	point_uvdir
-	  :description:		Instantaneous absolute flow velocity per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
+	  :description:		Instantaneous flow direction (bearing) per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
 	  :standard_name:	sea_water_velocity_direction
 	  :units:		degrees wrt north	 	        
 	point_prcp
-	  :description:		Instantaneous precipitation rate 'dthisout' timestep, corresponding with netcdf variable 'time'.
-	  :standard_name:	sea_surface_height_above_mean_sea_level	  
-	  :units:		m above reference level
+	  :description:		Instantaneous precipitation rate per 'dthisout' timestep, corresponding with netcdf variable 'time'.
+	  :units:		mm/hr
+	point_cumprcp
+	  :description:		Cumulative precipitation depth per 'dthisout' timestep, only given if 'storecumprcp = 1', corresponding with netcdf variable 'time'.
+	  :units:		m
 	point_qinf
 	  :description:		Instantaneous infiltration rate per 'dthisout' timestep, corresponding with netcdf variable 'time'.
-	  :standard_name:	point_qinf	  
-	  :units:		m
+	  :standard_name:	point_qinf
+	  :units:		mm/hr
 	point_S
-	  :description:		Current infiltration state per 'dthisout' timestep: Se (m) for inftype = cnb, soil moisture deficit (-) for gai, infiltration capacity (mm/hr) for hor, bucket storage (m) for bkt.
+	  :description:		Current infiltration state per 'dthisout' timestep: Se (m) for inftype = cnb, soil moisture deficit for gai, infiltration capacity (mm/hr) for hor, bucket storage (m) for bkt.
 	  :units:		depends on inftype
 	crosssection_discharge
 	  :description:		Discharge through cross-section per 'dthisout' timestep, corresponding with netcdf variable 'time'.

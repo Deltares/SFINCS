@@ -31,6 +31,65 @@ Known issues/warnings of the current SFINCS main version and last release are li
 Releases Changelog
 -----
 
+Official open source version 2026.02: v2.5.0 Hautacam release
+^^^^^
+
+The first official 2026 release of SFINCS, the v2.5.0 Hautacam release, 'XXX', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.5.0_Hautacam_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.5.0-Hautacam-Release
+
+Changes:
+
+The code consists of all functionality of the 2026.01 'v2.4.0 Galibier' release, with the following main changes/additions:
+
+* Official stable release of quadtree refinement input file sfincs.nc!
+* Addition of netcdf infiltration input file, with additional options - only for quadtree input.
+* Improved drainage structure file in 'toml' format.
+* Clarified and improved documentation for quadtree grids and HydroMT-SFINCS usage.
+
+Kernel improvements:
+
+* Clarification acceptance Deltares SFINCS freeware license when running SFINCS.
+* Standardized coding_style across the codebase for linting and unified code development.
+* Clarified and added copyright information and notice in the source code.
+* Improved time logging in source code, for more reliable values for linux builds.
+* Improved sfincs input file handling and validation in the source code.
+* Improved sfincs netcdf output file handling in the source code.
+* Improved and unified handling of discharges in the source code.
+* Further improved and extended testbed.
+
+* New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v2.0.0) instead of the last release!
+
+Bugfixes:
+
+* Fixed bug with Curve Number infiltration if storecumprcp = 0 (default), now really.
+* Fixed bug in SnapWave when supplying both wind and wave boundary conditions, with thanks to Ty Janoski for raising this issue!
+* Fixed his.nc crash when weirfile points present but no observation points (#358)
+
+Advanced user options - currently as alpha/beta functionality:
+
+* NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.
+
+* Prototype - Bucket model
+* Prototype - urbfile
+
+See here a schematic overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS-2026.02.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status 2026.02 Release
+
 Official open source version 2026.01: v2.4.0 Galibier release release
 ^^^^^
 
