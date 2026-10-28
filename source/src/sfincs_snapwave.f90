@@ -117,7 +117,7 @@ contains
    logical       :: crsgeo
    !
    build_revision = '$Rev: git SFINCS_SnapWave:main' 
-   build_date     = '$Date: 2026-10-07'
+   build_date     = '$Date: 2026-10-22'
    !
    call write_log('', 1)
    call write_log('----------- Welcome to SnapWave ---------', 1)
@@ -617,19 +617,31 @@ contains
    !
    ! FIXME - should we limit snapwave_fwmaxfac to a certain range?
    !
-   ! Loop over points and set Tp, cg, direction, spreading to 0 where H and/or H_ig are zero
-   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0
+   ! Loop over points and set H, Tp, cg and direction to 0 where H and/or H_ig are zero,
+   ! or where the depth is below hmin (dry nodes).
+   ! TL: needed because e.g. Tp is set to Tpini initially, so shows values even if cell remains dry with H=0.
+   ! For dry nodes the solver skips the output update, so H keeps a small waveps-based value (> 0)
+   ! and Tp stays at Tpini; checking depth(k) <= hmin (same test as in the solver) catches these.
+   !
    do k = 1, no_nodes
-       if (snapwave_H(k) <= 0.0) then
-           snapwave_Tp(k) = 0.0
-           snapwave_mean_direction(k) = 0.0
-           snapwave_cg(k) = 0.0
-       endif
-       !
-       if (snapwave_H_ig(k) <= 0.0) then
-           snapwave_Tp_ig(k) = 0.0        
-       endif       
-   enddo   
+      !
+      if (depth(k) <= hmin .or. snapwave_H(k) <= 0.0) then
+         !
+         snapwave_H(k)              = 0.0
+         snapwave_Tp(k)             = 0.0
+         snapwave_mean_direction(k) = 0.0
+         snapwave_cg(k)             = 0.0
+         !
+      endif
+      !
+      if (depth(k) <= hmin .or. snapwave_H_ig(k) <= 0.0) then
+         !
+         snapwave_H_ig(k)  = 0.0
+         snapwave_Tp_ig(k) = 0.0
+         !
+      endif
+      !
+   enddo
    !
    ! Wave periods from SnapWave, used in e.g. wavemakers - TL: moved behind call update_boundary_conditions & compute_wave_field so values at first timestep are not 0
    !

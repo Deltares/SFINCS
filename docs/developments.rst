@@ -1,13 +1,13 @@
 Developments
 =====
 
-SFINCS has continuely being developed since 2017, and many great features have been added over the years.
+SFINCS has continuously been developed since 2016 (10 years and counting!), and many great features have been added over the years.
 
 Development status
 -----
 
 See here a table overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
-Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality.
+Indicated are SFINCS itself (model) and model setup/post-processing using HydroMT-SFINCS (Python), green indicates existing General Available (GA) functionality and yellow existing 'stable' functionality.
 See the legend for more details regarding the GA/Stable/Prototype/Concept status differentiation.
 
 .. figure:: ./figures/SFINCS_development_status_Hautacam_2026_02_release.png
@@ -30,6 +30,76 @@ Known issues/warnings of the current SFINCS main version and last release are li
 
 Releases Changelog
 -----
+
+Official open source version 2026.02: v2.5.0 Hautacam release
+^^^^^
+
+The second official 2026 release of SFINCS, the v2.5.0 Hautacam release, 'Higher Accuracy Using quadTree Aiding Compound floods: Advancing Modelling together', is now available!
+
+This contains open access to the source code from Github: https://github.com/Deltares/SFINCS/releases/tag/v2.5.0_Hautacam_release.
+
+As pre-compiled Windows executable:
+
+https://download.deltares.nl/en/sfincs/
+
+As Docker container:
+
+docker pull deltares/sfincs-cpu:sfincs-v2.5.0-Hautacam-Release
+
+Changes:
+
+The code consists of all functionality of the 2026.01 'v2.4.0 Galibier' release, with the following main changes/additions:
+
+* Official stable release of quadtree refinement input file sfincs.nc!
+* Addition of netcdf infiltration input file, with additional options - only for quadtree input.
+* New run-off coefficient infiltration method (inftype = r2d, via inffile), with thanks to IMDC!
+* Improved drainage structure file in 'toml' format, with new detailed culvert (rectangular or circular barrel) and gate types.
+* New output options: per-source river discharge (store_river_discharge), urban drainage discharge and cumulative depth (store_urban_drainage_discharge, store_cumulative_urban_drainage).
+* Clarified and improved documentation for quadtree grids, input parameters, output and HydroMT-SFINCS usage.
+
+Kernel improvements:
+
+* Clarification acceptance Deltares SFINCS freeware license when running SFINCS.
+* Standardized coding_style across the codebase for linting and unified code development.
+* Clarified and added copyright information and notice in the source code.
+* Improved time logging in source code, for more reliable values for linux builds.
+* Improved sfincs input file handling and validation in the source code.
+* Improved sfincs netcdf output file handling in the source code.
+* Improved and unified handling of discharges in the source code.
+* Warning when a spiderweb is given in longitude/latitude for a model in a projected coordinate system without 'utmzone', which used to silently result in (near-)zero wind.
+* Further improved and extended testbed.
+
+* New Python setup tools HydroMT-SFINCS release > recommended to use this new version (v2.0.0) instead of the last release!
+
+Bugfixes:
+
+* Fixed bug with Curve Number infiltration if storecumprcp = 0 (default), now really.
+* Fixed bug in SnapWave when supplying both wind and wave boundary conditions, with thanks to Ty Janoski for raising this issue!
+* Fixed his.nc crash when weirfile points present but no observation points
+* Fixed SnapWave output on dry nodes and extrapolation of water levels to SnapWave nodes next to dry cells.
+* Fixed weirs in geographic models missing crossings with the grid.
+* Fixed overlapping weirs on the same uv point: now only the highest weir is used.
+* Fixed reading the initial water level from a quadtree netcdf file.
+* Fixed cross-sections crossing more than 1000 uv points, and the uv point count of thin dams.
+* Fixed division by zero for time-series forced wavemakers: 'wavemaker_tpmin' now also applies there.
+
+Advanced user options - currently as concept/prototype functionality:
+
+* **NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.**
+
+* Prototype - Bucket model for infiltration and losses (inftype = bkt, via inffile).
+* Prototype - Urban drainage zones (urbfile), draining zones of cells to an outfall at a design rate.
+* Prototype - Dike breaches (dkbfile), with breach deepening and widening following Verheij & Van der Knaap (20030.
+* Time-series forced and SnapWave forced wavemakers can now be combined in one model.
+
+See here a schematic overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
+Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
+
+.. figure:: ./figures/Overview_status_SFINCS-2026.02.drawio.png
+   :width: 600px
+   :align: center
+
+   Overview of SFINCS development status 2026.02 Release
 
 Official open source version 2026.01: v2.4.0 Galibier release release
 ^^^^^

@@ -1,4 +1,4 @@
-﻿Structures
+﻿User manual - Structures
 ==========
 
 Overview

@@ -321,19 +321,24 @@
          !
          d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0)
          !
-         lngth(indx) = lngth(indx) + d
-         !
          dst1   = sqrt((xuv - xthd(irow))**2 + (yuv - ythd(irow))**2)
          dst2   = sqrt((xuv - xthd(irow + 1))**2 + (yuv - ythd(irow + 1))**2)
          wfac   = dst1 / (dst1 + dst2)
          !
          height = pars(1, irow)*(1.0 - wfac) + pars(1, irow + 1)*wfac
          !
-         strucpars(1, indx) = max(strucpars(1, indx), height)
-         ! 
-         do ipar = 2, npars
-            strucpars(ipar, indx) = pars(ipar, irow)*(1.0 - wfac) + pars(ipar, irow + 1)*wfac
-         enddo
+         ! When several weirs cross this uv point, only the highest one is used (length and all parameters)
+         !
+         if (height > strucpars(1, indx)) then
+            !
+            lngth(indx)        = d
+            strucpars(1, indx) = height
+            !
+            do ipar = 2, npars
+               strucpars(ipar, indx) = pars(ipar, irow)*(1.0 - wfac) + pars(ipar, irow + 1)*wfac
+            enddo
+            !
+         endif
          !
       enddo
       !
@@ -380,7 +385,7 @@
       !
    enddo
    !
-   ! Warn for uv points crossed by more than one weir: their weir lengths are summed, which increases the flow.
+   ! Warn for uv points crossed by more than one weir: only the highest weir is used there.
    ! Only uv points that remain a weir after the height check above are counted.
    !
    nr_overlap = count(istruc == 1 .and. nr_weirs_uv > 1)
@@ -388,7 +393,7 @@
    if (nr_overlap > 0) then
       !
       write(logstr,'(a,i0,a,a)')'Warning : ', nr_overlap, ' weir u/v points are crossed by more than one weir,', &
-         ' their lengths are summed, SFINCS will keep running, but check your input'
+         ' only the highest weir is used, SFINCS will keep running, but check your input'
       call write_log(logstr, 1)
       !
    endif
