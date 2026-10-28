@@ -1468,16 +1468,6 @@ contains
             if (src_struc_direction(istruc) == direction_positive .and. qq < 0.0) qq = 0.0
             if (src_struc_direction(istruc) == direction_negative .and. qq > 0.0) qq = 0.0
             !
-            ! Relaxation: first-order lag of the structure discharge with time
-            ! constant structure_relax (s, default 10), in backward-Euler form
-            ! alpha = dt / (T + dt). This equals dt/T for small time steps, so
-            ! the response is independent of dt, and it stays below 1 for any
-            ! dt, so the relaxation never switches itself off when the time
-            ! step exceeds the time constant. T = 0 gives no relaxation.
-            !
-            alpha = dt / (max(structure_relax, 0.0) + dt)
-            qq = alpha * qq + (1.0 - alpha) * src_struc_q_now(istruc)
-            !
             ! Limit discharge to a fraction of the available volume in the donor
             ! cell (endpoint 1 for qq > 0, endpoint 2 for qq < 0), see
             ! donor_volume_fraction at the top of the module.
@@ -1507,6 +1497,18 @@ contains
                endif
                !
             endif
+            !
+            ! Relaxation: first-order lag of the structure discharge with time
+            ! constant structure_relax (s, default 10), in backward-Euler form
+            ! alpha = dt / (T + dt). This equals dt/T for small time steps, so
+            ! the response is independent of dt, and it stays below 1 for any
+            ! dt, so the relaxation never switches itself off when the time
+            ! step exceeds the time constant. T = 0 gives no relaxation.
+            ! Applied after the volume limit, so the limited value does not
+            ! feed back into the relaxation memory (chatter on dry intakes).
+            !
+            alpha = dt / (max(structure_relax, 0.0) + dt)
+            qq = alpha * qq + (1.0 - alpha) * src_struc_q_now(istruc)
             !
             src_struc_q_now(istruc) = qq
             !
