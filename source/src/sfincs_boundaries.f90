@@ -886,9 +886,11 @@ contains
    !
    has_bzi = (bzifile(1:4) /= 'none')
    !
-   ! Set water level in all boundary points on grid
-   ! This loop is all done on the CPU
-   !   
+   ! Set water level in all kcs=2 boundary points on grid from the time series.
+   ! This loop is all done on the CPU. The kcs=5 and kcs=6 points depend on the
+   ! (device) water levels inside the model and are updated in a separate loop below.
+   ! kcs=2 stays on the CPU as all its input (zst_bnd, zsit_bnd, patmb) is on the host, kcs=5/6 go to the GPU to avoid copying zs to the host.
+   !
    !$omp parallel private ( ib, nmb, zst, zsetup, zig, smfac, zs0act, ibdr, zs0smooth ) if(ngbnd > 10000)
    !$omp do schedule(dynamic, 64)
    do ib = 1, ngbnd
@@ -901,6 +903,8 @@ contains
       ! kcs = 4 : wave maker point
       ! kcs = 5 : river outflow point (dzs/dx = i)
       ! kcs = 6 : lateral (coastal) boundary point (Neumann dzs/dx = 0.0)
+      !
+      ! Only kcs = 2 points are handled here, kcs = 5 and 6 points below.
       !
       if (kcs(nmb) == 2) then
          !
@@ -980,48 +984,85 @@ contains
             zsb(ib)  = max(zsb(ib),  zb(nmb))
          endif
          !
-      elseif (kcs(nmb) == 5) then
-         !
-         ! Downstream river point
-         !
-         ! Get water levels from inside model, and adjust for slope.
-         !
-         ibdr = index_bdr_gbp(ib) ! index of the downstream boundary point that forces this grid boundary point ib
-         !
-         zst = zs(index_zsi_bdr(ibdr)) + dzs_bdr(ibdr) ! internal water level minus slope * distance
-         !
-         ! Make sure water level is not below bed level
-         !
-         if (subgrid) then
-            !
-            zst = max(zst, subgrid_z_zmin(nmb))
-            !
-         else
-            !
-            zst = max(zst, zb(nmb))
-            !
-         endif
-         !
-         zsb(ib) = zst
-         zsb0(ib) = zst
-         !
-      elseif (kcs(nmb) == 6) then
-         !
-         ! Lateral coastal (Neumann) boundary
-         !
-         ! Set water level at boundary point equal to water level inside model.
-         ! No need to set zsb and zsb0, as flux for this type of boundary is solved in sfincs_momentum.f90.
-         ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
-         !
-         ! TODO: OPENACC!!!!
-         !                           
-         zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.                     
-         !         
       endif
       !
    enddo
    !$omp end do
    !$omp end parallel
+   !
+   ! Copy the kcs=2 boundary water levels to the GPU. This overwrites the kcs=5
+   ! entries on the device with stale host values, but those are recomputed on the
+   ! device right below.
+   !
+   !$acc update device( zsb0, zsb )
+   !
+   if (downstream_river_boundaries_in_mask) then
+      !
+      ! Downstream river points (kcs=5)
+      !
+      ! Get water levels from inside model, and adjust for slope.
+      ! Done on the device, as it needs the current water levels zs.
+      !
+      !$acc parallel loop present( kcs, zs, zb, subgrid_z_zmin, zsb, zsb0, nmindbnd, index_bdr_gbp, index_zsi_bdr, dzs_bdr ) &
+      !$acc               private( nmb, ibdr, zst )
+      !$omp parallel do private ( nmb, ibdr, zst ) if(ngbnd > 10000)
+      do ib = 1, ngbnd
+         !
+         nmb = nmindbnd(ib)
+         !
+         if (kcs(nmb) == 5) then
+            !
+            ibdr = index_bdr_gbp(ib) ! index of the downstream boundary point that forces this grid boundary point ib
+            !
+            zst = zs(index_zsi_bdr(ibdr)) + dzs_bdr(ibdr) ! internal water level minus slope * distance
+            !
+            ! Make sure water level is not below bed level
+            !
+            if (subgrid) then
+               !
+               zst = max(zst, subgrid_z_zmin(nmb))
+               !
+            else
+               !
+               zst = max(zst, zb(nmb))
+               !
+            endif
+            !
+            zsb(ib)  = zst
+            zsb0(ib) = zst
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
+   !
+   if (neumann_boundaries_in_mask) then
+      !
+      ! Lateral coastal (Neumann) boundary points (kcs=6)
+      !
+      ! Set water level at boundary point equal to water level inside model.
+      ! No need to set zsb and zsb0, as flux for this type of boundary is solved in sfincs_momentum.f90.
+      ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
+      ! Done on the device, as it needs the current water levels zs.
+      !
+      !$acc parallel loop present( kcs, zs, nmindbnd, nmi_gbp ) private( nmb )
+      !$omp parallel do private ( nmb ) if(ngbnd > 10000)
+      do ib = 1, ngbnd
+         !
+         nmb = nmindbnd(ib)
+         !
+         if (kcs(nmb) == 6) then
+            !
+            zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
    !
    end subroutine
 
@@ -1047,7 +1088,7 @@ contains
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
-   !$acc update device( zsb0, zsb )
+   ! zsb and zsb0 were already copied to/updated on the device in update_boundary_conditions
    !
    factime = min(dt / btfilter, 1.0)
    one_minus_factime = 1.0 - factime
