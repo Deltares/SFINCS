@@ -1501,6 +1501,7 @@ contains
               mask=snapwave_H)
       endif
       if (wavemaker) then
+         !$acc update host(zsm)
          call write_cell_var(map_file%ncid, map_file%zsm_varid, zsm, ntmapout)
       endif
    endif
@@ -1626,6 +1627,7 @@ contains
          endif
          !
          if (wavemaker) then
+            !$acc update host(zsm)
             call write_point_var(his_file%zsm_varid, zsm, nthisout)
          endif
          !

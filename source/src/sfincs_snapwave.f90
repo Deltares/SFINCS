@@ -399,6 +399,24 @@ contains
    fwx0 = 0.0
    fwy0 = 0.0
    !
+   ! Copy the water levels and wind from the GPU, where they are updated every time step, for use in SnapWave
+   !
+   if (wavemaker) then
+      !
+      !$acc update host(zsm)
+      !
+   else
+      !
+      !$acc update host(zs)
+      !
+   endif
+   !
+   if (wind .and. snapwavewind) then
+      !
+      !$acc update host(windu, windv)
+      !
+   endif
+   !
    ! Determine SnapWave water depth
    !
    do nm = 1, snapwave_no_nodes
@@ -549,7 +567,7 @@ contains
       !
    enddo
    !
-   !$acc update device(fwuv)
+   !$acc update device(fwuv, hm0, hm0_ig)
    !
    ! Set wave forces fwmaxfac factor
    fwmaxfac = snapwave_fwmaxfac
