@@ -91,6 +91,8 @@ Bugfixes:
 * Fixed OpenMP race conditions in the SnapWave infragravity source term, which could give different results with more than one thread.
 * Fixed run-up gauges with sample points outside the grid or in inactive cells, and models with a rugfile but no obsfile stopping with an error.
 * Fixed the internal point of downstream river boundaries in quadtree models with inactive cells, which used the water level of an unrelated cell.
+* Fixed Neumann (msk=6) and downstream river (msk=5) boundaries on GPU, which used outdated water levels: Neumann boundary cells stayed at their initial water level.
+* Fixed SnapWave coupling on GPU, which used outdated water levels and wind, so the wave field ignored tide, surge and setup.
 
 Advanced user options - currently as concept/prototype functionality:
 
