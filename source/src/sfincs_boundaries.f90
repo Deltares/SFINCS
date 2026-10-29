@@ -889,7 +889,7 @@ contains
    ! Set water level in all kcs=2 boundary points on grid from the time series.
    ! This loop is all done on the CPU. The kcs=5 and kcs=6 points depend on the
    ! (device) water levels inside the model and are updated in a separate loop below.
-   ! kcs=2 stays on the CPU as all its input (zst_bnd, zsit_bnd, patmb) is on the host, kcs=5/6 go to the GPU to avoid copying zs to the host.
+   ! kcs=2 stays on the CPU as all its inputs (zst_bnd, zsit_bnd, patmb) are on the cpu, kcs=5/6 go to the GPU to avoid copying zs to the cpu.
    !
    !$omp parallel private ( ib, nmb, zst, zsetup, zig, smfac, zs0act, ibdr, zs0smooth ) if(ngbnd > 10000)
    !$omp do schedule(dynamic, 64)
