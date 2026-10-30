@@ -1364,13 +1364,14 @@ contains
    use sfincs_data
    use sfincs_nonhydrostatic
    use sfincs_snapwave
+   use snapwave_data, only: hmin
    use quadtree
    !
    implicit none
    !
    real*8  :: t
-   integer :: ntmapout
-   real*4  :: sq2
+   integer :: ntmapout, nm
+   real*4  :: sq2, hloc
    real*4, dimension(:), allocatable :: uxy, vxy, pnh_full
    !
    sq2 = sqrt(2.0)
@@ -1391,14 +1392,12 @@ contains
       call write_cell_var(map_file%ncid, map_file%zb_varid, zb, ntmapout)
    endif
    !
-   ! h = zs - zref. Quadtree filters wet cells (legacy); regular keeps all.
+   ! h = zs - zref, only in wet cells (consistent with zs, hmax and point_h)
    if (.not. subgrid .or. store_hsubgrid) then
       if (subgrid) then
-         call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout, &
-              check_wet=use_quadtree)
+         call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), subgrid_z_zmin, ntmapout)
       else
-         call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), zb,             ntmapout, &
-              check_wet=use_quadtree)
+         call write_cell_var_depth(map_file%ncid, map_file%h_varid, real(zs,4), zb,             ntmapout)
       endif
    endif
    !
@@ -1408,6 +1407,26 @@ contains
    if (store_velocity) then
       allocate(uxy(np), vxy(np))
       call compute_uv_at_cell_centers(uxy, vxy)
+      !
+      ! Velocities only in wet cells (consistent with zs and h)
+      !
+      do nm = 1, np
+         !
+         if (subgrid) then
+            hloc = zs(nm) - subgrid_z_zmin(nm)
+         else
+            hloc = zs(nm) - zb(nm)
+         endif
+         !
+         if (hloc <= huthresh) then
+            !
+            uxy(nm) = FILL_VALUE
+            vxy(nm) = FILL_VALUE
+            !
+         endif
+         !
+      enddo
+      !
       call write_cell_var(map_file%ncid, map_file%u_varid, uxy, ntmapout)
       call write_cell_var(map_file%ncid, map_file%v_varid, vxy, ntmapout)
       deallocate(uxy, vxy)
@@ -1463,20 +1482,26 @@ contains
    ! so quadtree and regular grids share the same output path)
    ! -------------------------------------------------------
    if (snapwave) then
-      call write_cell_var(map_file%ncid, map_file%hm0_varid,   snapwave_H,    ntmapout, use_sw_index=.true., scale=sq2)
-      call write_cell_var(map_file%ncid, map_file%hm0ig_varid, snapwave_H_ig, ntmapout, use_sw_index=.true., scale=sq2)
-      call write_cell_var(map_file%ncid, map_file%tp_varid,    snapwave_Tp,    ntmapout, use_sw_index=.true.)
-      call write_cell_var(map_file%ncid, map_file%tpig_varid,  snapwave_Tp_ig, ntmapout, use_sw_index=.true.)
+      !
+      ! Wave height, period and direction are written as fill value where there are no waves
+      ! (H = 0, e.g. on dry nodes), since period and direction are undefined there.
+      !
+      call write_cell_var(map_file%ncid, map_file%hm0_varid,   snapwave_H,     ntmapout, use_sw_index=.true., scale=sq2, min_value=0.0)
+      call write_cell_var(map_file%ncid, map_file%hm0ig_varid, snapwave_H_ig,  ntmapout, use_sw_index=.true., scale=sq2, min_value=0.0)
+      call write_cell_var(map_file%ncid, map_file%tp_varid,    snapwave_Tp,    ntmapout, use_sw_index=.true., mask=snapwave_H)
+      call write_cell_var(map_file%ncid, map_file%tpig_varid,  snapwave_Tp_ig, ntmapout, use_sw_index=.true., mask=snapwave_H_ig)
       if (store_wave_forces) then
-         call write_cell_var(map_file%ncid, map_file%fwx_varid,           snapwave_Fx,    ntmapout, use_sw_index=.true.)
-         call write_cell_var(map_file%ncid, map_file%fwy_varid,           snapwave_Fy,    ntmapout, use_sw_index=.true.)
-         call write_cell_var(map_file%ncid, map_file%beta_varid,          snapwave_beta,  ntmapout, use_sw_index=.true.)
-         call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout, use_sw_index=.true.)
+         call write_cell_var(map_file%ncid, map_file%fwx_varid,           snapwave_Fx,    ntmapout, use_sw_index=.true., mask=snapwave_H)
+         call write_cell_var(map_file%ncid, map_file%fwy_varid,           snapwave_Fy,    ntmapout, use_sw_index=.true., mask=snapwave_H)
+         call write_cell_var(map_file%ncid, map_file%beta_varid,          snapwave_beta,  ntmapout, use_sw_index=.true., mask=snapwave_H)
+         call write_cell_var(map_file%ncid, map_file%snapwavedepth_varid, snapwave_depth, ntmapout, use_sw_index=.true., min_value=hmin)
       endif
       if (store_wave_direction) then
-         call write_cell_var(map_file%ncid, map_file%wavdir_varid, snapwave_mean_direction, ntmapout, use_sw_index=.true.)
+         call write_cell_var(map_file%ncid, map_file%wavdir_varid, snapwave_mean_direction, ntmapout, use_sw_index=.true., &
+              mask=snapwave_H)
       endif
       if (wavemaker) then
+         !$acc update host(zsm)
          call write_cell_var(map_file%ncid, map_file%zsm_varid, zsm, ntmapout)
       endif
    endif
@@ -1519,6 +1544,7 @@ contains
    !
    integer :: iobs, nm
    integer :: nthisout
+   real*4  :: hloc
    real*8  :: t
    real*4, dimension(nobs) :: uobs, vobs, uvmag, uvdir
    real*4, dimension(nobs) :: twndmag, twnddir
@@ -1533,12 +1559,25 @@ contains
       do iobs = 1, nobs
          nm = nmindobs(iobs)
          if (nm>0) then
-            zobs(iobs) = zs(nm)
+            !
             if (subgrid) then
-               hobs(iobs) = zs(nm) - subgrid_z_zmin(nm)
+               hloc = zs(nm) - subgrid_z_zmin(nm)
             else
-               hobs(iobs) = zs(nm) - zb(nm)
+               hloc = zs(nm) - zb(nm)
             endif
+            !
+            ! Water level and depth only at points that are not completely dry. Unlike the map
+            ! output, huthresh is not used here, so that shallow water (e.g. from rainfall)
+            ! still shows up in the time series. The small tolerance avoids flickering between
+            ! fill values and zb due to round-off after a cell has drained.
+            !
+            if (hloc > 0.0001) then
+               !
+               zobs(iobs) = zs(nm)
+               hobs(iobs) = hloc
+               !
+            endif
+            !
          endif
       enddo
       !
@@ -1574,28 +1613,35 @@ contains
       !
       if (snapwave) then
          !
-         call write_point_var(his_file%hm0_varid,    snapwave_H,     nthisout, use_sw_index=.true., scale=sqrt(2.0))
-         call write_point_var(his_file%hm0ig_varid,  snapwave_H_ig,  nthisout, use_sw_index=.true., scale=sqrt(2.0))
-         call write_point_var(his_file%tp_varid,     snapwave_Tp,    nthisout, use_sw_index=.true.)
-         call write_point_var(his_file%tpig_varid,   snapwave_Tp_ig, nthisout, use_sw_index=.true.)
+         !
+         ! Wave height, period and direction are written as fill value where there are no waves
+         ! (H = 0, e.g. on dry nodes), consistent with the map output.
+         !
+         call write_point_var(his_file%hm0_varid,    snapwave_H,     nthisout, use_sw_index=.true., scale=sqrt(2.0), min_value=0.0)
+         call write_point_var(his_file%hm0ig_varid,  snapwave_H_ig,  nthisout, use_sw_index=.true., scale=sqrt(2.0), min_value=0.0)
+         call write_point_var(his_file%tp_varid,     snapwave_Tp,    nthisout, use_sw_index=.true., mask=snapwave_H)
+         call write_point_var(his_file%tpig_varid,   snapwave_Tp_ig, nthisout, use_sw_index=.true., mask=snapwave_H_ig)
          !
          if (store_wave_direction) then
-            call write_point_var(his_file%wavdir_varid, snapwave_mean_direction, nthisout, use_sw_index=.true.)
+            !
+            call write_point_var(his_file%wavdir_varid, snapwave_mean_direction, nthisout, use_sw_index=.true., mask=snapwave_H)
+            !
          endif
          !
          if (wavemaker) then
+            !$acc update host(zsm)
             call write_point_var(his_file%zsm_varid, zsm, nthisout)
          endif
          !
          if (store_wave_forces) then
-            call write_point_var(his_file%dw_varid,      snapwave_Dw,      nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%df_varid,      snapwave_Df,      nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%dwig_varid,    snapwave_Dwig,    nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%dfig_varid,    snapwave_Dfig,    nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%cg_varid,      snapwave_cg,      nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%beta_varid,    snapwave_beta,    nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%srcig_varid,   snapwave_srcig,   nthisout, use_sw_index=.true.)
-            call write_point_var(his_file%alphaig_varid, snapwave_alphaig, nthisout, use_sw_index=.true.)
+            call write_point_var(his_file%dw_varid,      snapwave_Dw,      nthisout, use_sw_index=.true., mask=snapwave_H)
+            call write_point_var(his_file%df_varid,      snapwave_Df,      nthisout, use_sw_index=.true., mask=snapwave_H)
+            call write_point_var(his_file%dwig_varid,    snapwave_Dwig,    nthisout, use_sw_index=.true., mask=snapwave_H_ig)
+            call write_point_var(his_file%dfig_varid,    snapwave_Dfig,    nthisout, use_sw_index=.true., mask=snapwave_H_ig)
+            call write_point_var(his_file%cg_varid,      snapwave_cg,      nthisout, use_sw_index=.true., mask=snapwave_H)
+            call write_point_var(his_file%beta_varid,    snapwave_beta,    nthisout, use_sw_index=.true., mask=snapwave_H)
+            call write_point_var(his_file%srcig_varid,   snapwave_srcig,   nthisout, use_sw_index=.true., mask=snapwave_H)
+            call write_point_var(his_file%alphaig_varid, snapwave_alphaig, nthisout, use_sw_index=.true., mask=snapwave_H)
          endif
          !
       endif
@@ -1621,6 +1667,16 @@ contains
       endif
       !
       if (store_velocity) then
+         !
+         ! Velocities only at wet points (hobs is fill value at dry points)
+         !
+         where (hobs == FILL_VALUE)
+            uobs  = FILL_VALUE
+            vobs  = FILL_VALUE
+            uvmag = FILL_VALUE
+            uvdir = FILL_VALUE
+         endwhere
+         !
          NF90(nf90_put_var(his_file%ncid, his_file%u_varid,     uobs,  (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%v_varid,     vobs,  (/1, nthisout/)))
          NF90(nf90_put_var(his_file%ncid, his_file%uvmag_varid, uvmag, (/1, nthisout/)))
@@ -1705,7 +1761,7 @@ contains
    !
    real*8                            :: t
    integer                           :: ntmaxout, nm
-   real*4, dimension(:), allocatable :: hmax_out, hmean, zvolmax_out
+   real*4, dimension(:), allocatable :: hmax_out, hmean, zvolmax_out, wet_mask
    real*4, dimension(:), allocatable :: urbdrain_depth
    !
    ! Scalar time of this max-record (defined only when store_maximum_waterlevel)
@@ -1789,11 +1845,35 @@ contains
    endif
    !
    ! Maximum flow velocity / flux
-   if (store_maximum_velocity) then
-      call write_cell_var(map_file%ncid, map_file%vmax_varid, vmax, ntmaxout, check_kcs=.true.)
-   endif
-   if (store_maximum_flux) then
-      call write_cell_var(map_file%ncid, map_file%qmax_varid, qmax, ntmaxout, check_kcs=.true.)
+   ! Only in cells that have been wet (same criterion as zsmax and hmax), when zsmax is available
+   if (store_maximum_velocity .or. store_maximum_flux) then
+      !
+      allocate(wet_mask(np))
+      wet_mask = 1.0
+      !
+      if (allocated(zsmax)) then
+         !
+         do nm = 1, np
+            !
+            if (subgrid) then
+               if ((zsmax(nm) - subgrid_z_zmin(nm)) <= huthresh) wet_mask(nm) = 0.0
+            else
+               if ((zsmax(nm) - zb(nm)) <= huthresh) wet_mask(nm) = 0.0
+            endif
+            !
+         enddo
+         !
+      endif
+      !
+      if (store_maximum_velocity) then
+         call write_cell_var(map_file%ncid, map_file%vmax_varid, vmax, ntmaxout, check_kcs=.true., mask=wet_mask)
+      endif
+      if (store_maximum_flux) then
+         call write_cell_var(map_file%ncid, map_file%qmax_varid, qmax, ntmaxout, check_kcs=.true., mask=wet_mask)
+      endif
+      !
+      deallocate(wet_mask)
+      !
    endif
    !
    ! Duration wet cell

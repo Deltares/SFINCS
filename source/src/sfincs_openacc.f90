@@ -87,6 +87,7 @@ contains
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_length, &
    !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
@@ -104,6 +105,7 @@ contains
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
+   !$acc               nmi_gbp, index_bdr_gbp, index_zsi_bdr, dzs_bdr, &
    !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
@@ -145,6 +147,7 @@ contains
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_length, &
    !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
@@ -162,6 +165,7 @@ contains
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
+   !$acc               nmi_gbp, index_bdr_gbp, index_zsi_bdr, dzs_bdr, &
    !$acc               prcp, prcp0, prcp1, cumprcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &

@@ -1,6 +1,6 @@
-<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.7 Chrome/138.0.7204.251 Electron/37.7.1 Safari/537.36" pages="4">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.7 Chrome/138.0.7204.251 Electron/37.7.1 Safari/537.36" pages="5">
   <diagram name="2026.01" id="41A1qK-TL8HrWt5EjnlW">
-    <mxGraphModel dx="2138" dy="2003" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="UDGmFvKH3UJdjtrlS4iX-0" />
         <mxCell id="UDGmFvKH3UJdjtrlS4iX-1" parent="UDGmFvKH3UJdjtrlS4iX-0" />
@@ -201,6 +201,209 @@
         </mxCell>
         <mxCell id="9lFfyyLG2aoNsN6vdrdM-0" parent="UDGmFvKH3UJdjtrlS4iX-1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;" value="Qgis readable netcdf output quadtree models" vertex="1">
           <mxGeometry height="60" width="120" x="-40" y="530" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="2026.02" id="ZNaSlv-OWspNYHggWC7D">
+    <mxGraphModel dx="2264" dy="2061" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-0" />
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-1" parent="GwbKjiIv8PYVJQpV2Fc0-0" />
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-2" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Model building/analyzing" vertex="1">
+          <mxGeometry height="60" width="120" x="-180" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-3" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Model core" vertex="1">
+          <mxGeometry height="60" width="120" x="-40" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-4" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="DDB Python" vertex="1">
+          <mxGeometry height="60" width="120" x="120" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-5" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Prototype functionality" vertex="1">
+          <mxGeometry height="60" width="120" x="180" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-6" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Quadtree refinement" vertex="1">
+          <mxGeometry height="60" width="120" x="-40" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-7" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Wave makers" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-8" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Coupling to SnapWave" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-9" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Nonhydrostratic term" vertex="1">
+          <mxGeometry height="60" width="120" x="560" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-10" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Concept functionality" vertex="1">
+          <mxGeometry height="60" width="120" x="480" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-11" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" source="GwbKjiIv8PYVJQpV2Fc0-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="GwbKjiIv8PYVJQpV2Fc0-2" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-60" y="100" />
+              <mxPoint x="-120" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-12" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="New Stable/GA functionality" vertex="1">
+          <mxGeometry height="60" width="120" x="-120" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-13" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" value="New HydroMT-SFINCS&lt;br&gt;v2.0.0" vertex="1">
+          <mxGeometry height="60" width="120" x="-180" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-14" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Model building/analyzing" vertex="1">
+          <mxGeometry height="60" width="120" x="120" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-15" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Model core" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-16" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Model building/analyzing" vertex="1">
+          <mxGeometry height="60" width="120" x="420" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-17" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Model core" vertex="1">
+          <mxGeometry height="60" width="120" x="560" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-18" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" source="GwbKjiIv8PYVJQpV2Fc0-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="GwbKjiIv8PYVJQpV2Fc0-3" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-60" y="100" />
+              <mxPoint x="20" y="100" />
+            </Array>
+            <mxPoint x="-50" y="110" as="sourcePoint" />
+            <mxPoint x="-110" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-19" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="100" />
+            </Array>
+            <mxPoint x="240" y="100" as="sourcePoint" />
+            <mxPoint x="180" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-20" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" source="GwbKjiIv8PYVJQpV2Fc0-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="100" />
+              <mxPoint x="320" y="100" />
+            </Array>
+            <mxPoint x="240" y="100" as="sourcePoint" />
+            <mxPoint x="320" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-21" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="100" />
+            </Array>
+            <mxPoint x="540" y="100" as="sourcePoint" />
+            <mxPoint x="480" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-22" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" source="GwbKjiIv8PYVJQpV2Fc0-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="100" />
+              <mxPoint x="620" y="100" />
+            </Array>
+            <mxPoint x="540" y="100" as="sourcePoint" />
+            <mxPoint x="620" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-23" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" value="Timestep analysis" vertex="1">
+          <mxGeometry height="60" width="120" x="-40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-24" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#76608a;strokeColor=#432D57;rounded=1;shadow=1;fontColor=#ffffff;" value="Development status SFINCS &amp;amp; HydroMT-SFINCS 2026.02 version" vertex="1">
+          <mxGeometry height="60" width="1020" x="-120" y="-60" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-25" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#f9f7ed;strokeColor=#36393d;" value="Pre-concept functionality" vertex="1">
+          <mxGeometry height="60" width="120" x="780" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-26" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="HydroMT-SFINCS&lt;br&gt;Quadtree model" vertex="1">
+          <mxGeometry height="60" width="120" x="-180" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-27" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Model building/analyzing" vertex="1">
+          <mxGeometry height="60" width="120" x="720" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-28" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Model core" vertex="1">
+          <mxGeometry height="60" width="120" x="860" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-29" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="100" />
+            </Array>
+            <mxPoint x="840" y="100" as="sourcePoint" />
+            <mxPoint x="780" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-30" edge="1" parent="GwbKjiIv8PYVJQpV2Fc0-1" source="GwbKjiIv8PYVJQpV2Fc0-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="100" />
+              <mxPoint x="920" y="100" />
+            </Array>
+            <mxPoint x="840" y="100" as="sourcePoint" />
+            <mxPoint x="920" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-31" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Urban drainage BMI coupling" vertex="1">
+          <mxGeometry height="60" width="120" x="560" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-32" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Weirs in subgrid" vertex="1">
+          <mxGeometry height="60" width="120" x="860" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-33" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Wave overtopping formula" vertex="1">
+          <mxGeometry height="60" width="120" x="860" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-34" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Advection-Diffusion Solver" vertex="1">
+          <mxGeometry height="60" width="120" x="860" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-35" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="SnapWave coupling and wave maker in HydroMT-SFINCS" vertex="1">
+          <mxGeometry height="60" width="120" x="120" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-36" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Horton infiltration in HydroMT-SFINCS" vertex="1">
+          <mxGeometry height="60" width="120" x="120" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-38" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="GPU version" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-39" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Movable gates" vertex="1">
+          <mxGeometry height="60" width="120" x="-40" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-40" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;" value="Neumann and downstream water level boundaries" vertex="1">
+          <mxGeometry height="60" width="120" x="-40" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-41" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Astronomic boundary conditions" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-42" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Wave runup gauge" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-43" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Vegetation effects in coupled SnapWave model" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-44" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Green&amp;amp;Ampt infiltration in HydroMT-SFINCS" vertex="1">
+          <mxGeometry height="60" width="120" x="120" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-46" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Forcing incident wave energy at wavemakers" vertex="1">
+          <mxGeometry height="60" width="120" x="560" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-47" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Internal Dike Breaching" vertex="1">
+          <mxGeometry height="60" width="120" x="560" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-49" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="2D runoff % input" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="GwbKjiIv8PYVJQpV2Fc0-50" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;" value="Qgis readable netcdf output quadtree models" vertex="1">
+          <mxGeometry height="60" width="120" x="-40" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="0oS7K2EZ5XjokBNXMvgb-1" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Urban drainage file" vertex="1">
+          <mxGeometry height="60" width="120" x="260" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="0oS7K2EZ5XjokBNXMvgb-2" parent="GwbKjiIv8PYVJQpV2Fc0-1" style="rounded=1;whiteSpace=wrap;html=1;" value="Simple groundwater" vertex="1">
+          <mxGeometry height="60" width="120" x="860" y="410" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

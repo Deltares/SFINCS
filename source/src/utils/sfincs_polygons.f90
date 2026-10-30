@@ -11,7 +11,9 @@ module sfincs_polygons
    !                           return an array of t_polygon, each closed so
    !                           that the last vertex equals the first. Called
    !                           from initialize_urban_drainage (sfincs_urban_drainage).
-   !   point_in_polygon        Scalar ray-casting test for a single point.
+   !   strip_carriage_return   Blank out a trailing CR (CRLF files on Linux).
+   !                           Called from read_tek_polygons.
+   !   point_in_polygon       Scalar ray-casting test for a single point.
    !                           Called from points_in_polygon_omp.
    !   points_in_polygon_omp   OMP-parallel sweep of a point array against one
    !                           polygon, writing a logical mask. Called from
@@ -117,6 +119,7 @@ contains
       do
          read(unit, '(a)', iostat=stat) name_line
          if (stat /= 0) exit
+         call strip_carriage_return(name_line)
          if (len_trim(name_line) == 0) cycle
          read(unit, *, iostat=stat) nrows, ncols
          if (stat /= 0) exit
@@ -142,9 +145,14 @@ contains
          !
          read(unit, '(a)', iostat=stat) name_line
          if (stat /= 0) exit
+         call strip_carriage_return(name_line)
+         !
          do while (len_trim(name_line) == 0)
+            !
             read(unit, '(a)', iostat=stat) name_line
             if (stat /= 0) exit
+            call strip_carriage_return(name_line)
+            !
          enddo
          !
          read(unit, *, iostat=stat) nrows, ncols
@@ -190,7 +198,34 @@ contains
       !
       close(unit)
       !
-   end subroutine
+   end subroutine read_tek_polygons
+   !
+   !
+   subroutine strip_carriage_return(line)
+      !
+      ! Blank out a trailing carriage return (and anything after it), so that
+      ! files with Windows (CRLF) line endings read correctly on Linux.
+      !
+      ! Input/output:
+      !   line : line read from file
+      !
+      ! Called from: read_tek_polygons
+      !
+      implicit none
+      !
+      character(len=*), intent(inout) :: line
+      !
+      integer :: icr
+      !
+      icr = index(line, achar(13))
+      !
+      if (icr > 0) then
+         !
+         line(icr:) = ' '
+         !
+      endif
+      !
+   end subroutine strip_carriage_return
    !
    !-----------------------------------------------------------------------------------------------------!
    !

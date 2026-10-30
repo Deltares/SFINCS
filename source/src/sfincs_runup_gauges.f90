@@ -78,7 +78,7 @@ contains
       ! 
       call write_log('Info    : reading run-up gauges', 0)
       !
-      ok = check_file_exists(obsfile, 'Run-up gauge rug file', .true.)
+      ok = check_file_exists(rugfile, 'Run-up gauge rug file', .true.)
       !      
       ! First count number of polylines
       !
@@ -208,6 +208,12 @@ contains
       do ip = 1, runup_gauge_nrp(irug)
          !
          nm = runup_gauge_nm(ip, irug)
+         !
+         ! Skip points outside the grid or in inactive cells
+         !
+         if (nm <= 0) then
+            cycle
+         endif
          !
          if (subgrid) then
             !

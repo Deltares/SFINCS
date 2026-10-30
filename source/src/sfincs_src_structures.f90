@@ -137,9 +137,9 @@ module sfincs_src_structures
    !
    use sfincs_log
    use sfincs_error
-   ! The rule bytecode arrays are named in the !$acc present() clause of
-   ! update_src_structures: evaluate_rule is an acc routine seq and reads
-   ! them on the device, so they must be in scope in this module too.
+   ! The rule bytecode arrays are passed explicitly to evaluate_rule (an acc
+   ! routine seq) and named in the !$acc present() clause of
+   ! update_src_structures, so they must be in scope in this module too.
    !
    use sfincs_rule_expression, only: add_rule, evaluate_rule, finalize_rule_storage, &
                                      rule_opcode, rule_atom, rule_cmp, rule_threshold, &
@@ -941,7 +941,8 @@ contains
          !
          do k = 1, src_struc_rule_count(istruc)
             !
-            if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2, real(t0, 8))) then
+            if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2, real(t0, 8), &
+                              rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length)) then
                !
                iop = rule_list_op(src_struc_rule_start(istruc) + k - 1)
                exit
@@ -982,7 +983,8 @@ contains
       ! for his output. Sign convention: qq > 0 means flow from endpoint 1
       ! to endpoint 2.
       !
-      ! Called AFTER update_discharges, which zeros qsrc first.
+      ! Called after update_discharges; qsrc is reset to zero at the end of
+      ! the previous continuity update (sfincs_continuity).
       !
       ! Atomic updates on qsrc(nm) guard against two structures (or a river
       ! and a structure) writing to the same cell under parallel execution.
@@ -1102,7 +1104,8 @@ contains
                !
                do k = 1, src_struc_rule_count(istruc)
                   !
-                  if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2, t)) then
+                  if (evaluate_rule(rule_list_id(src_struc_rule_start(istruc) + k - 1), zs_o1, zs_o2, t, &
+                                    rule_opcode, rule_atom, rule_cmp, rule_threshold, rule_start, rule_length)) then
                      !
                      iop = rule_list_op(src_struc_rule_start(istruc) + k - 1)
                      exit
