@@ -1571,7 +1571,7 @@ contains
    !
    real*8                           :: t, twu, twv
    !
-   real*4 cd, vmag, vdir, dr0, dr1, twfac
+   real*4 cd, vmag, vdir, dr0, dr1, twfac, wu, wv
    !
    ! Find the two times around t. Before the first and after the last time in the file the first or last value is used.
    !
@@ -1645,8 +1645,24 @@ contains
    !
    if (store_wind) then
       !
-      windu = vmag * cos(vdir)
-      windv = vmag * sin(vdir)
+      ! Set the wind on the GPU as well, as SnapWave and the meteo output copy it from there
+      !
+      wu = vmag * cos(vdir)
+      wv = vmag * sin(vdir)
+      !
+      !$omp parallel &
+      !$omp private ( nm ) &
+      !$omp shared ( windu, windv )
+      !$omp do
+      !$acc parallel, present( windu, windv )
+      !$acc loop independent gang vector
+      do nm = 1, np
+         windu(nm) = wu
+         windv(nm) = wv
+      enddo
+      !$acc end parallel
+      !$omp end do
+      !$omp end parallel
       !
    endif
    !
