@@ -10,7 +10,7 @@ To make the setting up of basic models easier, making a SFINCS model is supporte
 
 * Python script framework called **'HydroMT'**, with its dedicated plugin **'hydromt_sfincs'** --> highly recommended to use since 2023
 * Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard'** --> the Matlab DDB GUI is currently depricated
-* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard Python'** --> the Python DDB GUI is currently being developed
+* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard Python'** --> the Python DDB GUI prototype is currently being tested by users
 * Matlab scripts toolbox in the **'Open Earth Toolbox'** --> the Matlab OET scripts are currently depricated
 
 If you need a more tailor-made solution for setting up your SFINCS models get in touch with us!
@@ -29,12 +29,17 @@ Also, it is possible to burn in rivers or setup a offline coupled model together
 * For the HydroMT-SFINCS v2 migration guide see: https://deltares.github.io/hydromt_sfincs/
 * For an example of building a model from scratch in Python see: https://deltares.github.io/hydromt_sfincs/
 
-Delft Dashboard 
+Delft Dashboard Matlab
 -----
 
 Delft Dashboard (Van Ormondt et al. 2020 https://doi.org/10.2166/hydro.2020.092) is a quick set-up tool GUI for hydrodynamic models that includes setting up SFINCS models.
 The tool can be run on Matlab or as standalone executable and has all the basic functionality to setup your basic model using globally available DEMs in an interactive way.
-In ongoing work, DDB is converted into a Python based GUI!
+This tool is phased out in favor of the new Python based GUI.
+
+Delft Dashboard Python
+-----
+
+Delft Dashboard has been converted into a Python based GUI, coming to you soon!
 
 Executable
 =====
@@ -48,10 +53,10 @@ Compiling yourself
 =====
 
 If you want to compile SFINCS yourself for windows to test certain improvements, you need Visual Studio and an Intel Fortran compiler.
-Find here at tested and free available combination:
+Find here a tested and free available combination:
 
-* Visual Studio Community 2022 - freely available from: https://visualstudio.microsoft.com/vs/community/
-* Intel Fortran Compiler Classic and Intel Fortran Compiler for Windows* 2022.1.0 - freely available from: https://www.intel.com/content/www/us/en/developer/articles/tool/oneapi-standalone-components.html
+* Visual Studio Community 2026 - freely available from: https://visualstudio.microsoft.com/vs/community/
+* Intel Fortran OneApi 2026.1 - IFX compiler - freely available from: https://www.intel.com/content/www/us/en/developer/tools/oneapi/oneapi-toolkit-download.html
 
 After installation and configuring (see respective websites for help), you can compile your own SFINCS model locally and add features.
 Make a checkout of the SFINCS github page, and open the VS solution file to do this: https://github.com/Deltares/SFINCS/blob/main/source/sfincs.sln
