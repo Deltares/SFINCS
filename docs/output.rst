@@ -203,6 +203,7 @@ From **SFINCS v2.5.0 (Hautacam release) onwards**, the map, maximum and his outp
 Cells that are inactive (msk = 0) or fall outside the quadtree/regular output grid are fill value as well.
 
 A cell or observation point is considered dry when its water depth is at or below 'huthresh' (default 0.05 m), with the water depth computed as zs - zb (regular) or zs - subgrid_z_zmin (subgrid).
+The exception is the water level and depth at observation points (point_zs, point_h): these are only set to fill value when the point is completely dry (water depth at or below 0.1 mm), so that shallow water, for example from rainfall, still shows up in the time series.
 
 .. list-table::
    :header-rows: 1
@@ -210,8 +211,10 @@ A cell or observation point is considered dry when its water depth is at or belo
 
    * - Variables
      - Fill value where
-   * - zs, h, point_zs, point_h
-     - the cell or point is dry
+   * - zs, h
+     - the cell is dry
+   * - point_zs, point_h
+     - the point is completely dry (water depth at or below 0.1 mm)
    * - zsmax, hmax
      - the cell has not been wet during the simulation (maximum water depth at or below 'huthresh')
    * - u, v, point_u, point_v, point_uvmag
