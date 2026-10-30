@@ -126,6 +126,7 @@ contains
       call get_keyword(500, 'qinf',                            qinf,                            0.0)               ! uniform infiltration rate (mm/hr); converted below
       call get_keyword(500, 'dtmax',                           dtmax,                           60.0)              ! upper bound on computational dt (s)
       call get_keyword(500, 'huthresh',                        huthresh,                        0.05)              ! wet/dry depth threshold (m)
+      huthresh_input = huthresh
       call get_keyword(500, 'huvmin',                          huvmin,                          0.0)               ! minimum depth for uv = q / max(hu, huvmin)
       call get_keyword(500, 'rhoa',                            rhoa,                            1.25)              ! air density (kg/m3)
       call get_keyword(500, 'rhow',                            rhow,                            1024.0)            ! water density (kg/m3)

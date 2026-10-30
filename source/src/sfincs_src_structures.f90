@@ -182,6 +182,13 @@ module sfincs_src_structures
    !
    real*4, parameter :: donor_volume_fraction = 0.5
    !
+   ! Lumped loss coefficient (entrance + exit) assumed when the barrel area
+   ! of a simple culvert is inferred from its flow coefficient:
+   ! A = C * sqrt(k / 2g). Only sets the inertia time scale, not the
+   ! steady discharge. Fixed constant, not user-tunable.
+   !
+   real*4, parameter :: culvert_simple_loss_coef = 1.5
+   !
    ! Gate operation codes for rule-driven structures. Each rule sets a
    ! target gate position: open -> fraction 1.0, close -> 0.0, hold ->
    ! freeze at the current fraction. These are the only operations.
@@ -244,11 +251,12 @@ module sfincs_src_structures
       ! opening_duration  - time (s) to go from closed to fully open
       ! closing_duration  - time (s) to go from open to fully closed
       ! flow_coef         - culvert_simple / check_valve / culvert flow coefficient
+      ! area              - culvert_simple barrel flow area (m2), inertia; 0 = infer from flow_coef
       ! height            - culvert barrel height (m, rectangular cross-section)
       ! diameter          - culvert barrel diameter (m, circular cross-section)
       ! invert_1          - culvert bed elevation at endpoint 1 (m)
       ! invert_2          - culvert bed elevation at endpoint 2 (m)
-      ! length            - culvert barrel length (m), friction loss
+      ! length            - culvert barrel length (m), friction loss and inertia; 0 = endpoint distance
       ! submergence_ratio - dike breach submergence threshold h_dn/h_up (-)
       !
       real :: q
@@ -258,6 +266,7 @@ module sfincs_src_structures
       real :: opening_duration
       real :: closing_duration
       real :: flow_coef
+      real :: area
       !
       ! Detailed-culvert geometry + losses, dike-breach submergence threshold
       !
@@ -340,6 +349,7 @@ module sfincs_src_structures
    !
    real*4, dimension(:), allocatable, public :: src_struc_q                  ! pump discharge
    real*4, dimension(:), allocatable, public :: src_struc_flow_coef          ! culvert_simple / check_valve / culvert flow coefficient
+   real*4, dimension(:), allocatable, public :: src_struc_area               ! culvert_simple barrel flow area (m2), inertia
    real*4, dimension(:), allocatable, public :: src_struc_width              ! gate / culvert width
    real*4, dimension(:), allocatable, public :: src_struc_sill_elevation     ! gate sill elevation
    real*4, dimension(:), allocatable, public :: src_struc_mannings_n         ! gate / culvert Manning's n
@@ -352,6 +362,19 @@ module sfincs_src_structures
    real*4, dimension(:), allocatable, public :: src_struc_invert_1           ! culvert bed elevation at endpoint 1 (m)
    real*4, dimension(:), allocatable, public :: src_struc_invert_2           ! culvert bed elevation at endpoint 2 (m)
    real*4, dimension(:), allocatable, public :: src_struc_length             ! culvert barrel length (m)
+   !
+   ! Number of structures attached to the busier of the two endpoint cells
+   ! (>= 1). Structures that share a cell share its donor volume and its
+   ! stiffness budget, see update_src_structures.
+   !
+   integer, dimension(:), allocatable, public :: src_struc_n_shared          ! (nr_src_structures)
+   !
+   ! Volume (m3) in each endpoint cell at depth huthresh (as given in the
+   ! input) above its lowest point. A structure does not draw a donor cell
+   ! below it, see update_src_structures.
+   !
+   real*4, dimension(:), allocatable, public :: src_struc_vol_thresh_1       ! (nr_src_structures) endpoint 1
+   real*4, dimension(:), allocatable, public :: src_struc_vol_thresh_2       ! (nr_src_structures) endpoint 2
    !
    ! Dike-breach submergence threshold
    !
@@ -604,6 +627,10 @@ contains
       allocate(src_struc_y_o2(nr_src_structures))
       allocate(src_struc_q(nr_src_structures))
       allocate(src_struc_flow_coef(nr_src_structures))
+      allocate(src_struc_area(nr_src_structures))
+      allocate(src_struc_n_shared(nr_src_structures))
+      allocate(src_struc_vol_thresh_1(nr_src_structures))
+      allocate(src_struc_vol_thresh_2(nr_src_structures))
       allocate(src_struc_width(nr_src_structures))
       allocate(src_struc_sill_elevation(nr_src_structures))
       allocate(src_struc_mannings_n(nr_src_structures))
@@ -647,6 +674,10 @@ contains
       src_struc_y_o2           = 0.0
       src_struc_q              = 0.0
       src_struc_flow_coef      = 1.0
+      src_struc_area           = 0.0
+      src_struc_n_shared       = 1
+      src_struc_vol_thresh_1   = 0.0
+      src_struc_vol_thresh_2   = 0.0
       src_struc_width          = 0.0
       src_struc_sill_elevation = 0.0
       src_struc_mannings_n     = 0.024
@@ -742,6 +773,7 @@ contains
          !
          src_struc_q(i)                 = src_structures(i)%q
          src_struc_flow_coef(i)         = src_structures(i)%flow_coef
+         src_struc_area(i)              = src_structures(i)%area
          src_struc_width(i)             = src_structures(i)%width
          src_struc_sill_elevation(i)    = src_structures(i)%sill_elevation
          src_struc_mannings_n(i)        = src_structures(i)%mannings_n
@@ -895,6 +927,8 @@ contains
       !
       drainage_structures = any(src_struc_type /= structure_dike_breach)
       !
+      call set_src_struc_inertia_and_sharing()
+      !
       ! Write the per-structure descriptive block to the log file.
       ! Emitted before the gate-position seeding so the per-gate init lines
       ! trail the structure block they annotate.
@@ -974,6 +1008,149 @@ contains
    !
    !-----------------------------------------------------------------------------------------------------!
    !
+   subroutine set_src_struc_inertia_and_sharing()
+      !
+      ! Fill in what the inertial culvert update needs and count cell sharing.
+      !
+      ! Simple culverts: a zero length becomes the endpoint distance, a zero
+      ! area is inferred from the flow coefficient, Q = C * sqrt(dh) with
+      ! C = A * sqrt(2 g / k) and lumped loss coefficient k = culvert_simple_loss_coef.
+      !
+      ! src_struc_n_shared(i) is the number of structures attached to the
+      ! busier of the two endpoint cells of structure i (>= 1).
+      !
+      ! Structures with both endpoints in the same cell move no water and
+      ! get a warning.
+      !
+      ! Called from: initialize_src_structures (this module).
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      integer                            :: istruc, nm_s1, nm_s2
+      integer, dimension(:), allocatable :: cell_count
+      !
+      allocate(cell_count(np))
+      !
+      cell_count = 0
+      !
+      do istruc = 1, nr_src_structures
+         !
+         nm_s1 = src_struc_nm_s1(istruc)
+         nm_s2 = src_struc_nm_s2(istruc)
+         !
+         if (nm_s1 > 0 .and. nm_s2 > 0) then
+            !
+            cell_count(nm_s1) = cell_count(nm_s1) + 1
+            cell_count(nm_s2) = cell_count(nm_s2) + 1
+            !
+            if (nm_s1 == nm_s2) then
+               !
+               write(logstr,'(a,a,a)') 'Warning ! Both endpoints of structure "', trim(src_struc_name(istruc)), &
+                    '" are in the same grid cell; it moves no water'
+               call write_log(logstr, 0)
+               !
+            endif
+            !
+         endif
+         !
+         if (src_struc_type(istruc) == structure_culvert_simple) then
+            !
+            if (src_struc_length(istruc) <= 0.0) then
+               src_struc_length(istruc) = max(src_struc_distance(istruc), 1.0)
+            endif
+            !
+            if (src_struc_area(istruc) <= 0.0) then
+               src_struc_area(istruc) = src_struc_flow_coef(istruc) * sqrt(culvert_simple_loss_coef / (2.0 * g))
+            endif
+            !
+         endif
+         !
+      enddo
+      !
+      do istruc = 1, nr_src_structures
+         !
+         nm_s1 = src_struc_nm_s1(istruc)
+         nm_s2 = src_struc_nm_s2(istruc)
+         !
+         if (nm_s1 > 0 .and. nm_s2 > 0) then
+            !
+            src_struc_n_shared(istruc)     = max(cell_count(nm_s1), cell_count(nm_s2), 1)
+            src_struc_vol_thresh_1(istruc) = volume_at_depth(nm_s1, huthresh_input)
+            src_struc_vol_thresh_2(istruc) = volume_at_depth(nm_s2, huthresh_input)
+            !
+         endif
+         !
+      enddo
+      !
+      deallocate(cell_count)
+      !
+   end subroutine set_src_struc_inertia_and_sharing
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   function volume_at_depth(nm, depth) result(vol)
+      !
+      ! Volume (m3) in cell nm when the water level is depth (m) above the
+      ! lowest point of the cell. Regular cells: depth times the cell area.
+      ! Subgrid cells: inverted from the volume table.
+      !
+      ! Input:
+      !   nm    : cell index
+      !   depth : depth above the lowest point (m)
+      !
+      ! Returns:
+      !   vol   : volume (m3)
+      !
+      ! Called from: set_src_struc_inertia_and_sharing (this module).
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      integer, intent(in) :: nm
+      real*4,  intent(in) :: depth
+      real*4              :: vol
+      !
+      integer :: iuv
+      real*4  :: a, dzvol, level
+      !
+      if (crsgeo) then
+         a = cell_area_m2(nm)
+      else
+         a = cell_area(z_flags_iref(nm))
+      endif
+      !
+      if (.not. subgrid) then
+         !
+         vol = depth * a
+         return
+         !
+      endif
+      !
+      level = subgrid_z_zmin(nm) + depth
+      dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+      vol   = subgrid_z_volmax(nm) + max(level - subgrid_z_zmax(nm), 0.0) * a
+      !
+      do iuv = 1, subgrid_nlevels - 1
+         !
+         if (subgrid_z_dep(iuv + 1, nm) >= level) then
+            !
+            vol = (iuv - 1) * dzvol + dzvol * (level - subgrid_z_dep(iuv, nm)) / &
+                  max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6)
+            exit
+            !
+         endif
+         !
+      enddo
+      !
+      vol = max(vol, 0.0)
+      !
+   end function volume_at_depth
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
    subroutine update_src_structures(t, dt)
       !
       ! Compute discharges through each drainage structure, accumulate them
@@ -1007,6 +1184,8 @@ contains
       real*4  :: h_up, h_dn, qq_sign
       real*4  :: d_bar, h_in, r_hyd, k_tot, q_in, q_out
       real*4  :: hgt, angle_seg, y_cen
+      real*4  :: inertia_coef, donor_volume, donor_q_max
+      integer :: nm_donor
       !
       real*4  :: crest_breach, width_breach, z_crest_breach, z_min_breach
       real*4  :: tstart_breach, tstart_widening, t_phase1_deepening
@@ -1019,7 +1198,8 @@ contains
       !$acc                        src_struc_nm_s1, src_struc_nm_s2, &
       !$acc                        src_struc_nm_o1, src_struc_nm_o2, &
       !$acc                        src_struc_type, src_struc_direction, src_struc_shape, &
-      !$acc                        src_struc_q, src_struc_flow_coef, &
+      !$acc                        src_struc_q, src_struc_flow_coef, src_struc_area, src_struc_n_shared, &
+      !$acc                        src_struc_vol_thresh_1, src_struc_vol_thresh_2, &
       !$acc                        src_struc_width, src_struc_sill_elevation, &
       !$acc                        src_struc_mannings_n, &
       !$acc                        src_struc_opening_duration, src_struc_closing_duration, &
@@ -1037,6 +1217,7 @@ contains
       !$acc                        rule_start, rule_length ) &
       !$acc              private( nm_s1, nm_s2, nm_o1, nm_o2, qq, k, iop, target_frac, &
       !$acc                       zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
+      !$acc                       inertia_coef, donor_volume, donor_q_max, nm_donor, &
       !$acc                       dh, a_eff, &
       !$acc                       h_up, h_dn, qq_sign, &
       !$acc                       d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
@@ -1048,6 +1229,7 @@ contains
       !$omp parallel do &
       !$omp   private( nm_s1, nm_s2, nm_o1, nm_o2, qq, k, iop, target_frac, &
       !$omp            zs_o1, zs_o2, frac, wdt, mng, zsill, dist, dzds, hgate, qq0, alpha, &
+      !$omp            inertia_coef, donor_volume, donor_q_max, nm_donor, &
       !$omp            dh, a_eff, &
       !$omp            h_up, h_dn, qq_sign, &
       !$omp            d_bar, h_in, r_hyd, k_tot, q_in, q_out, &
@@ -1171,18 +1353,39 @@ contains
                   !
                case(structure_culvert_simple)
                   !
-                  ! Bidirectional: Q = flow_coef * sign(dh) * sqrt(|dh|).
+                  ! Bidirectional culvert with barrel inertia,
+                  !    (L / (g A)) dQ/dt = dh - Q |Q| / C^2,
+                  ! whose steady state is the simple law Q = C * sign(dh) * sqrt(|dh|).
+                  ! Bates-type update with explicit head and implicit friction,
+                  ! K = g A / L (A inferred from C at init when not given):
+                  !    Q^{n+1} = (Q^n + K dt dh) / (1 + K dt |Q^n| / C^2)
+                  ! The quasi-steady law has an infinite slope dQ/ddh at dh = 0,
+                  ! so an explicit step flips sign every step once the two
+                  ! cells have equalised. With inertia the slope per step is
+                  ! K dt and the exchange is stable while the sloshing period
+                  ! of the two cells through the barrel is resolved, see
+                  ! inertia_coef_max. Q^n is the stored discharge after the
+                  ! common tail (fraction_open, direction filter, donor limit),
+                  ! so unscale by fraction_open as the gate does.
                   ! The legacy "check_valve" alias maps to direction_positive
                   ! in the parser; the direction filter in the common tail
                   ! below restricts the allowed sign when requested.
                   !
-                  if (zs(nm_s1) > zs(nm_s2)) then
+                  if (src_struc_flow_coef(istruc) > 0.0) then
                      !
-                     qq =  src_struc_flow_coef(istruc) * sqrt(zs(nm_s1) - zs(nm_s2))
+                     dh   = real(zs(nm_s1), 4) - real(zs(nm_s2), 4)
+                     frac = src_struc_fraction_open(istruc)
+                     qq0  = src_struc_q_now(istruc) / max(frac, 0.001)
+                     !
+                     inertia_coef = g * src_struc_area(istruc) / src_struc_length(istruc)
+                     inertia_coef = min(inertia_coef, inertia_coef_max(nm_s1, nm_s2, src_struc_n_shared(istruc), dt))
+                     !
+                     qq = (qq0 + inertia_coef * dt * dh) / &
+                          (1.0 + inertia_coef * dt * abs(qq0) / src_struc_flow_coef(istruc)**2)
                      !
                   else
                      !
-                     qq = -src_struc_flow_coef(istruc) * sqrt(zs(nm_s2) - zs(nm_s1))
+                     qq = 0.0
                      !
                   endif
                   !
@@ -1323,7 +1526,24 @@ contains
                      !
                      q_out = a_eff * sqrt(2.0 * g * abs(dh) / k_tot)
                      !
-                     qq = qq_sign * min(q_in, q_out)
+                     ! Barrel inertia, as for culvert_simple: Bates-type update
+                     ! with K = g a_eff / L and the outlet-control losses as
+                     ! implicit friction, Q |Q| = 2 g a_eff^2 |dh| / k_tot in
+                     ! steady state. Inlet control stays a hard cap. The
+                     ! inertia length is the barrel length, or the endpoint
+                     ! distance when no length is given (length = 0 means no
+                     ! friction loss, not a zero-length barrel).
+                     !
+                     frac = src_struc_fraction_open(istruc)
+                     qq0  = src_struc_q_now(istruc) / max(frac, 0.001)
+                     !
+                     inertia_coef = g * a_eff / max(src_struc_length(istruc), src_struc_distance(istruc), 1.0)
+                     inertia_coef = min(inertia_coef, inertia_coef_max(nm_s1, nm_s2, src_struc_n_shared(istruc), dt))
+                     !
+                     qq = (qq0 + inertia_coef * dt * dh) / &
+                          (1.0 + inertia_coef * dt * abs(qq0) * k_tot / (2.0 * g * a_eff * a_eff))
+                     !
+                     if (abs(qq) > q_in) qq = sign(q_in, qq)
                      !
                   endif
                   !
@@ -1478,33 +1698,33 @@ contains
             alpha = dt / (max(structure_relax, 0.0) + dt)
             qq = alpha * qq + (1.0 - alpha) * src_struc_q_now(istruc)
             !
-            ! Limit discharge to a fraction of the available volume in the donor
-            ! cell (endpoint 1 for qq > 0, endpoint 2 for qq < 0), see
-            ! donor_volume_fraction at the top of the module.
+            ! Limit the discharge to a fraction of the volume in the donor cell
+            ! (endpoint 1 for qq > 0, endpoint 2 for qq < 0) above the flow
+            ! threshold huthresh, see donor_volume_fraction at the top of the
+            ! module. Leaving huthresh in the intake keeps the faces that feed
+            ! it from switching on and off. The fraction is shared equally
+            ! between the n_shared structures attached to the cell, so that
+            ! several structures cannot overdraw it together.
             !
-            if (subgrid) then
+            if (qq /= 0.0) then
                !
                if (qq > 0.0) then
-                  !
-                  qq = min(qq,  donor_volume_fraction * max(z_volume(nm_s1), 0.0) / dt)
-                  !
+                  nm_donor     = nm_s1
+                  donor_volume = src_struc_vol_thresh_1(istruc)
                else
-                  !
-                  qq = max(qq, -donor_volume_fraction * max(z_volume(nm_s2), 0.0) / dt)
-                  !
+                  nm_donor     = nm_s2
+                  donor_volume = src_struc_vol_thresh_2(istruc)
                endif
                !
-            else
-               !
-               if (qq > 0.0) then
-                  !
-                  qq = min(qq,  donor_volume_fraction * max((zs(nm_s1) - zb(nm_s1)) * cell_area(z_flags_iref(nm_s1)), 0.0) / dt)
-                  !
+               if (subgrid) then
+                  donor_volume = z_volume(nm_donor) - donor_volume
                else
-                  !
-                  qq = max(qq, -donor_volume_fraction * max((zs(nm_s2) - zb(nm_s2)) * cell_area(z_flags_iref(nm_s2)), 0.0) / dt)
-                  !
+                  donor_volume = (real(zs(nm_donor), 4) - zb(nm_donor)) * cell_area(z_flags_iref(nm_donor)) - donor_volume
                endif
+               !
+               donor_q_max = donor_volume_fraction * max(donor_volume, 0.0) / (src_struc_n_shared(istruc) * dt)
+               !
+               if (abs(qq) > donor_q_max) qq = sign(donor_q_max, qq)
                !
             endif
             !
@@ -1532,6 +1752,93 @@ contains
    !
    !-----------------------------------------------------------------------------------------------------!
    !
+   function storage_area(nm) result(dvdz)
+      !
+      ! Storage area dV/dzs (m2) of cell nm at its current volume. Regular
+      ! cells: the cell area. Subgrid cells: the slope of the volume table in
+      ! the interval that holds z_volume(nm), i.e. the wet area at the current
+      ! level. The full cell area above volmax; an empty cell gets the slope
+      ! of the first interval (the area that wets first), so it is never zero.
+      !
+      ! Input:
+      !   nm   : cell index
+      !
+      ! Returns:
+      !   dvdz : storage area (m2)
+      !
+      ! Called from: update_src_structures and inertia_coef_max (this module).
+      !
+      !$acc routine seq
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      integer, intent(in) :: nm
+      real*4              :: dvdz
+      !
+      integer :: iuv
+      real*4  :: a, dzvol
+      !
+      if (crsgeo) then
+         a = cell_area_m2(nm)
+      else
+         a = cell_area(z_flags_iref(nm))
+      endif
+      !
+      dvdz = a
+      !
+      if (subgrid) then
+         !
+         if (z_volume(nm) < subgrid_z_volmax(nm) * 0.999) then
+            !
+            dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
+            iuv   = min(max(int(max(z_volume(nm), 0.0) / dzvol) + 1, 1), subgrid_nlevels - 1)
+            dvdz  = min(dzvol / max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6), a)
+            !
+         endif
+         !
+      endif
+      !
+   end function storage_area
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
+   function inertia_coef_max(nm_s1, nm_s2, n_shared, dt) result(kmax)
+      !
+      ! Upper bound on the inertia coefficient K = g A / L (m2/s2) of a
+      ! structure between cells nm_s1 and nm_s2. The two cells slosh through
+      ! the barrel at frequency omega with omega^2 = K (1/A1 + 1/A2), A1 and
+      ! A2 their storage areas, and the explicit-head update is stable while
+      ! omega dt < 2 and smooth while omega dt < 1. The bound keeps
+      ! (omega dt)^2 <= 1 with the K of all n_shared structures in a cell
+      ! counted together. For realistic culverts and cells it is orders of
+      ! magnitude above the physical K; it only guards pathological inputs.
+      !
+      ! Input:
+      !   nm_s1, nm_s2 : endpoint cells
+      !   n_shared     : structures attached to the busier of the two cells
+      !   dt           : time step (s)
+      !
+      ! Returns:
+      !   kmax : bound on K (m2/s2)
+      !
+      ! Called from: update_src_structures (this module).
+      !
+      !$acc routine seq
+      !
+      implicit none
+      !
+      integer, intent(in) :: nm_s1, nm_s2, n_shared
+      real*4,  intent(in) :: dt
+      real*4              :: kmax
+      !
+      kmax = 1.0 / (n_shared * (1.0 / storage_area(nm_s1) + 1.0 / storage_area(nm_s2)) * dt * dt)
+      !
+   end function inertia_coef_max
+   !
+   !-----------------------------------------------------------------------------------------------------!
+   !
    subroutine read_toml_src_structures(filename, structures, ierr)
       !
       ! Parse a TOML input file describing point source structures into an
@@ -1556,11 +1863,12 @@ contains
       !    width = ... ; sill_elevation = ... ; mannings_n = ...   ! gate (mannings_n also culvert barrel)
       !    opening_duration = ... ; closing_duration = ...
       !    flow_coef = ...              ! culvert_simple / culvert flow coefficient
+      !    area = ...                   ! culvert_simple barrel flow area (m2) for the inertia; default inferred from flow_coef
       !    shape = "rectangular"                        ! culvert barrel shape, "rectangular" (default) or "circular"
       !    height = ...                                 ! culvert barrel height (m), rectangular only
       !    diameter = ...                               ! culvert barrel diameter (m), circular only
       !    invert_1 = ... ; invert_2 = ...              ! culvert invert elevations at src_1/src_2 ends
-      !    length = ...                                 ! culvert barrel length (m), Manning friction loss
+      !    length = ...                                 ! culvert barrel length (m), Manning friction loss (culvert) and inertia; default endpoint distance
       !    submergence_ratio = ...                      ! dike breach submergence threshold h_dn/h_up (-)
       !    [[src_structure.rule]]      ! optional, ordered list of gate control rules
       !    operation = "close"         !   one of "open" / "close" / "hold"
@@ -1875,6 +2183,7 @@ contains
          call get_value(tbl_struct, 'invert_1',          structures(i)%invert_1,          0.0,   stat=stat)
          call get_value(tbl_struct, 'invert_2',          structures(i)%invert_2,          0.0,   stat=stat)
          call get_value(tbl_struct, 'length',            structures(i)%length,            0.0,   stat=stat)
+         call get_value(tbl_struct, 'area',              structures(i)%area,              0.0,   stat=stat)
          !
          ! Barrel dimensions must be positive: a zero dimension gives a zero
          ! hydraulic radius and a NaN discharge in the culvert formulation.
@@ -2568,8 +2877,18 @@ contains
             !
             write(logstr,'(a22,1x,a)')              '  flow_coef          :',       trim(fmt_real(src_struc_flow_coef(i), 4))
             call write_log(logstr, 0)
+            write(logstr,'(a22,1x,a,a)')            '  area               :',       trim(fmt_real(src_struc_area(i), 4)), ' (m2)'
+            call write_log(logstr, 0)
+            write(logstr,'(a22,1x,a,a)')            '  length             :',       trim(fmt_real(src_struc_length(i), 4)), ' (m)'
+            call write_log(logstr, 0)
             !
          endif
+         !
+         write(logstr,'(a22,1x,a,a,a,a)')           '  volume at huthresh :',       trim(fmt_real(src_struc_vol_thresh_1(i), 3)), ', ', &
+                                                    trim(fmt_real(src_struc_vol_thresh_2(i), 3)), ' (m3)'
+         call write_log(logstr, 0)
+         write(logstr,'(a22,1x,i0)')                '  structures in cell :',       src_struc_n_shared(i)
+         call write_log(logstr, 0)
          !
          ! Direction filter (culvert_simple / culvert)
          !
