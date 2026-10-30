@@ -59,6 +59,10 @@ The code consists of all functionality of the 2026.01 'v2.4.0 Galibier' release,
   A cell or station is dry when the water depth (zs - zb, or zs - subgrid_z_zmin for subgrid) is at or below 'huthresh'. Per output type:
   **Note: this can be a breaking change for post-processing scripts that expected zeros (or the bed level) in dry cells.**
   Use e.g. NaN-aware functions or fill the NaNs where needed.
+* Consistent handling of legacy keyword names in sfincs.inp: several keywords have a new(-ish) name (e.g. 'dtout' is now 'dtmapout' for consistency), and the old names are still accepted as deprecated aliases.
+  When SFINCS reads an old name, it still uses its value but writes a warning to the log, e.g. 'Warning : sfincs.inp keyword "dtout" is deprecated, use "dtmapout" instead'.
+  When both the new and the old name are given, only the new keyword is used and the old one is ignored.
+  We recommend replacing old keyword names with the new ones in your sfincs.inp files.
 * Clarified and improved documentation for quadtree grids, input parameters, output and HydroMT-SFINCS usage.
 
 Kernel improvements:
