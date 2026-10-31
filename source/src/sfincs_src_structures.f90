@@ -364,17 +364,10 @@ module sfincs_src_structures
    real*4, dimension(:), allocatable, public :: src_struc_length             ! culvert barrel length (m)
    !
    ! Number of structures attached to the busier of the two endpoint cells
-   ! (>= 1). Structures that share a cell share its donor volume and its
-   ! stiffness budget, see update_src_structures.
+   ! (>= 1). Structures that share a cell share its donor volume, see
+   ! update_src_structures.
    !
    integer, dimension(:), allocatable, public :: src_struc_n_shared          ! (nr_src_structures)
-   !
-   ! Volume (m3) in each endpoint cell at depth huthresh (as given in the
-   ! input) above its lowest point. A structure does not draw a donor cell
-   ! below it, see update_src_structures.
-   !
-   real*4, dimension(:), allocatable, public :: src_struc_vol_thresh_1       ! (nr_src_structures) endpoint 1
-   real*4, dimension(:), allocatable, public :: src_struc_vol_thresh_2       ! (nr_src_structures) endpoint 2
    !
    ! Dike-breach submergence threshold
    !
@@ -629,8 +622,6 @@ contains
       allocate(src_struc_flow_coef(nr_src_structures))
       allocate(src_struc_area(nr_src_structures))
       allocate(src_struc_n_shared(nr_src_structures))
-      allocate(src_struc_vol_thresh_1(nr_src_structures))
-      allocate(src_struc_vol_thresh_2(nr_src_structures))
       allocate(src_struc_width(nr_src_structures))
       allocate(src_struc_sill_elevation(nr_src_structures))
       allocate(src_struc_mannings_n(nr_src_structures))
@@ -676,8 +667,6 @@ contains
       src_struc_flow_coef      = 1.0
       src_struc_area           = 0.0
       src_struc_n_shared       = 1
-      src_struc_vol_thresh_1   = 0.0
-      src_struc_vol_thresh_2   = 0.0
       src_struc_width          = 0.0
       src_struc_sill_elevation = 0.0
       src_struc_mannings_n     = 0.024
@@ -1075,11 +1064,7 @@ contains
          nm_s2 = src_struc_nm_s2(istruc)
          !
          if (nm_s1 > 0 .and. nm_s2 > 0) then
-            !
-            src_struc_n_shared(istruc)     = max(cell_count(nm_s1), cell_count(nm_s2), 1)
-            src_struc_vol_thresh_1(istruc) = volume_at_depth(nm_s1, huthresh_input)
-            src_struc_vol_thresh_2(istruc) = volume_at_depth(nm_s2, huthresh_input)
-            !
+            src_struc_n_shared(istruc) = max(cell_count(nm_s1), cell_count(nm_s2), 1)
          endif
          !
       enddo
@@ -1087,67 +1072,6 @@ contains
       deallocate(cell_count)
       !
    end subroutine set_src_struc_inertia_and_sharing
-   !
-   !-----------------------------------------------------------------------------------------------------!
-   !
-   function volume_at_depth(nm, depth) result(vol)
-      !
-      ! Volume (m3) in cell nm when the water level is depth (m) above the
-      ! lowest point of the cell. Regular cells: depth times the cell area.
-      ! Subgrid cells: inverted from the volume table.
-      !
-      ! Input:
-      !   nm    : cell index
-      !   depth : depth above the lowest point (m)
-      !
-      ! Returns:
-      !   vol   : volume (m3)
-      !
-      ! Called from: set_src_struc_inertia_and_sharing (this module).
-      !
-      use sfincs_data
-      !
-      implicit none
-      !
-      integer, intent(in) :: nm
-      real*4,  intent(in) :: depth
-      real*4              :: vol
-      !
-      integer :: iuv
-      real*4  :: a, dzvol, level
-      !
-      if (crsgeo) then
-         a = cell_area_m2(nm)
-      else
-         a = cell_area(z_flags_iref(nm))
-      endif
-      !
-      if (.not. subgrid) then
-         !
-         vol = depth * a
-         return
-         !
-      endif
-      !
-      level = subgrid_z_zmin(nm) + depth
-      dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-      vol   = subgrid_z_volmax(nm) + max(level - subgrid_z_zmax(nm), 0.0) * a
-      !
-      do iuv = 1, subgrid_nlevels - 1
-         !
-         if (subgrid_z_dep(iuv + 1, nm) >= level) then
-            !
-            vol = (iuv - 1) * dzvol + dzvol * (level - subgrid_z_dep(iuv, nm)) / &
-                  max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6)
-            exit
-            !
-         endif
-         !
-      enddo
-      !
-      vol = max(vol, 0.0)
-      !
-   end function volume_at_depth
    !
    !-----------------------------------------------------------------------------------------------------!
    !
@@ -1199,7 +1123,6 @@ contains
       !$acc                        src_struc_nm_o1, src_struc_nm_o2, &
       !$acc                        src_struc_type, src_struc_direction, src_struc_shape, &
       !$acc                        src_struc_q, src_struc_flow_coef, src_struc_area, src_struc_n_shared, &
-      !$acc                        src_struc_vol_thresh_1, src_struc_vol_thresh_2, &
       !$acc                        src_struc_width, src_struc_sill_elevation, &
       !$acc                        src_struc_mannings_n, &
       !$acc                        src_struc_opening_duration, src_struc_closing_duration, &
@@ -1362,11 +1285,11 @@ contains
                   ! The quasi-steady law has an infinite slope dQ/ddh at dh = 0,
                   ! so an explicit step flips sign every step once the two
                   ! cells have equalised. With inertia the slope per step is
-                  ! K dt and the exchange is stable while the sloshing period
-                  ! of the two cells through the barrel is resolved, see
-                  ! inertia_coef_max. Q^n is the stored discharge after the
-                  ! common tail (fraction_open, direction filter, donor limit),
-                  ! so unscale by fraction_open as the gate does.
+                  ! K dt; the friction term is implicit and the donor limit
+                  ! caps Q, so the update cannot blow up. Q^n is the stored
+                  ! discharge after the common tail (fraction_open, direction
+                  ! filter, donor limit), so unscale by fraction_open as the
+                  ! gate does.
                   ! The legacy "check_valve" alias maps to direction_positive
                   ! in the parser; the direction filter in the common tail
                   ! below restricts the allowed sign when requested.
@@ -1378,7 +1301,6 @@ contains
                      qq0  = src_struc_q_now(istruc) / max(frac, 0.001)
                      !
                      inertia_coef = g * src_struc_area(istruc) / src_struc_length(istruc)
-                     inertia_coef = min(inertia_coef, inertia_coef_max(nm_s1, nm_s2, src_struc_n_shared(istruc), dt))
                      !
                      qq = (qq0 + inertia_coef * dt * dh) / &
                           (1.0 + inertia_coef * dt * abs(qq0) / src_struc_flow_coef(istruc)**2)
@@ -1538,7 +1460,6 @@ contains
                      qq0  = src_struc_q_now(istruc) / max(frac, 0.001)
                      !
                      inertia_coef = g * a_eff / max(src_struc_length(istruc), src_struc_distance(istruc), 1.0)
-                     inertia_coef = min(inertia_coef, inertia_coef_max(nm_s1, nm_s2, src_struc_n_shared(istruc), dt))
                      !
                      qq = (qq0 + inertia_coef * dt * dh) / &
                           (1.0 + inertia_coef * dt * abs(qq0) * k_tot / (2.0 * g * a_eff * a_eff))
@@ -1699,34 +1620,26 @@ contains
             qq = alpha * qq + (1.0 - alpha) * src_struc_q_now(istruc)
             !
             ! Limit the discharge to a fraction of the volume in the donor cell
-            ! (endpoint 1 for qq > 0, endpoint 2 for qq < 0) above the flow
-            ! threshold huthresh, see donor_volume_fraction at the top of the
-            ! module. Leaving huthresh in the intake keeps the faces that feed
-            ! it from switching on and off. The fraction is shared equally
-            ! between the n_shared structures attached to the cell, so that
-            ! several structures cannot overdraw it together.
+            ! (endpoint 1 for qq > 0, endpoint 2 for qq < 0), see
+            ! donor_volume_fraction at the top of the module. The fraction is
+            ! shared equally between the n_shared structures attached to the
+            ! cell, so that several structures cannot overdraw it together.
             !
-            if (qq /= 0.0) then
-               !
-               if (qq > 0.0) then
-                  nm_donor     = nm_s1
-                  donor_volume = src_struc_vol_thresh_1(istruc)
-               else
-                  nm_donor     = nm_s2
-                  donor_volume = src_struc_vol_thresh_2(istruc)
-               endif
-               !
-               if (subgrid) then
-                  donor_volume = z_volume(nm_donor) - donor_volume
-               else
-                  donor_volume = (real(zs(nm_donor), 4) - zb(nm_donor)) * cell_area(z_flags_iref(nm_donor)) - donor_volume
-               endif
-               !
-               donor_q_max = donor_volume_fraction * max(donor_volume, 0.0) / (src_struc_n_shared(istruc) * dt)
-               !
-               if (abs(qq) > donor_q_max) qq = sign(donor_q_max, qq)
-               !
+            if (qq > 0.0) then
+               nm_donor = nm_s1
+            else
+               nm_donor = nm_s2
             endif
+            !
+            if (subgrid) then
+               donor_volume = z_volume(nm_donor)
+            else
+               donor_volume = (real(zs(nm_donor), 4) - zb(nm_donor)) * cell_area(z_flags_iref(nm_donor))
+            endif
+            !
+            donor_q_max = donor_volume_fraction * max(donor_volume, 0.0) / (src_struc_n_shared(istruc) * dt)
+            !
+            if (abs(qq) > donor_q_max) qq = sign(donor_q_max, qq)
             !
             src_struc_q_now(istruc) = qq
             !
@@ -1749,93 +1662,6 @@ contains
       !$acc end parallel loop
       !
    end subroutine
-   !
-   !-----------------------------------------------------------------------------------------------------!
-   !
-   function storage_area(nm) result(dvdz)
-      !
-      ! Storage area dV/dzs (m2) of cell nm at its current volume. Regular
-      ! cells: the cell area. Subgrid cells: the slope of the volume table in
-      ! the interval that holds z_volume(nm), i.e. the wet area at the current
-      ! level. The full cell area above volmax; an empty cell gets the slope
-      ! of the first interval (the area that wets first), so it is never zero.
-      !
-      ! Input:
-      !   nm   : cell index
-      !
-      ! Returns:
-      !   dvdz : storage area (m2)
-      !
-      ! Called from: update_src_structures and inertia_coef_max (this module).
-      !
-      !$acc routine seq
-      !
-      use sfincs_data
-      !
-      implicit none
-      !
-      integer, intent(in) :: nm
-      real*4              :: dvdz
-      !
-      integer :: iuv
-      real*4  :: a, dzvol
-      !
-      if (crsgeo) then
-         a = cell_area_m2(nm)
-      else
-         a = cell_area(z_flags_iref(nm))
-      endif
-      !
-      dvdz = a
-      !
-      if (subgrid) then
-         !
-         if (z_volume(nm) < subgrid_z_volmax(nm) * 0.999) then
-            !
-            dzvol = subgrid_z_volmax(nm) / (subgrid_nlevels - 1)
-            iuv   = min(max(int(max(z_volume(nm), 0.0) / dzvol) + 1, 1), subgrid_nlevels - 1)
-            dvdz  = min(dzvol / max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6), a)
-            !
-         endif
-         !
-      endif
-      !
-   end function storage_area
-   !
-   !-----------------------------------------------------------------------------------------------------!
-   !
-   function inertia_coef_max(nm_s1, nm_s2, n_shared, dt) result(kmax)
-      !
-      ! Upper bound on the inertia coefficient K = g A / L (m2/s2) of a
-      ! structure between cells nm_s1 and nm_s2. The two cells slosh through
-      ! the barrel at frequency omega with omega^2 = K (1/A1 + 1/A2), A1 and
-      ! A2 their storage areas, and the explicit-head update is stable while
-      ! omega dt < 2 and smooth while omega dt < 1. The bound keeps
-      ! (omega dt)^2 <= 1 with the K of all n_shared structures in a cell
-      ! counted together. For realistic culverts and cells it is orders of
-      ! magnitude above the physical K; it only guards pathological inputs.
-      !
-      ! Input:
-      !   nm_s1, nm_s2 : endpoint cells
-      !   n_shared     : structures attached to the busier of the two cells
-      !   dt           : time step (s)
-      !
-      ! Returns:
-      !   kmax : bound on K (m2/s2)
-      !
-      ! Called from: update_src_structures (this module).
-      !
-      !$acc routine seq
-      !
-      implicit none
-      !
-      integer, intent(in) :: nm_s1, nm_s2, n_shared
-      real*4,  intent(in) :: dt
-      real*4              :: kmax
-      !
-      kmax = 1.0 / (n_shared * (1.0 / storage_area(nm_s1) + 1.0 / storage_area(nm_s2)) * dt * dt)
-      !
-   end function inertia_coef_max
    !
    !-----------------------------------------------------------------------------------------------------!
    !
@@ -2884,9 +2710,6 @@ contains
             !
          endif
          !
-         write(logstr,'(a22,1x,a,a,a,a)')           '  volume at huthresh :',       trim(fmt_real(src_struc_vol_thresh_1(i), 3)), ', ', &
-                                                    trim(fmt_real(src_struc_vol_thresh_2(i), 3)), ' (m3)'
-         call write_log(logstr, 0)
          write(logstr,'(a22,1x,i0)')                '  structures in cell :',       src_struc_n_shared(i)
          call write_log(logstr, 0)
          !

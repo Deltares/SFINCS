@@ -104,7 +104,6 @@ module sfincs_data
       real*4 y0
       real*4 rotation
       real*4 huthresh
-      real*4 huthresh_input   ! huthresh as given in the input; huthresh itself is zeroed for netcdf subgrid tables (sfincs_subgrid)
       real*4 huvmin
       real*4 qinf
       real*4 tig

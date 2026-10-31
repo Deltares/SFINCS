@@ -82,7 +82,7 @@ contains
    !$acc               qsrc, qtsrc, qsrc_ts, src_struc_q_now, nmindsrc, src_struc_nm_s1, src_struc_nm_s2, src_struc_type, &
    !$acc               src_struc_direction, src_struc_shape, &
    !$acc               src_struc_nm_o1, src_struc_nm_o2, &
-   !$acc               src_struc_q, src_struc_flow_coef, src_struc_area, src_struc_n_shared, src_struc_vol_thresh_1, src_struc_vol_thresh_2, &
+   !$acc               src_struc_q, src_struc_flow_coef, src_struc_area, src_struc_n_shared, &
    !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
@@ -140,7 +140,7 @@ contains
    !$acc               qsrc, qtsrc, qsrc_ts, src_struc_q_now, nmindsrc, src_struc_nm_s1, src_struc_nm_s2, src_struc_type, &
    !$acc               src_struc_direction, src_struc_shape, &
    !$acc               src_struc_nm_o1, src_struc_nm_o2, &
-   !$acc               src_struc_q, src_struc_flow_coef, src_struc_area, src_struc_n_shared, src_struc_vol_thresh_1, src_struc_vol_thresh_2, &
+   !$acc               src_struc_q, src_struc_flow_coef, src_struc_area, src_struc_n_shared, &
    !$acc               src_struc_width, src_struc_sill_elevation, src_struc_mannings_n, &
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
