@@ -1,7 +1,11 @@
 Input parameters
 =====
 
-Different parameters for model input and output of SFINCS can be changed in **sfincs.inp**, see below. 
+Different parameters for model input and output of SFINCS can be changed in **sfincs.inp**, see below.
+
+For every keyword, ':default:' is the value SFINCS uses when the keyword is not present in sfincs.inp.
+Where the recommended value for new models differs from this default, it is listed as ':preferred:'. HydroMT-SFINCS writes these preferred values to sfincs.inp when building a new model.
+The defaults themselves are kept unchanged for backwards compatibility with existing models.
     
 Parameters for model input
 -----
@@ -82,6 +86,7 @@ Parameters for model input
 	  :description:		Minimum flow depth limiter.
 	  :units:		m
 	  :default:		0.05
+	  :preferred:		0.01
 	  :min:			0.001 (recommended)
 	  :max:			0.1 (recommended)	  
 	theta
@@ -105,7 +110,8 @@ Parameters for model input
 	viscosity
 	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0.
 	  :units:		-
-	  :default:		1
+	  :default:		0
+	  :preferred:		1
 	  :min:			0
 	  :max:			1
 	nuviscdim
@@ -116,7 +122,13 @@ Parameters for model input
 	  :units:		-
 	  :default:		0.01
 	  :min:			0.0
-	  :max:			Inf	  	  	  
+	  :max:			Inf
+	nuviscfac
+	  :description:		Multiplication factor on the viscosity coefficient 'nuvisc' at velocity points on a quadtree refinement level transition, where extra viscosity prevents instabilities. Only used if 'viscosity=1'.
+	  :units:		-
+	  :default:		100.0
+	  :min:			0.0
+	  :max:			Inf
 	coriolis
 	  :description: Turns on the Coriolis term in the momentum equation, by default turned on (coriolis = True). For projected coordinate system, if latitude is not provided (default, latitude = 0.0), coriolis is still turned off.
 	  :units:		logical
@@ -171,8 +183,8 @@ Parameters for model input
 	  :default:		-999 (=not used)
 	  :min:			0
 	  :max:			0.1 (advised)
-	ampr_block        
-	  :description:		Keyword controlling whether the input precipitation rate for 2D precipitation input fields is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
+	amprblock
+	  :description:		Keyword controlling whether the input precipitation rate for 2D precipitation input fields is kept constant for the duration of the input time interval (block interpolation, amprblock = 1, default), or whether it is interpolated linearly in time (amprblock = 0).
 	  :units:		-
 	  :default:		1
 	  :min:			0
@@ -212,6 +224,18 @@ More parameters for model input (only for advanced users)
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	wiggle_threshold
+	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression limiter is applied (when wiggle_suppression = 1).
+	  :units:		m/s2
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			Inf
+	wiggle_factor
+	  :description:		Strength of the wiggle suppression limiter (when wiggle_suppression = 1). The flux is multiplied with wiggle_threshold / (wiggle_factor * (difference - wiggle_threshold) + wiggle_threshold), so a larger value damps more strongly.
+	  :units:		-
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			Inf
 	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
@@ -242,12 +266,9 @@ More parameters for model input (only for advanced users)
 	  :default:		60
 	  :min:			1.0e-3
 	  :max:			Inf
-	dtmin
-	  :description:		Minimum allowed internal timestep.
+	dtmin - not a keyword, computed by SFINCS
+	  :description:		Minimum allowed internal timestep. Not read from sfincs.inp, but computed as dtmin = alpha * dx_min / (1.25 * uvmax). If the timestep drops below dtmin, the simulation is classified as unstable and stopped. Change 'uvmax' to change it.
 	  :units:		s
-	  :default:		1.0e-3
-	  :min:			1.0e-3
-	  :max:			Inf	  
 	tspinup
 	  :description:		Duration of spinup period after tstart, where the water level variation at the boundary is dampened, between values in the 'bzsfile' input and the value of 'zsini' (even if using rstfile as initial condition)
 	  :units:		s
@@ -277,14 +298,96 @@ More parameters for model input (only for advanced users)
 	  :units:		s
 	  :default:		10
 	  :min:			0
-	  :max:			86400	  
-	  
+	  :max:			86400
+	btfilter
+	  :description:		Time scale of the filter for the mean flow velocity at water level boundary points, used to separate the incoming and outgoing signal. A negative value turns the filter off (mean velocity set to 0).
+	  :units:		s
+	  :default:		60
+	  :min:			-1
+	  :max:			Inf
+	btrelax
+	  :description:		Relaxation time scale of the mean flow velocity at water level boundary points, avoids persistent jets shooting into the model from the boundary.
+	  :units:		s
+	  :default:		3600
+	  :min:			0
+	  :max:			Inf
+	pavbnd
+	  :description:		Average atmospheric pressure at the water level boundary. If > 0 and spatially varying pressure is given, the boundary water levels are corrected for the inverse barometer effect: zs = zs + (pavbnd - p) / (rhow * g). Turned off by default (0).
+	  :units:		Pa
+	  :default:		0
+	  :min:			0
+	  :max:			Inf
+	gapres
+	  :description:		Background atmospheric pressure, used outside the spiderweb and where no pressure input is given.
+	  :units:		Pa
+	  :default:		101200
+	  :min:			-
+	  :max:			-
+	epsg
+	  :description:		EPSG code of the coordinate reference system of the model, written to the netcdf output files. A warning is given when not specified.
+	  :units:		-
+	  :default:		0 (= not specified)
+	  :min:			-
+	  :max:			-
+	crsgeo
+	  :description:		Set to 1 if the model is in a geographic coordinate system (longitude/latitude in degrees) instead of a projected one. Grid distances and areas are then computed on the sphere.
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	latitude
+	  :description:		Latitude used to compute the Coriolis force for models in a projected coordinate system. With latitude = 0 (default) the Coriolis term is effectively off.
+	  :units:		degrees
+	  :default:		0.0
+	  :min:			-90
+	  :max:			90
+	spwmergefrac
+	  :description:		Fraction of the spiderweb radius beyond which the spiderweb wind and pressure are merged linearly with the background meteo fields towards the edge of the spiderweb.
+	  :units:		-
+	  :default:		0.5
+	  :min:			0
+	  :max:			0.999
+	usespwprecip
+	  :description:		Use the precipitation in the spiderweb file (1, default) or ignore it (0).
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1
+	factor_wind
+	  :description:		Multiplication factor applied to all wind input, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	factor_pres
+	  :description:		Multiplication factor applied to the pressure deficit (gapres - p) of all atmospheric pressure input, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	factor_prcp
+	  :description:		Multiplication factor applied to all precipitation input, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	factor_spw_size
+	  :description:		Multiplication factor applied to the spiderweb radius, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	inputformat
+	  :description:		Format of the regular grid input files (depfile, mskfile, manningfile, etc.): binary 'bin' (default) or ascii 'asc'. Not used for quadtree models.
+	  :units:		-
+	  :default:		bin
+
 	**Drag coefficients:**
 	
 	cdnrb
-	  :description:		Number of specified break points
+	  :description:		Number of specified break points. If not specified (cdnrb = 0), SFINCS uses the built-in curve with the 3 break points given as defaults of cdwnd and cdval, and cdwnd and cdval are not read.
 	  :units:		-
-	  :default:		3
+	  :default:		0 (= built-in curve with 3 break points)
 	  :min:			2
 	  :max:			-	
 	cdwnd	  
@@ -306,16 +409,16 @@ Parameters for model output
 -----
 
 	tref
-	  :description:		Reference date in 'yyyymmdd HHMMSS'
+	  :description:		Reference date in 'yyyymmdd HHMMSS'. All times in the input and output files are in seconds since 'tref'.
 	  :units:		-
-	  :default:		20000101 000000
+	  :default:		'tstart'
 	tstart
 	  :description:		Start date in 'yyyymmdd HHMMSS'
 	  :units:		-	
 	  :default:		20000101 000000				  
 	tstop
 	  :description:		Stop date in 'yyyymmdd HHMMSS'
-	  :units:		m
+	  :units:		-
 	  :default:		20000101 000000
 	t0out
 	  :description:		Start time of the map, his and max output window, in seconds since 'tref'. Map and his output start at 't0out', and the first max output covers 't0out' until 't0out + dtmaxout' (maxima before 't0out' are discarded). Also the 'dtrstout' interval counts from 't0out'. Values before 'tstart' are set to 'tstart'.
@@ -331,10 +434,11 @@ Parameters for model output
 	  :description:		Specific time in seconds since 'tref' for restart file output being written away, turned of by default.
 	  :units:		s
 	  :default:		-999.0	  	  
-	dtout
-	  :description:		Spatial map output interval
+	dtmapout
+	  :description:		Spatial map output interval. 0 means no map output. The old keyword 'dtout' is still accepted.
 	  :units:		s
 	  :default:		0
+	  :preferred:		3600
 	dthisout
 	  :description:		Observation points output interval
 	  :units:		s
@@ -343,8 +447,9 @@ Parameters for model output
 	  :description:		Maximum map output interval. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
 	  :default:		9999999
+	  :preferred:		86400
 	  :min:			0
-	  :max:			'tstop - start in seconds'  
+	  :max:			'tstop - start in seconds'
 	dtrstout
 	  :description:		Restart file output interval, turned of by default.
 	  :units:		s
@@ -357,14 +462,18 @@ Parameters for model output
 	  :description:		Choice whether the SFINCS model output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default). In case of netcdf output, global output is given in 'sfincs_map.nc', point output in 'sfincs_his.nc' in case observation points are specified.
 	  :units:		-
 	  :default:		net
-	outputformat_map
-	  :description:		Choice whether the SFINCS model map output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	outputtype_map
+	  :description:		Choice whether the SFINCS model map output is given in binary 'bin', ascii 'asc' or netcdf files 'net'. Specify together with 'outputtype_his'; if either is missing, both follow 'outputformat'.
 	  :units:		-
-	  :default:		net
-	outputformat_his
-	  :description:		Choice whether the SFINCS model his output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	  :default:		value of 'outputformat'
+	outputtype_his
+	  :description:		Choice whether the SFINCS model his output is given in binary 'bin', ascii 'asc' or netcdf files 'net'. Specify together with 'outputtype_map'; if either is missing, both follow 'outputformat'.
 	  :units:		-
-	  :default:		net
+	  :default:		value of 'outputformat'
+	output_on_quadtree_mesh
+	  :description:		For a quadtree model with only one refinement level: write the map output on the quadtree mesh (1) or as a regular grid (0, default). Quadtree models with more than one refinement level always write their map output on the quadtree mesh. The old keyword 'regular_output_on_mesh' is still accepted.
+	  :units:		-
+	  :default:		0
 	nc_deflate_level
 	  :description:		Netcdf deflate level
 	  :units:		-
@@ -378,7 +487,7 @@ Parameters for model output
 	  :units:		-
 	  :default:		0	  
 	storevel
-	  :description:		Flag to turn on writing away velocities on 'dtout' interval during simulation (storevel = 1)
+	  :description:		Flag to turn on writing away velocities on 'dtmapout' interval during simulation (storevel = 1)
 	  :units:		-
 	  :default:		0	
 	storevelmax
@@ -430,8 +539,16 @@ Parameters for model output
 	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
 	  :units:		-
 	  :default:		0		  	  
+	storefw
+	  :description:		Flag to turn on writing away the wave forces from SnapWave on 'dtmapout' interval during simulation (storefw = 1)
+	  :units:		-
+	  :default:		0
+	storewavdir
+	  :description:		Flag to turn on writing away the wave direction from SnapWave on 'dtmapout' interval during simulation (storewavdir = 1)
+	  :units:		-
+	  :default:		0
 	storemeteo
-	  :description:		Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
+	  :description:Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
 	  :units:		-
 	  :default:		0	
 	storemaxwind
@@ -480,15 +597,15 @@ Domain
 	  :description:		General input file of SFINCS describing all model settings, the domain, forcing and structures.
 	  :required:		yes
 	  :format:		asc	 
+	qtrfile = sfincs.nc
+	  :description:		Quadtree grid file with the cell locations, refinement levels, neighbour indices and mask of a quadtree model. If specified, mmax, nmax, dx, dy, depfile, mskfile and indexfile are not used. See 'User manual - quadtree'.
+	  :units:		-
+	  :required:		Only for quadtree models
+	  :format:		net
 	depfile = sfincs.dep
-	  :description:		Elevation (bathymetry and topography) at grid cell centres above a reference level. 
+	  :description:		Elevation (bathymetry and topography) at grid cell centres above a reference level.
 	  :units:		m above reference level
 	  :required:		yes in case of regular mode, no in case of subgrid mode
-	  :format:		bin or asc
-	mskfile = sfincs.msk
-	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), boundary cell (msk=2) or outflow boundary cell msk=3).
-	  :units:		-
-	  :required:		yes	  
 	  :format:		bin or asc
 	indexfile = sfincs.ind
 	  :description:		File describing the indices of active grid cells within the overall grid. Not used by SFINCS with ascii input.

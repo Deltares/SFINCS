@@ -74,6 +74,37 @@ module snapwave_boundaries
    !     Modulo of a and b, mapped onto the range 1 to b.
    !     Called from: make_theta_grid (snapwave_boundaries)
    !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Dano Roelvink, IHE Delft, 2020-2026.
+   !
+   ! This file is part of SnapWave.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! This file has been modified by Stichting Deltares for coupling
+   ! with SFINCS. The modifications are distributed under the same
+   ! licence (GNU Lesser General Public License version 2.1).
+   !
+   ! Modifications Copyright (C)  Stichting Deltares, 2021-2026.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
 
    use sfincs_log
    use sfincs_error   

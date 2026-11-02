@@ -1726,14 +1726,11 @@
    !
    ! UV fluxes at wave makers - No OMP acceleration here?
    !
-   ! Push time-interpolated forcing values to GPU before parallel region
+   ! Push time-interpolated forcing values to GPU before parallel region.
+   ! hm0 and hm0_ig are pushed to the GPU in update_wave_field (sfincs_snapwave).
    !
    if (wavemaker_timeseries) then
       !$acc update device(wavemaker_forcing_hm0_ig_t, wavemaker_forcing_setup_t)
-   endif
-   !
-   if (wavemaker_snapwave) then
-      !$acc update device(hm0, hm0_ig)
    endif
    !
    !$acc parallel present( wavemaker_index_uv, wavemaker_index_nmi, wavemaker_index_nmb, wavemaker_index_type, &
