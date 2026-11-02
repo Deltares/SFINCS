@@ -104,10 +104,11 @@ Advanced user options - currently as concept/prototype functionality:
 
 * **NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.**
 
+* Time-series forced and SnapWave forced wavemakers can now be combined in one model.
 * Prototype - Bucket model for infiltration and losses (inftype = bkt, via inffile).
 * Prototype - Urban drainage zones (urbfile), draining zones of cells to an outfall at a design rate.
-* Prototype - Dike breaches (dkbfile), with breach deepening and widening following Verheij & Van der Knaap (20030.
-* Time-series forced and SnapWave forced wavemakers can now be combined in one model.
+* Prototype - Dike breaches (dkbfile), with breach deepening and widening following Verheij & Van der Knaap (2003).
+* **NOTE - Prototype status: Prototypes are used in pilots and internal projects, they are field-tested but still being iteratively improved. Prototype functionalities are shared with a small network of Strategic Partners & Clients.**
 
 See here a schematic overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
 Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).

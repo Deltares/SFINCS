@@ -586,7 +586,7 @@ The bucket model:
 
 **NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
 
-**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+**NOTE - Prototype status: Prototypes are used in pilots and internal projects, they are field-tested but still being iteratively improved. **
 
 The bucket model is a linear-reservoir representation of infiltration and losses. It is configured with:
 
