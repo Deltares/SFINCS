@@ -200,6 +200,7 @@ module snapwave_windsource
    subroutine windinput(u10, rho, g, hh, ntheta, windspreadfac, E, A, cg, eeprev, aaprev, ds, WsorE, WsorA, jadcgdx)
       !
       ! Compute the wind input source terms for wave energy and wave action.
+      ! No wind input for u10 < 0.1 m/s.
       !
       ! Input:
       !   u10           : wind speed at 10 m [m/s]
@@ -275,6 +276,17 @@ module snapwave_windsource
       integer            :: itheta  
       !
       pi=4.d0*atan(1.d0)
+      !
+      ! No wind input for (near) calm conditions, avoids division by zero below
+      ! (u10 = 0 e.g. for calm wind, or nodes without a matching SFINCS cell)
+      !
+      if (u10 < 0.1) then
+         !
+         wsorE = 0.0
+         wsorA = 0.0
+         return
+         !
+      endif
       !
       !compute dimensionless wave state, maximized by Breugem and Holthuizen fully developed sea states
       !
