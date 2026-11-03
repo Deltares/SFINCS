@@ -143,7 +143,7 @@ module sfincs_lib
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    build_revision = "$Rev: v2.5.0 Hautacam Release 2026.02"
-   build_date     = "$Date: 2026-10-23"
+   build_date     = "$Date: 2026-10-30"
    !
    call write_startup_log()
    !

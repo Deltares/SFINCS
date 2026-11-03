@@ -55,6 +55,16 @@ The code consists of all functionality of the 2026.01 'v2.4.0 Galibier' release,
 * New run-off coefficient infiltration method (inftype = r2d, via inffile), with thanks to IMDC!
 * Improved drainage structure file in 'toml' format, with new detailed culvert (rectangular or circular barrel) and gate types.
 * New output options: per-source river discharge (store_river_discharge), urban drainage discharge and cumulative depth (store_urban_drainage_discharge, store_cumulative_urban_drainage).
+* Consistent fill values in the netCDF output (sfincs_map.nc and sfincs_his.nc): map, maximum and his output now use one rule, and write the fill value (read as NaN) where a cell or station is dry, where there are no waves, or where a quantity is undefined. 
+  A cell or station is dry when the water depth (zs - zb, or zs - subgrid_z_zmin for subgrid) is at or below 'huthresh'.
+  Exception: the water level and depth at observation points (point_zs, point_h) are only set to fill value when the station is completely dry (water depth at or below 0.1 mm), so that shallow water, for example from rainfall, still shows up in the time series.
+  See the output section for the details per output type.
+  **Note: this can be a breaking change for post-processing scripts that expected zeros (or the bed level) in dry cells.**
+  Use e.g. NaN-aware functions or fill the NaNs where needed.
+* Consistent handling of legacy keyword names in sfincs.inp: several keywords have a new(-ish) name (e.g. 'dtout' is now 'dtmapout' for consistency), and the old names are still accepted as deprecated aliases.
+  When SFINCS reads an old name, it still uses its value but writes a warning to the log, e.g. 'Warning : sfincs.inp keyword "dtout" is deprecated, use "dtmapout" instead'.
+  When both the new and the old name are given, only the new keyword is used and the old one is ignored.
+  We recommend replacing old keyword names with the new ones in your sfincs.inp files.
 * Clarified and improved documentation for quadtree grids, input parameters, output and HydroMT-SFINCS usage.
 
 Kernel improvements:
@@ -82,15 +92,23 @@ Bugfixes:
 * Fixed reading the initial water level from a quadtree netcdf file.
 * Fixed cross-sections crossing more than 1000 uv points, and the uv point count of thin dams.
 * Fixed division by zero for time-series forced wavemakers: 'wavemaker_tpmin' now also applies there.
+* Fixed precipitation time series (precipfile) and uniform wind time series (wndfile) outside the time range of the file: the first or last value is now used, with thanks to Piotr Daldek.
+* Fixed uniform wind direction (wndfile) in rotated quadtree models, which used the sfincs.inp rotation instead of the grid rotation.
+* Fixed OpenMP race conditions in the SnapWave infragravity source term, which could give different results with more than one thread.
+* Fixed run-up gauges with sample points outside the grid or in inactive cells, and models with a rugfile but no obsfile stopping with an error.
+* Fixed the internal point of downstream river boundaries in quadtree models with inactive cells, which used the water level of an unrelated cell.
+* Fixed Neumann (msk=6) and downstream river (msk=5) boundaries on GPU, which used outdated water levels: Neumann boundary cells stayed at their initial water level.
+* Fixed SnapWave coupling on GPU, which used outdated water levels and wind, so the wave field ignored tide, surge and setup.
 
 Advanced user options - currently as concept/prototype functionality:
 
 * **NOTE - please contact Deltares-SFINCS group in case you want to use any of this functionality.**
 
+* Time-series forced and SnapWave forced wavemakers can now be combined in one model.
 * Prototype - Bucket model for infiltration and losses (inftype = bkt, via inffile).
 * Prototype - Urban drainage zones (urbfile), draining zones of cells to an outfall at a design rate.
-* Prototype - Dike breaches (dkbfile), with breach deepening and widening following Verheij & Van der Knaap (20030.
-* Time-series forced and SnapWave forced wavemakers can now be combined in one model.
+* Prototype - Dike breaches (dkbfile), with breach deepening and widening following Verheij & Van der Knaap (2003).
+* **NOTE - Prototype status: Prototypes are used in pilots and internal projects, they are field-tested but still being iteratively improved. Prototype functionalities are shared with a small network of Strategic Partners & Clients.**
 
 See here a schematic overview of the SFINCS development status at November 2026, at the time of the v2.5.0 Hautacam 2026.02 release.
 Indicated are new functionality for SFINCS itself (core), and model setup/post-processing using HydroMT-SFINCS (Python).
