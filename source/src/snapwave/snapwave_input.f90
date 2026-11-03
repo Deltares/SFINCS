@@ -8,7 +8,8 @@ module snapwave_input
    !
    !   read_snapwave_input()
    !     Reads all snapwave_* keywords via get_keyword() and derives the
-   !     SnapWave process flags (IG waves, Herbers, wind, vegetation).
+   !     SnapWave process flags (IG waves, Herbers, wind, vegetation, 1-D
+   !     mode, wave force formulation).
    !     Called from couple_snapwave (sfincs_snapwave) and
    !     read_snapwave_boundary_data (sfincs_bathtub).
    !
@@ -79,6 +80,7 @@ contains
    call get_keyword(500, 'snapwave_dtheta',                 dtheta,               10.0)
    call get_keyword(500, 'snapwave_crit',                   crit,                 0.001)
    call get_keyword(500, 'snapwave_nrsweeps',               nr_sweeps,            4)
+   call get_keyword(500, 'snapwave_1d',                     snapwave_1d,          .false.)                     ! True 1-D setup: single-row mesh with offshore/onshore neighbours (default off)
    call get_keyword(500, 'snapwave_niter',                  niter,                10)                          !TL: Old default was 40
    !call get_keyword(500, 'snapwave_baldock_opt',           baldock_opt,          1)
    call get_keyword(500, 'snapwave_baldock_ratio',          baldock_ratio,        0.2)
@@ -137,6 +139,7 @@ contains
    call get_keyword(500, 'snapwave_ncfile',                 gridfile,             'snapwave_net.nc')
    call get_keyword(500, 'netsnapwavefile',                 netsnapwavefile,      'none')
    call get_keyword(500, 'storesnapwavegrid',               storesnapwavegrid,    .false.)
+   call get_keyword(500, 'snapwave_wave_force',             wave_force_str,       'dissipation')               ! 'dissipation' (default) or 'radstress'
    call get_keyword(500, 'tref',                            trefstr,              '20000101 000000')           ! Read again > needed in sfincs_ncinput.F90
    !
    close(500)
@@ -151,6 +154,19 @@ contains
    elseif (.not. igherbers) then
       !
       write(logstr,*)'SnapWave: IG bc using eeinc2ig= ',eeinc2ig,' and snapwave_Tinc2ig= ',Tinc2ig
+      call write_log(logstr, 0)
+      !
+   endif
+   !
+   ! Wave force formulation: dissipation (default) or radiation-stress gradients
+   !
+   wave_force_radstress = .false.
+   !
+   if (trim(adjustl(wave_force_str)) == 'radstress' .or. trim(adjustl(wave_force_str)) == 'RADSTRESS') then
+      !
+      wave_force_radstress = .true.
+      !
+      write(logstr,*)'SnapWave: wave force from radiation-stress gradients'
       call write_log(logstr, 0)
       !
    endif
