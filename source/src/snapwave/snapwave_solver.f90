@@ -22,6 +22,11 @@
    !     Solve a tridiagonal system of equations.
    !     Called from: solve_energy_balance2Dstat (snapwave_solver)
    !
+   !   solve_tridiag_cyclic(a, b, c, d, x, n)
+   !     Solve a cyclic (periodic) tridiagonal system of equations, for a full-circle
+   !     directional grid.
+   !     Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
    !   baldock(rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
    !     Wave breaking dissipation according to Baldock et al. (1998).
    !     Called from: solve_energy_balance2Dstat (snapwave_solver)
@@ -496,6 +501,7 @@ contains
    real*4                                     :: hmin                   ! minimum water depth! TL: make user changeable also here according to 'snapwave_hmin' in sfincs.inp   
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
+   logical                                    :: cyclic_theta           ! directional grid covers the full circle (sector = 360): periodic in theta
    real*4                                     :: rhog8
    real*4                                     :: Dfk
    real*4                                     :: Dwk
@@ -595,6 +601,11 @@ contains
    dtheta = theta(2) - theta(1)
    !
    if (dtheta < 0.0) dtheta = dtheta + 2*pi
+   !
+   ! With a full-circle directional grid (sector = 360), the first and last direction bins
+   ! are neighbours: refraction couples them and the tridiagonal systems become cyclic
+   !
+   cyclic_theta = (abs(ntheta * dtheta - 2 * pi) < 0.5 * dtheta) .and. (ntheta >= 3)
    !
    if (wind) then
       !
@@ -961,38 +972,73 @@ contains
             !
          enddo
          !
-         ! Directional edge BCs: first-order upwind, open at the grid ends, 
-         ! same upwind scheme as the IG (ee_ig) and action (aa) balances
-         !
-         if (ctheta(1, k) < 0.0) then
-            A(1) = 0.0
-            B(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverE(k)
-            C(1) = ctheta(2, k) / dtheta
+         if (cyclic_theta) then
+            !
+            ! Full circle: same central scheme at the edges, with the first and last bin
+            ! coupled (A(1) and C(ntheta) are the wrap-around corner terms)
+            !
+            A(1)      = -ctheta(ntheta, k) * oneover2dtheta
+            B(1)      =  oneoverdt + cg(k) / ds(1, k) + DoverE(k)
+            C(1)      =  ctheta(2, k) * oneover2dtheta
+            !
+            A(ntheta) = -ctheta(ntheta - 1, k) * oneover2dtheta
+            B(ntheta) =  oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
+            C(ntheta) =  ctheta(1, k) * oneover2dtheta
+            !
          else
-            A(1) = 0.0
-            B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
-            C(1) = 0.0
-         endif
-         !
-         if (ctheta(ntheta, k) > 0.0) then
-            A(ntheta) = -ctheta(ntheta - 1, k) / dtheta
-            B(ntheta) =  oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverE(k)
-            C(ntheta) =  0.0
-         else
-            A(ntheta) = 0.0
-            B(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
-            C(ntheta) = 0.0
+            !
+            ! Directional edge BCs: first-order upwind, open at the grid ends,
+            ! same upwind scheme as the IG (ee_ig) and action (aa) balances
+            !
+            if (ctheta(1, k) < 0.0) then
+               !
+               A(1) = 0.0
+               B(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverE(k)
+               C(1) = ctheta(2, k) / dtheta
+               !
+            else
+               !
+               A(1) = 0.0
+               B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
+               C(1) = 0.0
+               !
+            endif
+            !
+            if (ctheta(ntheta, k) > 0.0) then
+               !
+               A(ntheta) = -ctheta(ntheta - 1, k) / dtheta
+               B(ntheta) =  oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverE(k)
+               C(ntheta) =  0.0
+               !
+            else
+               !
+               A(ntheta) = 0.0
+               B(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
+               C(ntheta) = 0.0
+               !
+            endif
+            !
          endif
          !
          if (wind) R(:) = R(:) + WsorE(:, k)
          !
-         call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
+         if (cyclic_theta) then
+            !
+            call solve_tridiag_cyclic(A, B, C, R, ee(:, k), ntheta)
+            !
+         else
+            !
+            call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
+            !
+         endif
+         !
          ee(:, k) = max(ee(:, k), waveps)
          !
          ! --- Step 5: Assemble and solve action balance (aa, wind only) ---------------
          !
          ! A and C are the same as for ee (refraction terms don't change).
-         ! Only B_aa differs: DoverA instead of DoverE, plus upwind BC for ctheta endpoints.
+         ! Only B_aa differs: DoverA instead of DoverE, plus upwind BC for ctheta endpoints
+         ! (open grid ends only, not for a full-circle grid).
          !
          if (wind) then
             !
@@ -1001,7 +1047,7 @@ contains
                R_aa(itheta) = oneoverdt * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
             enddo
             !
-            if (ctheta(1, k) < 0.0) then
+            if (ctheta(1, k) < 0.0 .and. .not. cyclic_theta) then
                B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
             else
                B_aa(1) = oneoverdt + cg(k) / ds(1, k) + DoverA(k)
@@ -1009,7 +1055,7 @@ contains
             !
             R_aa(1) = oneoverdt * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k)
             !
-            if (ctheta(ntheta, k) > 0.0) then
+            if (ctheta(ntheta, k) > 0.0 .and. .not. cyclic_theta) then
                B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
             else
                B_aa(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverA(k)
@@ -1018,7 +1064,15 @@ contains
             R_aa(ntheta) = oneoverdt * aa(ntheta, k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
             R_aa(:) = R_aa(:) + WsorA(:, k)
             !
-            call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
+            if (cyclic_theta) then
+               !
+               call solve_tridiag_cyclic(A, B_aa, C, R_aa, aa(:, k), ntheta)
+               !
+            else
+               !
+               call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
+               !
+            endif
             !
             aa(:, k) = max(aa(:, k), waveps / sigmax)
             aa(:, k) = max(aa(:, k), waveps / sig(k))
@@ -1084,27 +1138,60 @@ contains
                C_ig(itheta) =  ctheta_ig(itheta + 1, k) * oneover2dtheta
             enddo
             !
-            if (ctheta_ig(1, k) < 0.0) then
-               A_ig(1) = 0.0
-               B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
-               C_ig(1) = ctheta_ig(2, k) / dtheta
+            if (cyclic_theta) then
+               !
+               ! Full circle: first and last bin coupled, as for ee
+               !
+               A_ig(1)      = -ctheta_ig(ntheta, k) * oneover2dtheta
+               B_ig(1)      =  oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+               C_ig(1)      =  ctheta_ig(2, k) * oneover2dtheta
+               !
+               A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) * oneover2dtheta
+               B_ig(ntheta) =  oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+               C_ig(ntheta) =  ctheta_ig(1, k) * oneover2dtheta
+               !
             else
-               A_ig(1) = 0.0
-               B_ig(1) = oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
-               C_ig(1) = 0.0
+               !
+               if (ctheta_ig(1, k) < 0.0) then
+                  !
+                  A_ig(1) = 0.0
+                  B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+                  C_ig(1) = ctheta_ig(2, k) / dtheta
+                  !
+               else
+                  !
+                  A_ig(1) = 0.0
+                  B_ig(1) = oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+                  C_ig(1) = 0.0
+                  !
+               endif
+               !
+               if (ctheta_ig(ntheta, k) > 0.0) then
+                  !
+                  A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
+                  B_ig(ntheta) =  oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+                  C_ig(ntheta) =  0.0
+                  !
+               else
+                  !
+                  A_ig(ntheta) = 0.0
+                  B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+                  C_ig(ntheta) = 0.0
+                  !
+               endif
+               !
             endif
             !
-            if (ctheta_ig(ntheta, k) > 0.0) then
-               A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
-               B_ig(ntheta) =  oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
-               C_ig(ntheta) =  0.0
+            if (cyclic_theta) then
+               !
+               call solve_tridiag_cyclic(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
+               !
             else
-               A_ig(ntheta) = 0.0
-               B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
-               C_ig(ntheta) = 0.0
+               !
+               call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
+               !
             endif
             !
-            call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
             ee_ig(:, k) = max(ee_ig(:, k), 0.0)
             !
             ! Depth-limit IG energy
@@ -1364,6 +1451,55 @@ contains
    end do
    !
    end subroutine solve_tridiag
+   !
+   !
+   subroutine solve_tridiag_cyclic(a, b, c, d, x, n)
+      !
+      ! Solve a cyclic (periodic) tridiagonal system of equations, with corner elements
+      ! a(1) (row 1, column n) and c(n) (row n, column 1). Uses the Sherman-Morrison
+      ! formula on top of two calls to solve_tridiag (Press et al., Numerical Recipes).
+      !
+      ! Input:
+      !   a : sub-diagonal, a(1) is the upper-right corner element
+      !   b : main diagonal
+      !   c : super-diagonal, c(n) is the lower-left corner element
+      !   d : right-hand side
+      !   n : number of equations (n >= 3)
+      !
+      ! Output:
+      !   x : solution
+      !
+      ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+      !
+      implicit none
+      !
+      integer,                intent(in)  :: n
+      real*4, dimension(n),   intent(in)  :: a, b, c, d
+      real*4, dimension(n),   intent(out) :: x
+      !
+      real*4, dimension(n)                :: bb, u, z
+      real*4                              :: gam, fact
+      !
+      ! Modified main diagonal, so that A = T + u v^T with T tridiagonal,
+      ! u = (gam, 0, ..., 0, c(n)) and v = (1, 0, ..., 0, a(1) / gam)
+      !
+      gam    = -b(1)
+      bb     = b
+      bb(1)  = b(1) - gam
+      bb(n)  = b(n) - c(n) * a(1) / gam
+      !
+      call solve_tridiag(a, bb, c, d, x, n)
+      !
+      u      = 0.0
+      u(1)   = gam
+      u(n)   = c(n)
+      !
+      call solve_tridiag(a, bb, c, u, z, n)
+      !
+      fact   = (x(1) + a(1) * x(n) / gam) / (1.0 + z(1) + a(1) * z(n) / gam)
+      x      = x - fact * z
+      !
+   end subroutine solve_tridiag_cyclic
 
    subroutine baldock (rho, g, alfa, gamma, depth, H, T, iexp, Dw, Hmax)
    !
