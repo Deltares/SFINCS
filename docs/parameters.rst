@@ -1,7 +1,11 @@
 Input parameters
 =====
 
-Different parameters for model input and output of SFINCS can be changed in **sfincs.inp**, see below. 
+Different parameters for model input and output of SFINCS can be changed in **sfincs.inp**, see below.
+
+For every keyword, ':default:' is the value SFINCS uses when the keyword is not present in sfincs.inp.
+Where the recommended value for new models differs from this default, it is listed as ':preferred:'. HydroMT-SFINCS writes these preferred values to sfincs.inp when building a new model.
+The defaults themselves are kept unchanged for backwards compatibility with existing models.
     
 Parameters for model input
 -----
@@ -82,6 +86,7 @@ Parameters for model input
 	  :description:		Minimum flow depth limiter.
 	  :units:		m
 	  :default:		0.05
+	  :preferred:		0.01
 	  :min:			0.001 (recommended)
 	  :max:			0.1 (recommended)	  
 	theta
@@ -105,7 +110,8 @@ Parameters for model input
 	viscosity
 	  :description:		Turns on the viscosity term in the momentum equation (viscosity = 1), advised to combine with theta = 1.0.
 	  :units:		-
-	  :default:		1
+	  :default:		0
+	  :preferred:		1
 	  :min:			0
 	  :max:			1
 	nuviscdim
@@ -116,7 +122,13 @@ Parameters for model input
 	  :units:		-
 	  :default:		0.01
 	  :min:			0.0
-	  :max:			Inf	  	  	  
+	  :max:			Inf
+	nuviscfac
+	  :description:		Multiplication factor on the viscosity coefficient 'nuvisc' at velocity points on a quadtree refinement level transition, where extra viscosity prevents instabilities. Only used if 'viscosity=1'.
+	  :units:		-
+	  :default:		100.0
+	  :min:			0.0
+	  :max:			Inf
 	coriolis
 	  :description: Turns on the Coriolis term in the momentum equation, by default turned on (coriolis = True). For projected coordinate system, if latitude is not provided (default, latitude = 0.0), coriolis is still turned off.
 	  :units:		logical
@@ -171,8 +183,8 @@ Parameters for model input
 	  :default:		-999 (=not used)
 	  :min:			0
 	  :max:			0.1 (advised)
-	ampr_block        
-	  :description:		Keyword controlling whether the input precipitation rate for 2D precipitation input fields is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).
+	amprblock
+	  :description:		Keyword controlling whether the input precipitation rate for 2D precipitation input fields is kept constant for the duration of the input time interval (block interpolation, amprblock = 1, default), or whether it is interpolated linearly in time (amprblock = 0).
 	  :units:		-
 	  :default:		1
 	  :min:			0
@@ -212,6 +224,18 @@ More parameters for model input (only for advanced users)
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	wiggle_threshold
+	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression limiter is applied (when wiggle_suppression = 1).
+	  :units:		m/s2
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			Inf
+	wiggle_factor
+	  :description:		Strength of the wiggle suppression limiter (when wiggle_suppression = 1). The flux is multiplied with wiggle_threshold / (wiggle_factor * (difference - wiggle_threshold) + wiggle_threshold), so a larger value damps more strongly.
+	  :units:		-
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			Inf
 	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
@@ -242,12 +266,9 @@ More parameters for model input (only for advanced users)
 	  :default:		60
 	  :min:			1.0e-3
 	  :max:			Inf
-	dtmin
-	  :description:		Minimum allowed internal timestep.
+	dtmin - not a keyword, computed by SFINCS
+	  :description:		Minimum allowed internal timestep. Not read from sfincs.inp, but computed as dtmin = alpha * dx_min / (1.25 * uvmax). If the timestep drops below dtmin, the simulation is classified as unstable and stopped. Change 'uvmax' to change it.
 	  :units:		s
-	  :default:		1.0e-3
-	  :min:			1.0e-3
-	  :max:			Inf	  
 	tspinup
 	  :description:		Duration of spinup period after tstart, where the water level variation at the boundary is dampened, between values in the 'bzsfile' input and the value of 'zsini' (even if using rstfile as initial condition)
 	  :units:		s
@@ -273,18 +294,100 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			1		    
 	structure_relax
-	  :description:		Structure_relax in seconds gives ratio between new and old discharge (default 10s), as relaxation factor
+	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
 	  :default:		10
-	  :min:			1
-	  :max:			86400	  
-	  
+	  :min:			0
+	  :max:			86400
+	btfilter
+	  :description:		Time scale of the filter for the mean flow velocity at water level boundary points, used to separate the incoming and outgoing signal. A negative value turns the filter off (mean velocity set to 0).
+	  :units:		s
+	  :default:		60
+	  :min:			-1
+	  :max:			Inf
+	btrelax
+	  :description:		Relaxation time scale of the mean flow velocity at water level boundary points, avoids persistent jets shooting into the model from the boundary.
+	  :units:		s
+	  :default:		3600
+	  :min:			0
+	  :max:			Inf
+	pavbnd
+	  :description:		Average atmospheric pressure at the water level boundary. If > 0 and spatially varying pressure is given, the boundary water levels are corrected for the inverse barometer effect: zs = zs + (pavbnd - p) / (rhow * g). Turned off by default (0).
+	  :units:		Pa
+	  :default:		0
+	  :min:			0
+	  :max:			Inf
+	gapres
+	  :description:		Background atmospheric pressure, used outside the spiderweb and where no pressure input is given.
+	  :units:		Pa
+	  :default:		101200
+	  :min:			-
+	  :max:			-
+	epsg
+	  :description:		EPSG code of the coordinate reference system of the model, written to the netcdf output files. A warning is given when not specified.
+	  :units:		-
+	  :default:		0 (= not specified)
+	  :min:			-
+	  :max:			-
+	crsgeo
+	  :description:		Set to 1 if the model is in a geographic coordinate system (longitude/latitude in degrees) instead of a projected one. Grid distances and areas are then computed on the sphere.
+	  :units:		-
+	  :default:		0
+	  :min:			0
+	  :max:			1
+	latitude
+	  :description:		Latitude used to compute the Coriolis force for models in a projected coordinate system. With latitude = 0 (default) the Coriolis term is effectively off.
+	  :units:		degrees
+	  :default:		0.0
+	  :min:			-90
+	  :max:			90
+	spwmergefrac
+	  :description:		Fraction of the spiderweb radius beyond which the spiderweb wind and pressure are merged linearly with the background meteo fields towards the edge of the spiderweb.
+	  :units:		-
+	  :default:		0.5
+	  :min:			0
+	  :max:			0.999
+	usespwprecip
+	  :description:		Use the precipitation in the spiderweb file (1, default) or ignore it (0).
+	  :units:		-
+	  :default:		1
+	  :min:			0
+	  :max:			1
+	factor_wind
+	  :description:		Multiplication factor applied to all wind input, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	factor_pres
+	  :description:		Multiplication factor applied to the pressure deficit (gapres - p) of all atmospheric pressure input, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	factor_prcp
+	  :description:		Multiplication factor applied to all precipitation input, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	factor_spw_size
+	  :description:		Multiplication factor applied to the spiderweb radius, for sensitivity analyses.
+	  :units:		-
+	  :default:		1.0
+	  :min:			0
+	  :max:			Inf
+	inputformat
+	  :description:		Format of the regular grid input files (depfile, mskfile, manningfile, etc.): binary 'bin' (default) or ascii 'asc'. Not used for quadtree models.
+	  :units:		-
+	  :default:		bin
+
 	**Drag coefficients:**
 	
 	cdnrb
-	  :description:		Number of specified break points
+	  :description:		Number of specified break points. If not specified (cdnrb = 0), SFINCS uses the built-in curve with the 3 break points given as defaults of cdwnd and cdval, and cdwnd and cdval are not read.
 	  :units:		-
-	  :default:		3
+	  :default:		0 (= built-in curve with 3 break points)
 	  :min:			2
 	  :max:			-	
 	cdwnd	  
@@ -306,25 +409,36 @@ Parameters for model output
 -----
 
 	tref
-	  :description:		Reference date in 'yyyymmdd HHMMSS'
+	  :description:		Reference date in 'yyyymmdd HHMMSS'. All times in the input and output files are in seconds since 'tref'.
 	  :units:		-
-	  :default:		20000101 000000
+	  :default:		'tstart'
 	tstart
 	  :description:		Start date in 'yyyymmdd HHMMSS'
 	  :units:		-	
 	  :default:		20000101 000000				  
 	tstop
 	  :description:		Stop date in 'yyyymmdd HHMMSS'
-	  :units:		m
+	  :units:		-
 	  :default:		20000101 000000
+	t0out
+	  :description:		Start time of the map, his and max output window, in seconds since 'tref'. Map and his output start at 't0out', and the first max output covers 't0out' until 't0out + dtmaxout' (maxima before 't0out' are discarded). Also the 'dtrstout' interval counts from 't0out'. Values before 'tstart' are set to 'tstart'.
+	  					NOTE - his output and the max window start at 't0out' from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		s
+	  :default:		'tstart' in seconds since 'tref'
+	t1out
+	  :description:		Stop time of the map, his and max output window, in seconds since 'tref'. No map or his output is written after 't1out', and the last max output covers the (possibly shorter) window ending at 't1out'. Restart output is not affected. Values after 'tstop' are set to 'tstop'.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		s
+	  :default:		'tstop' in seconds since 'tref'
 	trstout
 	  :description:		Specific time in seconds since 'tref' for restart file output being written away, turned of by default.
 	  :units:		s
 	  :default:		-999.0	  	  
-	dtout
-	  :description:		Spatial map output interval
+	dtmapout
+	  :description:		Spatial map output interval. 0 means no map output. The old keyword 'dtout' is still accepted.
 	  :units:		s
 	  :default:		0
+	  :preferred:		3600
 	dthisout
 	  :description:		Observation points output interval
 	  :units:		s
@@ -333,8 +447,9 @@ Parameters for model output
 	  :description:		Maximum map output interval. If not specified, the maximum over the entire simulation is calculated. If no output is wanted, specify 'dtmaxout = 0'.
 	  :units:		s
 	  :default:		9999999
+	  :preferred:		86400
 	  :min:			0
-	  :max:			'tstop - start in seconds'  
+	  :max:			'tstop - start in seconds'
 	dtrstout
 	  :description:		Restart file output interval, turned of by default.
 	  :units:		s
@@ -347,14 +462,18 @@ Parameters for model output
 	  :description:		Choice whether the SFINCS model output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default). In case of netcdf output, global output is given in 'sfincs_map.nc', point output in 'sfincs_his.nc' in case observation points are specified.
 	  :units:		-
 	  :default:		net
-	outputformat_map
-	  :description:		Choice whether the SFINCS model map output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	outputtype_map
+	  :description:		Choice whether the SFINCS model map output is given in binary 'bin', ascii 'asc' or netcdf files 'net'. Specify together with 'outputtype_his'; if either is missing, both follow 'outputformat'.
 	  :units:		-
-	  :default:		net
-	outputformat_his
-	  :description:		Choice whether the SFINCS model his output is given in binary 'bin', ascii 'asc' or netcdf files 'net' (default is the setting of 'outputformat', which is 'net').
+	  :default:		value of 'outputformat'
+	outputtype_his
+	  :description:		Choice whether the SFINCS model his output is given in binary 'bin', ascii 'asc' or netcdf files 'net'. Specify together with 'outputtype_map'; if either is missing, both follow 'outputformat'.
 	  :units:		-
-	  :default:		net
+	  :default:		value of 'outputformat'
+	output_on_quadtree_mesh
+	  :description:		For a quadtree model with only one refinement level: write the map output on the quadtree mesh (1) or as a regular grid (0, default). Quadtree models with more than one refinement level always write their map output on the quadtree mesh. The old keyword 'regular_output_on_mesh' is still accepted.
+	  :units:		-
+	  :default:		0
 	nc_deflate_level
 	  :description:		Netcdf deflate level
 	  :units:		-
@@ -368,7 +487,7 @@ Parameters for model output
 	  :units:		-
 	  :default:		0	  
 	storevel
-	  :description:		Flag to turn on writing away velocities on 'dtout' interval during simulation (storevel = 1)
+	  :description:		Flag to turn on writing away velocities on 'dtmapout' interval during simulation (storevel = 1)
 	  :units:		-
 	  :default:		0	
 	storevelmax
@@ -393,20 +512,43 @@ Parameters for model output
 	  					NOTE - only used if subgrid model, and if storehsubgrid = 1
 	  :units:		logical
 	  :default:		0		   
-	storeqdrain
-	  :description:		Flag to turn on writing away drainage discharge during simulation (storeqdrain = 1)
+	store_river_discharge
+	  :description:		Flag to turn on writing away per-source river discharge ('river_discharge') and source names ('river_name') to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'srcfile' or 'netsrcdisfile' is specified).
+	  					NOTE - this is the prescribed discharge from the dis/netsrcdis input, linearly interpolated to the model time (instantaneous value), not a computed or time-averaged inflow.
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	store_urban_drainage_discharge
+	  :description:		Flag to turn on writing away per-zone outfall discharge to 'sfincs_his.nc' on 'dthisout' interval (only effective when 'urbfile' is specified).
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
+	store_cumulative_urban_drainage
+	  :description:		Flag to turn on writing away cumulative urban drainage depth (drained volume / cell area, in m) per cell to 'sfincs_map.nc' on 'dtmaxout' interval (only effective when 'urbfile' is specified).
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
 	storezvolume
-	  :description:		Flag to turn on writing away water volumes for the subgrid mode during simulation (storezvolume = 1)
+	  :description:		Flag to turn on writing away water volumes 'subgrid_volume' for the subgrid mode on 'dtmapout' interval during simulation (storezvolume = 1)
 	  :units:		-
-	  :default:		0	
+	  :default:		0
+	storezvolmax
+	  :description:		Flag to turn on writing away the maximum water volume 'zvolmax' in subgrid cells on 'dtmaxout' interval during simulation (storezvolmax = 1). Used for improved downscaling of flood maps. Only for subgrid models, and only if dtmaxout > 0.
+	  :units:		-
+	  :default:		1
 	storestoragevolume
 	  :description:		Flag to turn on writing away storage volumes for the subgrid mode during simulation (storestoragevolume = 1)
 	  :units:		-
 	  :default:		0		  	  
+	storefw
+	  :description:		Flag to turn on writing away the wave forces from SnapWave on 'dtmapout' interval during simulation (storefw = 1)
+	  :units:		-
+	  :default:		0
+	storewavdir
+	  :description:		Flag to turn on writing away the wave direction from SnapWave on 'dtmapout' interval during simulation (storewavdir = 1)
+	  :units:		-
+	  :default:		0
 	storemeteo
-	  :description:		Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
+	  :description:Flag to turn on writing away meteo input data during simulation (storemeteo = 1)
 	  :units:		-
 	  :default:		0	
 	storemaxwind
@@ -425,6 +567,11 @@ Parameters for model output
 	  :description:		Flag to turn on writing away every timestep to output as debug mode (debug = 1)
 	  :units:		-
 	  :default:		0	
+	writeruntime
+	  :description:		Flag to turn on writing a 'runtimes.txt' file at the end of the simulation (writeruntime = 1), with the wall-clock time in seconds spent in total (simulation loop), on input, and in the boundaries, meteo (fields 'meteo1' and forcing 'meteo2'), momentum, structures, continuity and output phases.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :default:		0
 	percentage_done
 	  :description:		Setting of how frequent to show progress of SFINCS in terms of % and time remaining, default = 5%
 	  :units:		integer
@@ -450,15 +597,15 @@ Domain
 	  :description:		General input file of SFINCS describing all model settings, the domain, forcing and structures.
 	  :required:		yes
 	  :format:		asc	 
+	qtrfile = sfincs.nc
+	  :description:		Quadtree grid file with the cell locations, refinement levels, neighbour indices and mask of a quadtree model. If specified, mmax, nmax, dx, dy, depfile, mskfile and indexfile are not used. See 'User manual - quadtree'.
+	  :units:		-
+	  :required:		Only for quadtree models
+	  :format:		net
 	depfile = sfincs.dep
-	  :description:		Elevation (bathymetry and topography) at grid cell centres above a reference level. 
+	  :description:		Elevation (bathymetry and topography) at grid cell centres above a reference level.
 	  :units:		m above reference level
 	  :required:		yes in case of regular mode, no in case of subgrid mode
-	  :format:		bin or asc
-	mskfile = sfincs.msk
-	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), boundary cell (msk=2) or outflow boundary cell msk=3).
-	  :units:		-
-	  :required:		yes	  
 	  :format:		bin or asc
 	indexfile = sfincs.ind
 	  :description:		File describing the indices of active grid cells within the overall grid. Not used by SFINCS with ascii input.
@@ -475,54 +622,65 @@ Domain
 	  :units:		s/m^(1/3)
 	  :required:		no in case of regular mode, ignored in case of subgrid mode	  
 	  :format:		bin	 
+	inffile = sfincs.infiltration.nc
+	  :description:		Recommended NetCDF input for spatially varying infiltration and bucket-model losses. Use together with inftype.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		depends on selected inftype and variables in the NetCDF file
+	  :required:		no
+	  :format:		net
+	inftype = c2d | cna | cnb | gai | hor | bkt | r2d
+	  :description:		Selects which infiltration method is read from inffile. Bucket mode requires bucket_smax, bucket_k and bucket_loss in inffile. Run-off coefficient mode (r2d) requires runoff (in %) in inffile.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  :units:		-
+	  :required:		Only when inffile is used
+	  :format:		asc
 	qinffile = sfincs.qinf
-	  :description:		For spatially varying constant in time infiltration values per cell use the qinffile option, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For spatially varying constant in time infiltration values per cell prefer inffile with inftype = c2d.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	scsfile = sfincs.scs
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method A (without recovery) use the scsfile option, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method A (without recovery) prefer inffile with inftype = cna.
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	  	  
 	smaxfile = sfincs.smax
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the smaxfile (as well as the sefffile and ksfile) as maximum soil moisture storage capacity in m, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer inffile with inftype = cnb. The smaxfile contains the maximum soil moisture storage capacity in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  	
 	sefffile = sfincs.seff
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the sefffile (as well as the smaxfile and ksfile) as soil moisture storage capacity at the start in m, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) prefer inffile with inftype = cnb. The sefffile contains soil moisture storage capacity at the start in m.
 	  :units:		m
 	  :required:		no	  
 	  :format:		bin	  
 	ksfile = sfincs.ks
-	  :description:		For spatially varying infiltration values per cell using the Curve Number method B (with recovery) provide the ksfile (as well as the smaxfile and sefffile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
-	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the ksfile (as well as the sigmafile and psifile) as saturated hydraulic conductivity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Curve Number method B (with recovery) and Green & Ampt infiltration prefer inffile with inftype = cnb or gai. The ksfile contains saturated hydraulic conductivity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	  
 	sigmafile = sfincs.sigma
-	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the sigmafile (as well as the psifile and ksfile) as suction head at the wetting front in mm, with the same grid based input as the depfile using a binary file.
-	  :units:		mm
-	  :required:		no	  
-	  :format:		bin	 
-	psifile = sfincs.psi
-	  :description:		For spatially varying infiltration values per cell using the Green & Ampt method (with recovery) provide the psifile (as well as the sigmafile and ksfile) as soil moisture deficit in [-], with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer inffile with inftype = gai. The sigmafile contains soil moisture deficit in [-].
 	  :units:		-
 	  :required:		no	  
 	  :format:		bin	 
+	psifile = sfincs.psi
+	  :description:		Backward compatibility only. For Green & Ampt infiltration prefer inffile with inftype = gai. The psifile contains suction head at the wetting front in mm.
+	  :units:		mm
+	  :required:		no	  
+	  :format:		bin	 
 	f0file = sfincs.f0
-	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the f0file (as well as the fcfile and kdfile) as maximum (Initial) Infiltration Capacity in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The f0file contains maximum (initial) infiltration capacity in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	
 	fcfile = sfincs.fc
-	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the fcfile (as well as the f0file and kdfile) as Minimum (Asymptotic) Infiltration Rate in mm/hr, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The fcfile contains the minimum (asymptotic) infiltration rate in mm/hr.
 	  :units:		mm/hr
 	  :required:		no	  
 	  :format:		bin	 	
 	kdfile = sfincs.kd
-	  :description:		For spatially varying infiltration values per cell using the Horton method (with recovery) provide the kdfile (as well as the f0file and fcfile) as empirical constant (hr-1) of decay, with the same grid based input as the depfile using a binary file.
+	  :description:		Backward compatibility only. For Horton infiltration prefer inffile with inftype = hor. The kdfile contains the empirical decay constant in hr-1.
 	  :units:		hr-1
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
@@ -673,8 +831,27 @@ Structures
 	  :required:		no
 	  :format:		asc	 
 	drnfile = sfincs.drn
-	  :description:		Drainage pumps, culverts and check valves are both specified using the same format file, put with a different indication of the type (type=1 is drainage pump, type=2 is culvert and type=3 is check valve).
+	  :description:		Drainage structures (pumps, culverts, check valves and gates), specified in a TOML file with one [[src_structure]] block per structure. The legacy fixed-column ASCII format (type=1 is drainage pump, type=2 is culvert, type=3 is check valve, type=4/5 is gate) is still accepted. See 'Drainage Structures' in the user manual for the full schema.
+	  					NOTE - TOML format from SFINCS v2026.02 Hautacam release onwards.
 	  :units:		coordinates: m in projected UTM zone, discharges in m^3/s.
 	  :required:		no
-	  :format:		asc	 
-	  
+	  :format:		toml or asc (legacy)
+	dkbfile = sfincs.dkb
+	  :description:		Dike breaches, specified in a TOML file with one [[src_structure]] block (type = "dike_breach") per breach. The breach deepens and then widens in time following Verheij & Van der Knaap (2003). See 'Dike breach' in the user manual for the full schema.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  					NOTE - Prototype status: field-tested, but still being improved iteratively.
+	  :units:		coordinates: m in projected UTM zone, elevations in m above reference level, times in s.
+	  :required:		no
+	  :format:		toml
+
+Urban drainage
+-----
+
+	urbfile = sfincs.urb
+	  :description:		TOML file declaring one or more urban-drainage zones. Each zone is a polygon mapped to a single outfall cell; zone cells drain to the outfall at a design rate (specified either as design_precip in mm/hr or max_outfall_rate in m^3/s), and the outfall can push water back into the cells unless a check valve is set. See 'Urban Drainage' in the user manual for the full schema.
+	  					NOTE - from SFINCS v2026.02 Hautacam release onwards.
+	  					NOTE - Prototype status: field-tested, but still being improved iteratively.
+	  :units:		coordinates: m in projected UTM zone; design rate in mm/hr or m^3/s; thresholds in m.
+	  :required:		no
+	  :format:		toml
+

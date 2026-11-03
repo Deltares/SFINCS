@@ -1,6 +1,51 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module snapwave_ncoutput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF output for SnapWave: writes the SnapWave mesh to file.
+   !
+   ! Subroutines / functions:
+   !
+   !   write_snapwave_mesh(fname, crsgeo)
+   !     Write the SnapWave mesh (nodes, faces, depth and mask) to a netCDF file.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Dano Roelvink, IHE Delft, 2020-2026.
+   !
+   ! This file is part of SnapWave.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! This file has been modified by Stichting Deltares for coupling
+   ! with SFINCS. The modifications are distributed under the same
+   ! licence (GNU Lesser General Public License version 2.1).
+   !
+   ! Modifications Copyright (C)  Stichting Deltares, 2021-2026.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
    use sfincs_log
    use netcdf       
    !
@@ -9,6 +54,14 @@ module snapwave_ncoutput
    contains
    !
    subroutine write_snapwave_mesh(fname, crsgeo)
+      !
+      ! Write the SnapWave mesh (nodes, faces, depth and mask) to a netCDF file.
+      !
+      ! Input:
+      !   fname  : name of the netCDF file to write
+      !   crsgeo : grid is in geographic coordinates
+      !
+      ! Called from: initialize_snapwave_domain (snapwave_domain)
       !
       use snapwave_data
       !
@@ -125,6 +178,15 @@ module snapwave_ncoutput
    
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file

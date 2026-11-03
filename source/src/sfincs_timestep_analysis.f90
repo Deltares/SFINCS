@@ -1,5 +1,57 @@
 module sfincs_timestep_analysis
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Time step analysis: tracks which uv points limit the time step and reports them at the
+   ! end of the run.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_timestep_analysis()
+   !     Allocate and initialize the time step statistics arrays.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   timestep_analysis_update(min_dt)
+   !     Update the running time step statistics after the momentum step.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   timestep_analysis_finalize(nt)
+   !     Compute the average required time step and the percentage of time limiting, per
+   !     cell.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
+   !   timestep_analysis_write_log()
+   !     Write the most time step-limiting uv point to the log.
+   !     Called from: sfincs_finalize (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    use sfincs_data
    use sfincs_log
    !
@@ -8,6 +60,10 @@ module sfincs_timestep_analysis
    contains
    !
    subroutine initialize_timestep_analysis()
+      !
+      ! Allocate and initialize the time step statistics arrays.
+      !
+      ! Called from: initialize_domain (sfincs_domain)
       ! 
       allocate(timestep_analysis_average_required_timestep(npuv))
       allocate(timestep_analysis_required_timestep(npuv))
@@ -28,6 +84,11 @@ module sfincs_timestep_analysis
       ! Update running statistics immediately after compute_fluxes.
       ! timestep_analysis_required_timestep was initialised to dtmax in compute_fluxes; wet cells
       ! have a computed value < dtmax, dry cells retain dtmax and are skipped.
+      !
+      ! Input:
+      !   min_dt : time step required in this time step [s]
+      !
+      ! Called from: sfincs_update (sfincs_lib)
       !
       real*4, intent(in) :: min_dt
       integer            :: ip
@@ -77,6 +138,11 @@ module sfincs_timestep_analysis
    subroutine timestep_analysis_finalize(nt)
    !
    ! Compute average time step per cell and times limiting once at end of simulation
+   !
+   ! Input:
+   !   nt : number of time steps in the simulation
+   !
+   ! Called from: sfincs_finalize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -199,6 +265,10 @@ module sfincs_timestep_analysis
    
    
    subroutine timestep_analysis_write_log()    
+      !
+      ! Write the most time step-limiting uv point to the log.
+      !
+      ! Called from: sfincs_finalize (sfincs_lib)
       !      
       integer :: ip, nm, nmu
       real*4 :: xuv, yuv, percentage_limiting, max_times_limiting, max_times_wet

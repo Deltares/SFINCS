@@ -1,10 +1,58 @@
 module sfincs_advection_diffusion
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Advection and diffusion of tracers over the uv points (experimental).
+   !
+   ! Subroutines / functions:
+   !
+   !   compute_tracer_fluxes(dt, min_dt, tloop)
+   !     Compute advective and diffusive tracer fluxes at the uv points.
+   !     Called from: not called (currently unused)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    
 contains
 
    subroutine compute_tracer_fluxes(dt, min_dt, tloop)
    !
-   ! Computes fluxes over subgrid u and v points
+   ! Compute advective and diffusive tracer fluxes at the uv points.
+   !
+   ! Input:
+   !   dt     : time step [s]
+   !   min_dt : not used
+   !
+   ! Input/output:
+   !   tloop  : accumulated wall-clock time spent in this routine [s]
+   !
+   ! Called from: not called (currently unused)
    !
    use sfincs_data
    !

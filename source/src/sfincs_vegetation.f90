@@ -1,4 +1,48 @@
 module sfincs_vegetation
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Vegetation: reads the vegetation properties per cell, directly or as vegetation types
+   ! with a TOML lookup table.
+   !
+   ! Subroutines / functions:
+   !
+   !   initialize_vegetation()
+   !     Read the vegetation input and set the vegetation parameters per cell.
+   !     Called from: initialize_domain (sfincs_domain)
+   !
+   !   read_vegetation_toml(...)
+   !     Parse the TOML vegetation lookup table into parameter arrays.
+   !     Called from: initialize_vegetation (sfincs_vegetation)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
     use sfincs_log
     use sfincs_error
@@ -6,6 +50,10 @@ module sfincs_vegetation
 contains
 
     subroutine initialize_vegetation()
+    !
+    ! Read the vegetation input and set the vegetation parameters per cell.
+    !
+    ! Called from: initialize_domain (sfincs_domain)
     !
     use sfincs_data
     use sfincs_ncinput
@@ -46,7 +94,7 @@ contains
             call read_netcdf_quadtree_get_dimension(veggiefile, varname, vegetation_vertical_segments)
             !
             if (vegetation_vertical_segments > 64) then
-                call stop_sfincs('Error ! vegetation_vertical_segments exceeds 64, check vegetationfile !', 1)
+                call stop_sfincs('Error ! vegetation_vertical_segments exceeds 64, check vegfile !', 1)
             endif
             !
             allocate(vegetation_stems_cd(np, vegetation_vertical_segments))
@@ -165,6 +213,19 @@ contains
         veg_cd_lookup, veg_ah_lookup, veg_bstems_lookup, veg_nstems_lookup, max_layers)
     ! Parse the TOML vegetation lookup table and return parameter arrays (nflags x max_layers).
     ! Shorter types are zero-padded to max_layers so the output is rectangular.
+    !
+    ! Input:
+    !   flag_meanings     : name of each vegetation type
+    !   nflags            : number of vegetation types
+    !
+    ! Output:
+    !   veg_cd_lookup     : drag coefficient per type and layer [-]
+    !   veg_ah_lookup     : layer height per type and layer [m]
+    !   veg_bstems_lookup : stem diameter per type and layer [m]
+    !   veg_nstems_lookup : number of stems per unit area, per type and layer [1/m2]
+    !   max_layers        : largest number of layers of any type
+    !
+    ! Called from: initialize_vegetation (sfincs_vegetation)
     !
     use tomlf
     use sfincs_data

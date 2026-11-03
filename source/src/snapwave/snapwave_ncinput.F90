@@ -1,6 +1,45 @@
 #define NF90(nf90call) call handle_err(nf90call,__FILE__,__LINE__)   
 module snapwave_ncinput
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! netCDF input for SnapWave: FEWS-compatible wave boundary conditions.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_netcdf_wave_boundary_data()
+   !     Read the wave boundary points and time series from a FEWS-compatible netCDF file.
+   !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   handle_err(status, file, line)
+   !     Report a netCDF error with file name and line number.
+   !     Called from: the NF90 preprocessor macro, used throughout this module
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2024-2026.
+   !
+   ! This file is part of SnapWave as coupled with SFINCS.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
    use sfincs_log
    use netcdf       
    !
@@ -21,6 +60,10 @@ module snapwave_ncinput
    
     
    subroutine read_netcdf_wave_boundary_data()
+   !
+   ! Read the wave boundary points and time series from a FEWS-compatible netCDF file.
+   !
+   ! Called from: read_boundary_data (snapwave_boundaries)
    !
    use sfincs_date   
    use netcdf
@@ -104,6 +147,15 @@ module snapwave_ncinput
    
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine handle_err(status,file,line)
+      !
+      ! Report a netCDF error with file name and line number.
+      !
+      ! Input:
+      !   status : netCDF status code returned by the call
+      !   file   : name of the source file of the call
+      !   line   : line number of the call
+      !
+      ! Called from: the NF90 preprocessor macro, used throughout this module
       !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file
