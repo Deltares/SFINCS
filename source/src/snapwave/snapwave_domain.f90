@@ -504,7 +504,7 @@ contains
                   ysect=[y(ind1), y(ind2)]
                   call intersect_angle(x(k), y(k), theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                else
-                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cos(y(k)*pi/180.0)
+                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cosd(y(k))
                   ysect=[y(ind1)-y(k), y(ind2)-y(k)]*circumf_pole/360.0
                   call intersect_angle(0.d0, 0.d0, theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                endif               
@@ -632,10 +632,7 @@ contains
    real*8                                       :: circumf_eq=40075017.,circumf_pole=40007863.
    real*8                                       :: dxp,dyp
    real*8                                       :: sxz,syz,sx2,sy2
-   real*8                                       :: pi
    integer                                      :: k,inode,knode,kn,kcell,isp,isp2,ip,j,jj,next
-   !
-   pi = 4.0d0*atan(1.0d0)
    !
    allocate(no_connected_cells(no_nodes))
    allocate(connected_cells(12,no_nodes))
@@ -738,7 +735,7 @@ contains
                sx2=sx2+(xp(j)-xn(kn))**2
                sy2=sy2+(yp(j)-yn(kn))**2
             else
-               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cos(yn(kn)*pi/180.0)
+               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cosd(yn(kn))
                dyp=(yp(j)-yn(kn))*circumf_pole/360.0
                sxz=sxz+dxp*(zp(j)-zn(kn))
                syz=syz+dyp*(zp(j)-zn(kn))
