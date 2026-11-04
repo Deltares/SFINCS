@@ -27,6 +27,7 @@ Known issues/warnings of the current SFINCS main version and last release are li
 * Docker GPU version of Deltares latest is not fully functional, and therefore removed from the repo. If you'd want to use the GPU version of SFINCS, get in touch to set up a collaboration.
 * Issue in SFINCS v2.3.0 mt Faber Release AND v2.4.0 Galibier Release regarding Curve Number infiltration if storecumprcp = 0 (default), then infiltration is not processed correctly and can result to unrealistic results! Simple solution for now: put storecumprcp = 1 when using this infiltration option. This issue is fixed in the 2026.02 Release!
 * Issue in SFINCS v2.4.0 and older when running coupled SnapWave model with combination of wave boundary conditions AND wind. This issue is fixed in the 2026.02 Release!
+* Issue in SFINCS v2.5.0 Hautacam Release: a srcfile with more than 3 columns per line (e.g. a quoted name with a space, like "Point 001") stops SFINCS with an error. Fixed in the main version: names are now read between quotes, as in the obsfile, and further columns are ignored. Quick fix using Hautacam release: ensure names are within quotes, and without spaces.
 
 Releases Changelog
 -----

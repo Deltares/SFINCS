@@ -449,7 +449,7 @@ This file is only created if at least one of the following is supplied: observat
 	  :standard_name:	discharge	  
 	  :units:		m3/s
 	river_name
-	  :description:		Name of each river discharge point, taken from the optional 3rd column of the 'srcfile', or auto-generated as 'discharge_0001', 'discharge_0002', etc. when no name is given (always the case for 'netsrcdisfile'). Only written when 'store_river_discharge = 1'.
+	  :description:		Name of each river discharge point, taken from the optional quoted name after x and y in the 'srcfile', or auto-generated as 'discharge_0001', 'discharge_0002', etc. when no name is given (always the case for 'netsrcdisfile'). Only written when 'store_river_discharge = 1'.
 	  :units:		-
 	river_discharge
 	  :description:		Discharge per river discharge point per 'dthisout' timestep, corresponding with netcdf variable 'time'. This is the prescribed discharge from the dis/netsrcdis input, linearly interpolated to the model time (instantaneous value, not time-averaged). It is not corrected afterwards, so a point that falls outside the active model domain is still reported, even though its discharge does not enter the model. Only written when 'store_river_discharge = 1'.

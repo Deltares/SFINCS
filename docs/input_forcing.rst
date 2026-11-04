@@ -166,17 +166,19 @@ Discharge points
 	300000 	1500000
 	380000 	1650000
 
-Optionally, a third column with a name per discharge point can be added (a single word without spaces, max. 128 characters).
-If no name is given, SFINCS generates the names 'discharge_0001', 'discharge_0002', etc.
-Each line needs either 2 or 3 columns; any other number of columns gives an error.
+Optionally, a name per discharge point can be added between double quotes (max. 128 characters), as in the obsfile.
+** The name may contain spaces - only for releases after v2.5.0 Hautacam (Hautacam has a bug that does not allow spaces in quoted names).**
+
+If no quoted name is given, SFINCS generates the names 'discharge_0001', 'discharge_0002', etc.
+A name without quotes is not read, and any further columns after x and y are ignored.
 
 .. code-block:: text
 
-	<src1 x1> <src1 y1> <src1 name>
+	<src1 x1> <src1 y1> <'src1 name'>
 
 	e.g.
-	300000 	1500000	rhine
-	380000 	1650000	meuse
+	300000 	1500000	"Rhine"
+	380000 	1650000	"Meuse Borgharen"
 
 Discharge time-series
 ^^^^^^^^^
