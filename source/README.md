@@ -33,10 +33,17 @@ To prepare the source code directory for building you need to run autoreconf onc
     $ autoreconf -vif
 ```
 
-At this point you should be able to build the software. Please consult `./configure --help` for extra options, such as compiler selection (`FC=gfortran`) and the install location (`--prefix`). If you want to use openmp and openacc the options are checked against the corresponding C compiler. So if you change the compiler make sure you also spcify the corresponding C compiler (for example CC=gcc FC=gfortran or CC=nvc FC=nvfortran). You might need to pass `--with-pic` or `--disable-shared` on certain platforms.
+At this point you should be able to build the software. Please consult `./configure --help` for extra options, such as compiler selection (`FC=gfortran`) and the install location (`--prefix`). If you change the compiler make sure you also specify the corresponding C compiler (for example CC=gcc FC=gfortran or CC=nvc FC=nvfortran). You might need to pass `--with-pic` or `--disable-shared` on certain platforms.
 
 ```
     $ ./configure
+    $ make
+```
+
+OpenACC (GPU) support is off by default. To build the GPU version, use the NVIDIA HPC SDK, pass `--enable-openacc` and give the GPU target in `FCFLAGS`. Configure then adds the OpenACC flag (`-acc`) to the Fortran compile and link commands of SFINCS, leaves OpenMP off (the OpenACC and OpenMP directives cannot be compiled together) and reports `OpenACC: enabled (-acc)` at the end. For example, for compute capability 8.6:
+
+```
+    $ ./configure CC=nvc FC=nvfortran FCFLAGS="-fast -O3 -gpu=cc86 -DSIZEOF_PTRDIFF_T=999" --enable-openacc --disable-shared
     $ make
 ```
 

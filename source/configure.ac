@@ -29,11 +29,23 @@ dnl Yes, we want free form Fortran!
 AC_FC_FREEFORM
 AC_FC_LINE_LENGTH([unlimited])
 
-dnl detect openmp
 AC_LANG_PUSH([Fortran])
-AC_OPENMP
-dnl detect openacc flag
+dnl detect openacc flag (only with --enable-openacc)
 AX_OPENACC
+AS_IF([test "x$enable_openacc" = xyes && test "x$OPENACC_FCFLAGS" = x],
+      [AC_MSG_ERROR([--enable-openacc was given, but no OpenACC flag works with $FC])])
+AC_MSG_CHECKING([whether to build with OpenACC])
+AS_IF([test "x$OPENACC_FCFLAGS" != x],
+      [AC_MSG_RESULT([yes ($OPENACC_FCFLAGS)])],
+      [AC_MSG_RESULT([no])])
+dnl the OpenACC and OpenMP directives in the code cannot be compiled together,
+dnl so an OpenACC build is built without OpenMP
+AS_IF([test "x$OPENACC_FCFLAGS" != x],
+      [AS_IF([test "x$enable_openmp" = xyes],
+             [AC_MSG_ERROR([--enable-openacc cannot be combined with --enable-openmp])])
+       enable_openmp=no])
+dnl detect openmp
+AC_OPENMP
 AC_LANG_POP
 
 
@@ -67,3 +79,7 @@ AC_CONFIG_FILES([
 dnl we'll try to include netcdf-fortran in the binary so all fortran code is portable
 AC_CONFIG_SUBDIRS([third_party_open/netcdf/netcdf-fortran-4.6.1])
 AC_OUTPUT
+
+AS_IF([test "x$OPENACC_FCFLAGS" != x],
+      [AC_MSG_NOTICE([OpenACC: enabled ($OPENACC_FCFLAGS), OpenMP disabled; set the GPU target in FCFLAGS, e.g. -gpu=cc86])],
+      [AC_MSG_NOTICE([OpenACC: disabled (use --enable-openacc to enable)])])

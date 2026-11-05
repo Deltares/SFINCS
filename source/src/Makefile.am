@@ -132,7 +132,7 @@ sfincs_lib.mod: libsfincs.la
 
 AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran
 AM_FCFLAGS+=${OPENMP_FCFLAGS}
-AM_FCFLAGS+=${OPENACC_CFLAGS}
+AM_FCFLAGS+=${OPENACC_FCFLAGS}
 AM_FCFLAGS+=${-O3}
 
 
