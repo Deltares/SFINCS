@@ -358,6 +358,7 @@ contains
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Build-Revision", trim(build_revision)))
    NF90(nf90_put_att(map_file%ncid, nf90_global, "Build-Date", trim(build_date)))
+   NF90(nf90_put_att(map_file%ncid, nf90_global, "Source-Revision", trim(source_revision)))
    NF90(nf90_put_att(map_file%ncid, nf90_global, "title", "SFINCS map netcdf output"))
    !
    call ncoutput_add_params(map_file%ncid, map_file%inp_varid)
@@ -963,6 +964,7 @@ contains
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Revision", trim(build_revision))) 
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Date", trim(build_date)))
+   NF90(nf90_put_att(his_file%ncid,nf90_global, "Source-Revision", trim(source_revision)))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "title", "SFINCS his point netcdf output"))     
    !
    ! add input params for reproducability   
