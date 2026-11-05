@@ -106,7 +106,7 @@ contains
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
    !$acc               nmi_gbp, index_bdr_gbp, index_zsi_bdr, dzs_bdr, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, &
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
@@ -166,8 +166,8 @@ contains
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
    !$acc               nmi_gbp, index_bdr_gbp, index_zsi_bdr, dzs_bdr, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, qext, &
-   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, qext, &
+   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc               x73, &
