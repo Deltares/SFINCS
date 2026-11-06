@@ -258,7 +258,7 @@ contains
          !
       endif
       !
-      !$acc parallel present( kcs, zs, zb, q, qext, zsmax, zsm, maxzsm, &
+      !$acc parallel present( kcs, zs, zb, q, qext, zsmax, t_zsmax, zsm, maxzsm, &
       !$acc                   z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
       !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
@@ -493,7 +493,7 @@ contains
       !$omp private ( dvol, nmd, nmu, ndm, num, a, iuv, facint, dzvol, iwm, &
       !$omp           qnmd, qnmu, qndm, qnum, dv, zs00, zs11 )
       !$omp do schedule ( dynamic, 256 )
-      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zvolmax, zsm, maxzsm, zsderv, &
+      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, t_zsmax, zvolmax, zsm, maxzsm, zsderv, &
       !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
       !$acc                   q, qext, z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
