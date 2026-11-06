@@ -16,7 +16,7 @@ For more information regarding specific parameters see the pages 'Input paramete
    :width: 800px
    :align: center
 
-   Overview of input file of SFINCS with indication whther they are required or not
+   Overview of input file of SFINCS with indication whether they are required or not
 
 Forcing
 ^^^^^^^^^
@@ -61,7 +61,7 @@ Water level time-series
 Then in the file 'sfincs.bzs' the water level time-series are specified per input location.
 Times are specified in seconds with respect to SFINCS' internal reference time 'tref', as specified in sfincs.inp.
 
-**NOTE - The time and length of values you prescibe per boundary input location should be all the same in the bzsfile**
+**NOTE - The time and length of values you prescribe per boundary input location should be all the same in the bzsfile**
 
 **bzsfile = sfincs.bzs**
 
@@ -82,18 +82,21 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 	NOTE - The python function both creates the bnd and bzs file, so you don't need to create them separately.
 	
-	sf.water_level.create(
-		geodataset=None,
-		timeseries=None,
-		locations=None,
-		offset=None,
-		buffer=None,
-		merge=True,
-	)
+	# From a geodataset with water level time series at stations (e.g. a global tide and surge model),
+	# using the stations within 5 km of the water level boundary cells (msk=2)
+	sf.water_level.create(geodataset="gtsmv3_eu_era5", buffer=5000)
+
+	# Or from a csv file with a time series per location (columns), with the locations in a geojson file
+	# with an 'index' column matching the column names of the csv file
+	sf.water_level.create(timeseries="waterlevels.csv", locations="waterlevel_locations.geojson")
+
+	# Or place boundary points every 5 km along the msk=2 cells and prescribe a synthetic tide
+	sf.water_level.create_boundary_points_from_mask(bnd_dist=5000)
+	sf.water_level.create_timeseries(shape="sine", offset=0.0, amplitude=1.0, period=44712, timestep=600)
 	
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsWaterLevel.create.html
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 	
 Waves
 ----------------------
@@ -124,9 +127,15 @@ Netcdf format input
 ^^^^^^^^^
 
 As alternative, the bnd/bzs/bzi data can also be specified using a single Netcdf file with FEWS input type format 'netbndbzsbzifile'.
-SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalant) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
+SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalent) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"
 
-**NOTE - There is not a specific Python function for this yet**
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: python
+
+	# After creating the water level forcing (see above), write it as one netcdf file.
+	# This writes sfincs_netbndbzsbzifile.nc and sets 'netbndbzsbzifile' in sfincs.inp (instead of bndfile/bzsfile).
+	sf.water_level.write(format="netcdf")
 	
 Discharges
 ---------
@@ -157,6 +166,20 @@ Discharge points
 	300000 	1500000
 	380000 	1650000
 
+Optionally, a name per discharge point can be added between double quotes (max. 128 characters), as in the obsfile.
+** The name may contain spaces - only for releases after v2.5.0 Hautacam (Hautacam has a bug that does not allow spaces in quoted names).**
+
+If no quoted name is given, SFINCS generates the names 'discharge_0001', 'discharge_0002', etc.
+A name without quotes is not read, and any further columns after x and y are ignored.
+
+.. code-block:: text
+
+	<src1 x1> <src1 y1> <'src1 name'>
+
+	e.g.
+	300000 	1500000	"Rhine"
+	380000 	1650000	"Meuse Borgharen"
+
 Discharge time-series
 ^^^^^^^^^
 
@@ -182,12 +205,20 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 	NOTE - The python function both creates the src and dis file, so you don't need to create them separately.
 	
-	sf.discharge_points.create(
-		geodataset=None,
-		timeseries=None,
-		locations=None,
-		merge=True,
-		buffer=None,
+	# Find the locations where rivers enter the model domain from hydrography data (flow directions and upstream area),
+	# for all rivers with an upstream area of at least 10 km2. This sets the src points with a discharge of 0.
+	sf.rivers.create_river_inflow(hydrography="merit_hydro", river_upa=10.0)
+
+	# Add discharge time series to these points from a geodataset with discharge at stations
+	sf.discharge_points.create(geodataset="discharge_stations.nc", buffer=1000)
+
+	# Or from a csv file with a time series per location (columns), with the locations in a geojson file
+	sf.discharge_points.create(timeseries="discharges.csv", locations="discharge_locations.geojson")
+
+	# Or add a single point by hand, with a synthetic flood wave
+	sf.discharge_points.add_point(x=321483.2, y=5047503.0, value=1000.0, name="Piave_inflow")
+	sf.discharge_points.create_timeseries(
+		index=[0], shape="gaussian", offset=0, peak=5, tpeak=86400, duration=2 * 86400, timestep=3600
 	)
 
 	OR by subtracting results from a 2D hydrological model output like wflow (https://www.deltares.nl/en/software-and-data/products/wflow-catchment-hydrology):
@@ -196,15 +227,33 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsDischargePoints.create.html
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 	
 Netcdf format input
 ^^^^^^^^^
 
 As alternative, the src/dis data can also be specified using a single Netcdf file with FEWS input type format 'netsrcdisfile'.
-SFINCS assumes that the input variables 'x', 'y', 'time', 'discharge' and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"  
+SFINCS assumes that the input variables 'x', 'y', 'time', 'discharge' and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"
+Names are not read from the netcdf file, so the discharge points are named 'discharge_0001', 'discharge_0002', etc. in the output.
 
-**NOTE - There is not a specific Python function for this yet**
+**Python example using HydroMT-SFINCS**
+
+.. code-block:: python
+
+	# After creating the discharge forcing (see above), write it as one netcdf file.
+	# This writes sfincs_netsrcdisfile.nc and sets 'netsrcdisfile' in sfincs.inp (instead of srcfile/disfile).
+	sf.discharge_points.write(format="netcdf")
+
+Discharge output
+^^^^^^^^^
+
+With 'store_river_discharge = 1' in sfincs.inp, the discharge per point ('river_discharge', m3/s) and the point names ('river_name') are written to 'sfincs_his.nc' at every 'dthisout' interval.
+This works for both the src/dis input and the 'netsrcdisfile' input.
+River discharges, drainage structures and urban drainage zones all add their discharge to the same source term in each grid cell, so the map output cannot show how much each of them contributed.
+This output gives the river contribution per discharge point, next to 'drainage_discharge' (always written when drainage structures are present) and 'urban_drainage_discharge' (with 'store_urban_drainage_discharge = 1').
+Because a model can have many discharge points, this output is off by default.
+Note that this is the prescribed discharge, linearly interpolated to the model time (instantaneous value), and not a computed inflow.
+A point that falls outside the active model domain is still reported, even though its discharge does not enter the model.
 	
 Meteo
 ---------
@@ -221,7 +270,7 @@ There are a few different options to specify wind and rain input:
 
 5) Make a combination, for instance use a spiderweb for the wind input and a spatially uniform rain-input. When combining, test whether the forcing is as wanted since not all combinations of the above options might be possible and/or changing depending on specific code version.
 
-**NOTE - ampr_block - keyword controlling whether the input precipitation rate is kept constant for the duration of the input time interval (block interpolation, ampr_block = 1, default), or whether it is interpolated linearly in time (ampr_block = 0).**
+**NOTE - amprblock - keyword controlling whether the input precipitation rate is kept constant for the duration of the input time interval (block interpolation, amprblock = 1, default), or whether it is interpolated linearly in time (amprblock = 0).**
 
 **NOTE - You can know how much rainfall / wind is added to the model in the output by specifying 'storecumprcp=1' and/or 'storemeteo=1', see the description in "Input parameters".**
 
@@ -342,10 +391,9 @@ See those files for more information.
 
 .. code-block:: python
 
-	sf.wind.create(
-		wind="era5_hourly",
-		dst_res=None,
-	)
+	# Wind (u and v components) from a gridded dataset, e.g. ERA5 hourly from the data catalog.
+	# dst_res=None keeps the native resolution of the data; SFINCS interpolates it to the model grid.
+	sf.wind.create(wind="era5_hourly", dst_res=None)
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsWind.create.html
@@ -354,25 +402,18 @@ See those files for more information.
 
 .. code-block:: python
 
-	sf.precipitation.create(
-		precip="era5_hourly",
-		dst_res=None,
-		aggregate=False,
-	)
+	sf.precipitation.create(precip="era5_hourly", dst_res=None, aggregate=False)
 	
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsPrecipitation.create.html
-	https://deltares.github.io/hydromt_sfincs/latest/_examples/build_from_script.html
+	https://deltares.github.io/hydromt_sfincs/latest/_examples/1_build_from_script.html
 
 **Python example using HydroMT-SFINCS**
 
 .. code-block:: python
 
-	sf.pressure.create(
-		press=None,
-		dst_res=None,
-		fill_value=101325,
-	)
+	# fill_value is used where the dataset has no data [Pa]
+	sf.pressure.create(press="era5_hourly", dst_res=None, fill_value=101325)
 	
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsPressure.create.html
@@ -403,11 +444,11 @@ Times are specified in seconds with respect to SFINCS' internal reference time '
 
 .. code-block:: python
 
-	sf.wind.create_uniform(
-		timeseries=None,
-		magnitude=None,
-		direction=None
-	)
+	# Constant wind of 10 m/s from the south-west
+	sf.wind.create_uniform(magnitude=10.0, direction=225.0)
+
+	# Or from a csv file with time in the first column, magnitude in the second and direction in the third
+	sf.wind.create_uniform(timeseries="wind.csv")
 
 	More information: 
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsWind.create_uniform.html
@@ -433,17 +474,15 @@ Rain input in mm/hr, times are specified in seconds with respect to SFINCS' inte
 
 .. code-block:: python
 
-	sf.precipitation.create_uniform(
-		timeseries=None,
-		magnitude=None,
-	)
+	# Constant rain of 10 mm/hr
+	sf.precipitation.create_uniform(magnitude=10.0)
 
-	OR by aggregating 2D field data into 1 spatially uniform time series:
+	# Or from a csv file with time in the first column and precipitation [mm/hr] in the second
+	sf.precipitation.create_uniform(timeseries="precipitation.csv")
 
-	sf.precipitation.create(
-		precip=None,
-		aggregate=True,
-	)
+	OR by aggregating 2D field data into 1 spatially uniform time series (mean over the model domain):
+
+	sf.precipitation.create(precip="era5_hourly", aggregate=True)
 
 	More information:
 	https://deltares.github.io/hydromt_sfincs/latest/_generated/hydromt_sfincs.components.forcing.SfincsPrecipitation.create_uniform.html

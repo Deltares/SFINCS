@@ -123,9 +123,9 @@ Article 12  Other provisions
 
 3. 	The parties are not allowed to assign any rights and/or obligations under the Agreement entirely or in part to third parties without the other party’s prior written consent.
 
-4. 	Any dispute arising from the Agreement or from agreements arising therefrom shall be submitted solely to the competent court of The Hague.
+4. 	Any dispute arising from the Agreement or from agreements arising there from shall be submitted solely to the competent court of The Hague.
 
-5. 	This Agreement and all agreements arising therefrom are governed by Netherlands law.
+5. 	This Agreement and all agreements arising there from are governed by Netherlands law.
 
 Appendix 1	DESCRIPTION OF SFINCS SOFTWARE
 
@@ -135,7 +135,7 @@ The SFINCS software is distributed by Deltares as SFINCS Software. SFINCS is als
 Typical applications of SFINCS include flood forecasting and evaluating the impact of extreme events on flooding. 
 Typical areas of use for SFINCS are coastal areas where compound flood processes play a role, as described in the Deltares Software Documentation.
 For more information see: https://www.deltares.nl/en/software/SFINCS/
-SFINCS Version 2.4.0 - June 2026
+SFINCS Version 2.5.0 - November 2026
 
 B.	Specification of Operational System
 

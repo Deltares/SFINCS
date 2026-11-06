@@ -1,4 +1,64 @@
    module sfincs_structures
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Structures on uv points: weirs and thin dams. Reads the structure files, snaps them to
+   ! the grid and computes the fluxes over them.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_structures()
+   !     Read all structure files (weirs and thin dams).
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   read_structure_file(filename, itype, npars)
+   !     Read one structure file and find the uv points the structures intersect.
+   !     Called from: read_structures (sfincs_structures)
+   !
+   !   read_thin_dams()
+   !     Read the thin dams file and close the uv points the thin dams intersect.
+   !     Called from: read_structures (sfincs_structures)
+   !
+   !   give_structure_information(struc_info)
+   !     Return the structure coordinates and heights for the his output.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
+   !   give_thindam_information(struc_info)
+   !     Return the thin dam coordinates for the his output.
+   !     Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
+   !   compute_fluxes_over_structures()
+   !     Compute the fluxes over the weir-type structures.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
 
    use sfincs_error
    use sfincs_log
@@ -8,6 +68,8 @@
    subroutine read_structures()
    !
    ! Reads all structures file
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -38,6 +100,13 @@
    subroutine read_structure_file(filename,itype,npars)
    !
    ! Reads structures file
+   !
+   ! Input:
+   !   filename : name of the structure file
+   !   itype    : structure type
+   !   npars    : number of parameters per structure point
+   !
+   ! Called from: read_structures (sfincs_structures)
    !
    use sfincs_data
    use quadtree
@@ -76,6 +145,7 @@
    integer   :: indx
    integer   :: iref
    integer   :: idir
+   integer   :: nr_overlap
    real*4    :: xpa,xpb,ypa,ypb
    real*4    :: dxs
    logical   :: okay
@@ -95,6 +165,7 @@
    integer,   dimension(:), allocatable  :: uv_indices   
    integer,   dimension(:), allocatable  :: vertices 
    integer*1, dimension(:), allocatable  :: istruc
+   integer,   dimension(:), allocatable  :: nr_weirs_uv
    !
    write(logstr,'(a)')'Info    : reading weir file'
    call write_log(logstr, 0)
@@ -108,6 +179,11 @@
    !
    allocate(istruc(npuv))
    istruc = 0
+   !
+   ! Number of weir polylines crossing each uv point, used to detect overlapping weirs
+   !
+   allocate(nr_weirs_uv(npuv))
+   nr_weirs_uv = 0
    !
    allocate(strucpars(npars,npuv))
    strucpars = 0.0
@@ -165,6 +241,8 @@
          indx = uv_indices(iuv)
          irow = vertices(iuv)
          istruc(indx) = 1
+         !
+         nr_weirs_uv(indx) = nr_weirs_uv(indx) + 1
          !
          ! Projecting uv corner points onto structure segment to determine length of this uv point
          !
@@ -246,19 +324,24 @@
          !
          d = distance_between_points_projected_on_line_segment(xuv1, yuv1, xuv2, yuv2, xthd(irow), ythd(irow), xthd(irow + 1), ythd(irow + 1), 999999.0)
          !
-         lngth(indx) = lngth(indx) + d
-         !
          dst1   = sqrt((xuv - xthd(irow))**2 + (yuv - ythd(irow))**2)
          dst2   = sqrt((xuv - xthd(irow + 1))**2 + (yuv - ythd(irow + 1))**2)
          wfac   = dst1 / (dst1 + dst2)
          !
          height = pars(1, irow)*(1.0 - wfac) + pars(1, irow + 1)*wfac
          !
-         strucpars(1, indx) = max(strucpars(1, indx), height)
-         ! 
-         do ipar = 2, npars
-            strucpars(ipar, indx) = pars(ipar, irow)*(1.0 - wfac) + pars(ipar, irow + 1)*wfac
-         enddo
+         ! When several weirs cross this uv point, only the highest one is used (length and all parameters)
+         !
+         if (height > strucpars(1, indx)) then
+            !
+            lngth(indx)        = d
+            strucpars(1, indx) = height
+            !
+            do ipar = 2, npars
+               strucpars(ipar, indx) = pars(ipar, irow)*(1.0 - wfac) + pars(ipar, irow + 1)*wfac
+            enddo
+            !
+         endif
          !
       enddo
       !
@@ -301,9 +384,22 @@
          !
          istruc(ip) = 0
          !
-      endif   
+      endif
       !
-   enddo   
+   enddo
+   !
+   ! Warn for uv points crossed by more than one weir: only the highest weir is used there.
+   ! Only uv points that remain a weir after the height check above are counted.
+   !
+   nr_overlap = count(istruc == 1 .and. nr_weirs_uv > 1)
+   !
+   if (nr_overlap > 0) then
+      !
+      write(logstr,'(a,i0,a,a)')'Warning : ', nr_overlap, ' weir u/v points are crossed by more than one weir,', &
+         ' only the highest weir is used, SFINCS will keep running, but check your input'
+      call write_log(logstr, 1)
+      !
+   endif
    !
    allocate(structure_uv_index(nstruc))
    allocate(structure_type(nstruc))
@@ -385,6 +481,8 @@
    subroutine read_thin_dams()
    !
    ! Reads thd file
+   !
+   ! Called from: read_structures (sfincs_structures)
    !
    use sfincs_data
    use quadtree
@@ -471,8 +569,10 @@
       !
       close(500)
       !
-      nrthindams = total_nr_points
-      !      
+      ! Count unique uv points: a uv point crossed by more than one thin dam is closed only once
+      !
+      nrthindams = count(istruc == 1)
+      !
       allocate(thindam_uv_index(nrthindams))
       !
       nstruc = 0
@@ -487,7 +587,7 @@
          endif
       enddo      
       !
-      write(logstr,'(a,i0,a)')'Info    : ', total_nr_points,' structure u/v points found'
+      write(logstr,'(a,i0,a)')'Info    : ', nrthindams,' structure u/v points found'
       call write_log(logstr, 0)
       !
    endif   
@@ -498,6 +598,12 @@
    subroutine give_structure_information(struc_info)
    !
    ! Subroutine to provide structure information to output
+   !
+   ! Output:
+   !   struc_info : x, y and height of each structure point
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
    use sfincs_data
    !
    implicit none
@@ -546,6 +652,12 @@
    subroutine give_thindam_information(struc_info)
    !
    ! Subroutine to provide structure information to output
+   !
+   ! Output:
+   !   struc_info : x and y of each thin dam point
+   !
+   ! Called from: ncoutput_his_init (sfincs_ncoutput)
+   !
    use sfincs_data
    !
    implicit none
@@ -589,11 +701,14 @@
    end subroutine
 
    
-   subroutine compute_fluxes_over_structures(tloop)
+   subroutine compute_fluxes_over_structures()
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
    !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
+   use sfincs_timers
 !   use quadtree
    !
    implicit none
@@ -614,13 +729,7 @@
    real*4                       :: h2
    real*4                       :: qstruc
    !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
-   !   
-   call system_clock(count0, count_rate, count_max)
+   call timer_start('structures')
    !
    !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
    !$acc loop independent gang vector
@@ -691,9 +800,8 @@
    enddo
    !$acc end parallel
    !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0*(count1 - count0)/count_rate
-   !         
+   call timer_stop('structures')
+   !
    end subroutine
    
    

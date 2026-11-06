@@ -1,6 +1,40 @@
 module snapwave_data
    !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Dano Roelvink, IHE Delft, 2020-2026.
+   !
+   ! This file is part of SnapWave.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! This file has been modified by Stichting Deltares for coupling
+   ! with SFINCS. The modifications are distributed under the same
+   ! licence (GNU Lesser General Public License version 2.1).
+   !
+   ! Modifications Copyright (C)  Stichting Deltares, 2021-2026.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
    !!! Revision data
+   !
    character*256 :: build_revision, build_date
    !
    real*8,  dimension(:),       allocatable    :: x, y                    ! x,y coordinates of grid (double precision)
@@ -241,11 +275,9 @@ module snapwave_data
    real*4                                    :: Tini
    real*4                                    :: sigmin
    real*4                                    :: sigmax   
-   integer                                   :: wind_opt     ! option of wind growth on (1) or off (0)         
    !
    ! Vegetation parameters
    !
-   integer                                      :: vegetation_opt
    character*232                                :: vegmapfile   ! name of vegetation map file (Delft3D .dep format)
    integer                                      :: nveg         ! Number of vegetation species used [-]
    integer                                      :: no_secveg    ! Number of sections used in vertical schematization of vegetation [-]
@@ -268,18 +300,14 @@ module snapwave_data
    real*4                                    :: Tinc2ig         ! ratio compared to period Tinc to estimate Tig 
    !
    real*4                                    :: baldock_ratio_ig   ! option controlling from what depth wave breaking should take place for IG waves: (Hk>baldock_ratio*Hmx(k)), default baldock_ratio_ig=0.2    
-   integer                                   :: igwaves_opt     ! option of IG waves on (1) or off (0)      
-   integer                                   :: iterative_srcig_opt ! option whether IG source/sink term should be calculated in the iterative loop again (iterative_srcig = 1, is a bit slower), 
-                                                                ! ... or just a priori based on effectively incident wave energy from previous timestep only   
-   integer                                   :: herbers_opt     ! Choice whether you want IG Hm0&Tp be calculated by herbers (=1, default), or want to specify user defined values (0> then snapwave_eeinc2ig & snapwave_Tinc2ig are used) 
-   integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if herbers_opt = 1. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
+   integer                                   :: tpig_opt        ! IG wave period option based on Herbers calculated spectrum, only used if igherbers = true. Options are: 1=Tm01 (default), 2=Tpsmooth, 3=Tp, 4=Tm-1,0    
    !
    ! Switches
    logical                                   :: igwaves             ! switch whether include IG or not
    logical                                   :: wind                ! switch whether include wind or not
    logical                                   :: vegetation          ! switch whether include veggie or not      
-   logical                                   :: igherbers   
-   logical                                   :: iterative_srcig   
+   logical                                   :: igherbers           ! IG Hm0&Tp at boundary from Herbers (true), or from snapwave_eeinc2ig & snapwave_Tinc2ig (false)
+   logical                                   :: iterative_srcig     ! IG source/sink term calculated in the iterative loop (true, bit slower), or based on previous timestep (false)
    real*4                                    :: crit
    integer                                   :: nr_sweeps
    !

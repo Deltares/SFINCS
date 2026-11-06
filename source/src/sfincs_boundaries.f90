@@ -1,4 +1,78 @@
 module sfincs_boundaries
+   !
+   ! Headers auto-generated, ask main developers in case of doubts
+   !
+   ! Open boundary conditions: reads the boundary points and their time series (water level,
+   ! waves, downstream river), and updates the water levels and fluxes at the boundary cells
+   ! every time step.
+   !
+   ! Subroutines / functions:
+   !
+   !   read_boundary_data()
+   !     Read the boundary input files (bnd, bzs, etc. or netCDF).
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   find_boundary_indices()
+   !     Determine, for each boundary cell, the indices and weights of the boundary points.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
+   !   update_boundary_points(t)
+   !     Interpolate the boundary time series to time t at the boundary points.
+   !     Called from: update_boundaries (sfincs_boundaries)
+   !
+   !   update_boundary_conditions(t, dt)
+   !     Update the water levels at the boundary cells.
+   !     Called from: update_boundaries (sfincs_boundaries)
+   !
+   !   update_boundary_fluxes(dt, t)
+   !     Update the fluxes at the uv points next to the boundary cells.
+   !     Called from: update_boundaries (sfincs_boundaries)
+   !
+   !   update_boundaries(t, dt)
+   !     Update all boundary conditions for the current time step.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   weighted_average(val1, val2, fac, iopt, val3)
+   !     Weighted average of two values, either regular (iopt=1) or of two angles in
+   !     radians.
+   !     Called from: update_boundary_conditions (sfincs_boundaries)
+   !
+   !   find_sfincs_cell(n, m, iref)
+   !     Find the SFINCS cell index nm for quadtree cell (n, m, iref).
+   !     Called from: find_boundary_indices (sfincs_boundaries)
+   !
+   !   clean_line(s)
+   !     Trim a line read from file and remove a trailing carriage return.
+   !     Called from: read_boundary_data (sfincs_boundaries)
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2016-2026.
+   !
+   ! This file is part of SFINCS.
+   !
+   ! SFINCS is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU General Public License as
+   ! published by the Free Software Foundation version 3.
+   !
+   ! SFINCS is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU General Public License for more details.
+   !
+   ! You should have received a copy of the GNU General Public License
+   ! along with SFINCS.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! All indications, logos of, and references to, "SFINCS"
+   ! remain the property of Stichting Deltares. All rights reserved.
+   !
+   ! ------------ Copyright notice SFINCS ------------
+   !
    
    use sfincs_log
    use sfincs_error
@@ -9,6 +83,8 @@ contains
    !
    ! Reads bnd, bzs etc. files
    !
+   ! Called from: sfincs_initialize (sfincs_lib)
+   !
    use sfincs_ncinput
    use sfincs_data
    use quadtree
@@ -17,7 +93,7 @@ contains
    !
    implicit none
    !
-   integer n, itb, ib, stat, ifreq, iok, ibdr
+   integer n, itb, ib, stat, ifreq, iok, ibdr, nmq
    real*4  :: x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
    logical :: ok
    !
@@ -243,9 +319,23 @@ contains
             !
             read(500,*)x_bdr(ibdr), y_bdr(ibdr), x_bdr_in, y_bdr_in, slope_bdr, distance_bdr
             !
-            ! Find grid cell that contains the internal point
+            ! Find active grid cell that contains the internal point (quadtree index converted to SFINCS index)
             !
-            index_zsi_bdr(ibdr) = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            index_zsi_bdr(ibdr) = 0
+            !
+            nmq = find_quadtree_cell(x_bdr_in, y_bdr_in)
+            !
+            if (nmq > 0) then
+               index_zsi_bdr(ibdr) = index_sfincs_in_quadtree(nmq)
+            endif
+            !
+            if (index_zsi_bdr(ibdr) <= 0) then
+               !
+               write(logstr,'(a,i0,a)')'Error ! Internal point of downstream river boundary point ', ibdr, &
+                  ' in bdr file is not in an active grid cell !'
+               call stop_sfincs(trim(logstr), 1)
+               !
+            endif
             !
             ! Water level difference between internal point and downstream boundary
             !
@@ -453,6 +543,10 @@ contains
 
 
    subroutine find_boundary_indices()
+   !
+   ! Determine, for each boundary cell, the indices and weights of the boundary points.
+   !
+   ! Called from: sfincs_initialize (sfincs_lib)
    !
    use sfincs_data
    !
@@ -666,7 +760,7 @@ contains
             !
             write(logstr,*)'Warning : Found a Neumann cell (msk=6) that does not have any valid neighbouring regular cell (msk=1)!'
             call write_log(logstr, 0)
-            write(logstr,*)'Therefore cell set back to innactive (msk=0) for nm= ', nm
+            write(logstr,*)'Therefore cell set back to inactive (msk=0) for nm= ', nm
             call write_log(logstr, 0)
             ! 
          endif
@@ -682,6 +776,11 @@ contains
    subroutine update_boundary_points(t)
    !
    ! Update values at boundary points
+   !
+   ! Input:
+   !   t : current model time [s since tref]
+   !
+   ! Called from: update_boundaries (sfincs_boundaries)
    !
    use sfincs_data
    !
@@ -762,6 +861,12 @@ contains
    !
    ! Update water level at boundary grid points
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
+   ! Called from: update_boundaries (sfincs_boundaries)
+   !
    use sfincs_data
    !
    implicit none
@@ -781,9 +886,11 @@ contains
    !
    has_bzi = (bzifile(1:4) /= 'none')
    !
-   ! Set water level in all boundary points on grid
-   ! This loop is all done on the CPU
-   !   
+   ! Set water level in all kcs=2 boundary points on grid from the time series.
+   ! This loop is all done on the CPU. The kcs=5 and kcs=6 points depend on the
+   ! (device) water levels inside the model and are updated in a separate loop below.
+   ! kcs=2 stays on the CPU as all its inputs (zst_bnd, zsit_bnd, patmb) are on the cpu, kcs=5/6 go to the GPU to avoid copying zs to the cpu.
+   !
    !$omp parallel private ( ib, nmb, zst, zsetup, zig, smfac, zs0act, ibdr, zs0smooth ) if(ngbnd > 10000)
    !$omp do schedule(dynamic, 64)
    do ib = 1, ngbnd
@@ -796,6 +903,8 @@ contains
       ! kcs = 4 : wave maker point
       ! kcs = 5 : river outflow point (dzs/dx = i)
       ! kcs = 6 : lateral (coastal) boundary point (Neumann dzs/dx = 0.0)
+      !
+      ! Only kcs = 2 points are handled here, kcs = 5 and 6 points below.
       !
       if (kcs(nmb) == 2) then
          !
@@ -875,48 +984,85 @@ contains
             zsb(ib)  = max(zsb(ib),  zb(nmb))
          endif
          !
-      elseif (kcs(nmb) == 5) then
-         !
-         ! Downstream river point
-         !
-         ! Get water levels from inside model, and adjust for slope.
-         !
-         ibdr = index_bdr_gbp(ib) ! index of the downstream boundary point that forces this grid boundary point ib
-         !
-         zst = zs(index_zsi_bdr(ibdr)) + dzs_bdr(ibdr) ! internal water level minus slope * distance
-         !
-         ! Make sure water level is not below bed level
-         !
-         if (subgrid) then
-            !
-            zst = max(zst, subgrid_z_zmin(nmb))
-            !
-         else
-            !
-            zst = max(zst, zb(nmb))
-            !
-         endif
-         !
-         zsb(ib) = zst
-         zsb0(ib) = zst
-         !
-      elseif (kcs(nmb) == 6) then
-         !
-         ! Lateral coastal (Neumann) boundary
-         !
-         ! Set water level at boundary point equal to water level inside model.
-         ! No need to set zsb and zsb0, as flux for this type of boundary is solved in sfincs_momentum.f90.
-         ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
-         !
-         ! TODO: OPENACC!!!!
-         !                           
-         zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.                     
-         !         
       endif
       !
    enddo
    !$omp end do
    !$omp end parallel
+   !
+   ! Copy the kcs=2 boundary water levels to the GPU. This overwrites the kcs=5
+   ! entries on the device with stale host values, but those are recomputed on the
+   ! device right below.
+   !
+   !$acc update device( zsb0, zsb )
+   !
+   if (downstream_river_boundaries_in_mask) then
+      !
+      ! Downstream river points (kcs=5)
+      !
+      ! Get water levels from inside model, and adjust for slope.
+      ! Done on the device, as it needs the current water levels zs.
+      !
+      !$acc parallel loop present( kcs, zs, zb, subgrid_z_zmin, zsb, zsb0, nmindbnd, index_bdr_gbp, index_zsi_bdr, dzs_bdr ) &
+      !$acc               private( nmb, ibdr, zst )
+      !$omp parallel do private ( nmb, ibdr, zst ) if(ngbnd > 10000)
+      do ib = 1, ngbnd
+         !
+         nmb = nmindbnd(ib)
+         !
+         if (kcs(nmb) == 5) then
+            !
+            ibdr = index_bdr_gbp(ib) ! index of the downstream boundary point that forces this grid boundary point ib
+            !
+            zst = zs(index_zsi_bdr(ibdr)) + dzs_bdr(ibdr) ! internal water level minus slope * distance
+            !
+            ! Make sure water level is not below bed level
+            !
+            if (subgrid) then
+               !
+               zst = max(zst, subgrid_z_zmin(nmb))
+               !
+            else
+               !
+               zst = max(zst, zb(nmb))
+               !
+            endif
+            !
+            zsb(ib)  = zst
+            zsb0(ib) = zst
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
+   !
+   if (neumann_boundaries_in_mask) then
+      !
+      ! Lateral coastal (Neumann) boundary points (kcs=6)
+      !
+      ! Set water level at boundary point equal to water level inside model.
+      ! No need to set zsb and zsb0, as flux for this type of boundary is solved in sfincs_momentum.f90.
+      ! Lateral boundary u/v points have kcuv=6. They are skipped in update_boundary_fluxes.
+      ! Done on the device, as it needs the current water levels zs.
+      !
+      !$acc parallel loop present( kcs, zs, nmindbnd, nmi_gbp ) private( nmb )
+      !$omp parallel do private ( nmb ) if(ngbnd > 10000)
+      do ib = 1, ngbnd
+         !
+         nmb = nmindbnd(ib)
+         !
+         if (kcs(nmb) == 6) then
+            !
+            zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   endif
    !
    end subroutine
 
@@ -924,6 +1070,12 @@ contains
    subroutine update_boundary_fluxes(dt, t)
    !
    ! Update fluxes qx and qy at boundary points
+   !
+   ! Input:
+   !   dt : time step [s]
+   !   t  : current model time [s since tref]
+   !
+   ! Called from: update_boundaries (sfincs_boundaries)
    !
    use sfincs_data
    !
@@ -936,7 +1088,7 @@ contains
    !
    real*4 ui, ub, dzuv, facint, zsuv, depthuv
    !
-   !$acc update device( zsb0, zsb )
+   ! zsb and zsb0 were already copied to/updated on the device in update_boundary_conditions
    !
    factime = min(dt / btfilter, 1.0)
    one_minus_factime = 1.0 - factime
@@ -945,7 +1097,7 @@ contains
    ! UV fluxes at boundaries
    !
    !$acc parallel present( index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs ) vector_length(32)
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, t_zsmax, kcs ) vector_length(32)
    !$acc loop independent gang vector
    !$omp parallel private ( ib, indb, nmb, nmi, ip, zsnmi, zsnmb, zs0nmb, zsuv, depthuv, dzuv, iuv, facint, hnmb, ui, ub ) if(nkcuv2 > 10000)
    !$omp do schedule(dynamic, 64)
@@ -1100,12 +1252,33 @@ contains
          !
          if (store_maximum_waterlevel) then
             !
-            ! Store when the maximum water level changed
+            ! Store when the maximum water level changed, only when the boundary
+            ! cell is wet (same depth check as in sfincs_continuity)
             !
             if (store_t_zsmax) then
-                if (zs(nmb) > zsmax(nmb)) then
-                    t_zsmax(nmb) = t
-                endif
+               !
+               if (zs(nmb) > zsmax(nmb)) then
+                  !
+                  if (subgrid) then
+                     !
+                     if ((zs(nmb) - subgrid_z_zmin(nmb)) > huthresh) then
+                        !
+                        t_zsmax(nmb) = t
+                        !
+                     endif
+                     !
+                  else
+                     !
+                     if ((zs(nmb) - zb(nmb)) > huthresh) then
+                        !
+                        t_zsmax(nmb) = t
+                        !
+                     endif
+                     !
+                  endif
+                  !
+               endif
+               !
             endif
             !
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
@@ -1123,26 +1296,27 @@ contains
 
    
    
-   subroutine update_boundaries(t, dt, tloop)
+   subroutine update_boundaries(t, dt)
    !
    ! Update all boundary conditions
    !
+   ! Input:
+   !   t  : current model time [s since tref]
+   !   dt : time step [s]
+   !
+   ! Called from: sfincs_update (sfincs_lib)
+   !
    use sfincs_data
+   use sfincs_timers
    !
    implicit none
-   !
-   integer  :: count0
-   integer  :: count1
-   integer  :: count_rate
-   integer  :: count_max
-   real     :: tloop
    !
    real*8           :: t
    real*4           :: dt
    !
-   call system_clock(count0, count_rate, count_max)
-   !
    if (boundaries_in_mask) then
+      !
+      call timer_start('boundaries')
       !
       if (nbnd > 0) then
          !
@@ -1156,7 +1330,7 @@ contains
       ! as these are not used in bathtub mode
       !
       if (.not. bathtub) then
-         !      
+         !
          ! Update boundary conditions at grid points (water levels)
          !
          call update_boundary_conditions(t, dt)
@@ -1167,16 +1341,28 @@ contains
          !
       endif
       !
+      call timer_stop('boundaries')
+      !
    endif
-   !
-   call system_clock(count1, count_rate, count_max)
-   tloop = tloop + 1.0 * (count1 - count0) / count_rate
    !
    end subroutine
    !
    !
    !
    subroutine weighted_average(val1,val2,fac,iopt,val3)
+   !
+   ! Weighted average of two values, either regular (iopt=1) or of two angles in radians.
+   !
+   ! Input:
+   !   val1 : first value
+   !   val2 : second value
+   !   fac  : weight of val1 (0 to 1)
+   !   iopt : 1 for a regular average, otherwise an average of angles [rad]
+   !
+   ! Output:
+   !   val3 : weighted average
+   !
+   ! Called from: update_boundary_conditions (sfincs_boundaries)
    !
    implicit none
    !
@@ -1222,6 +1408,16 @@ contains
    !
    ! Find nm index for cell n, m, iref
    !
+   ! Input:
+   !   n    : row index of the cell at its refinement level
+   !   m    : column index of the cell at its refinement level
+   !   iref : refinement level
+   !
+   ! Returns:
+   !   nm   : SFINCS cell index (0 if the cell is not active)
+   !
+   ! Called from: find_boundary_indices (sfincs_boundaries)
+   !
    use sfincs_data
    use quadtree
    !
@@ -1240,6 +1436,16 @@ contains
    end function
    
    function clean_line(s) result(out)
+   !
+   ! Trim a line read from file and remove a trailing carriage return.
+   !
+   ! Input:
+   !   s   : line as read from file
+   !
+   ! Returns:
+   !   out : trimmed line without carriage return
+   !
+   ! Called from: read_boundary_data (sfincs_boundaries)
    !
    character(len=*), intent(in) :: s
    character(len=len(s)) :: out
