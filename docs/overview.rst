@@ -143,7 +143,7 @@ Hereby the joint effect of multiple flood drivers that can enhance flooding can 
 Applied international projects
 ------------------------------
 
-SFINCS has been applied in these international projects, with attached links to news articles:
+SFINCS has been applied in many international projects, with attached links to news articles:
 
 * `Modelling of urban flooding and adaptation measures in the USA <https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks>`_
 
@@ -157,29 +157,13 @@ SFINCS has been applied in these international projects, with attached links to 
 
 * `Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive <https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts>`_  `(also see video) <https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares>`_
 
-.. To add a country to the map, edit docs/_static/sfincs_map/applications.json (ISO 3166 alpha-3 codes).
+.. raw:: html
 
-.. only:: html
+   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
+     <source src="_static/SFINCS_globe.mp4" type="video/mp4">
+   </video>
 
-   .. raw:: html
-
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-      <link rel="stylesheet" href="_static/sfincs_map/map.css">
-      <div id="sfincs-map" data-base="_static/sfincs_map/"></div>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <script src="_static/sfincs_map/map.js"></script>
-
-   Interactive overview of countries globally where SFINCS has been used. Click a country for links to projects.
-
-.. only:: latex
-
-   .. figure:: ./figures/Countries_covered_by_SFINCS_models.png
-      :width: 600px
-      :align: center
-
-      Overview of countries globally where SFINCS has been used, including all SIDS
-
-SFINCS has been applied (or still is) in multiple other international projects:
+SFINCS has been applied (or still is) in multiple other international projects. For the full list, see the SFINCS the interactive dashboard on the front page.
 
 * Modelling compound flooding for the islands of Sao Tome en Principe
 

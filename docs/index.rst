@@ -19,6 +19,32 @@ Designed to run in minutes instead of days, SFINCS supports scenario testing, op
    </video>
    <p><em>The SFINCS logo flooding on a quadtree mesh, simulated with SFINCS (v2.5.0 Hautacam release).</em></p>
 
+**Where is SFINCS applied?**
+
+SFINCS has been applied around the world in these countries, in various news items, international projects, papers and conference abstracts:
+
+.. To add a country to the map, edit docs/_static/sfincs_map/applications.json (ISO 3166 alpha-3 codes).
+
+.. only:: html
+
+   .. raw:: html
+
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+      <link rel="stylesheet" href="_static/sfincs_map/map.css">
+      <div id="sfincs-map" data-base="_static/sfincs_map/"></div>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <script src="_static/sfincs_map/map.js"></script>
+
+   Interactive overview of countries globally where SFINCS has been used. Click a country for links to model applications.
+
+.. only:: latex
+
+   .. figure:: ./figures/Countries_covered_by_SFINCS_models.png
+      :width: 600px
+      :align: center
+
+      Overview of countries globally where SFINCS has been used, including all SIDS
+
 **Open source & licensing:** 
 
 The SFINCS source code is released under the GNU GPL v3.0 license. You can: 
