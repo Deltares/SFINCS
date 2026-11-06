@@ -44,14 +44,25 @@
     return fetch(base + name).then(function (r) { return r.json(); });
   }
 
-  function popupHtml(name, links) {
+  function linkList(items) {
+    var html = "<ul>";
+    items.forEach(function (it) {
+      html += "<li><a href='" + it.url + "' target='_blank' rel='noopener'>" + it.text + "</a></li>";
+    });
+    return html + "</ul>";
+  }
+
+  // Popup: country name, news/website links first, then papers (newest first)
+  function popupHtml(name, c) {
     var html = "<b>" + name + "</b>";
-    if (links && links.length) {
-      html += "<ul style='margin:4px 0 0 0;padding-left:16px'>";
-      links.forEach(function (l) {
-        html += "<li><a href='" + l.url + "' target='_blank' rel='noopener'>" + l.title + "</a></li>";
-      });
-      html += "</ul>";
+    if (c.links && c.links.length) {
+      html += linkList(c.links.map(function (l) { return { url: l.url, text: l.title }; }));
+    }
+    if (c.papers && c.papers.length) {
+      html += "<div class='sfincs-map-papers'>Papers and abstracts:</div>";
+      html += linkList(c.papers.map(function (p) {
+        return { url: p.url || "https://doi.org/" + p.doi, text: p.title + " (" + p.year + ")" };
+      }));
     }
     return html;
   }
@@ -94,7 +105,7 @@
         var c = apps[f.properties.iso];
         var name = c.name || f.properties.name;
         found[f.properties.iso] = true;
-        lyr.bindPopup(popupHtml(name, c.links));
+        lyr.bindPopup(popupHtml(name, c), { maxWidth: 360 });
         lyr.bindTooltip(name, { sticky: true });
         lyr.on("mouseover", function () { lyr.setStyle({ fillOpacity: 0.8 }); });
         lyr.on("mouseout", function () { lyr.setStyle({ fillOpacity: 0.5 }); });
@@ -103,7 +114,7 @@
         var small = smallIslandPoint(f.geometry);
         if (small) {
           L.circleMarker(small, { radius: 4, color: color, weight: 1, fillOpacity: 0.8 })
-            .bindPopup(popupHtml(name, c.links))
+            .bindPopup(popupHtml(name, c), { maxWidth: 360 })
             .bindTooltip(name)
             .addTo(map);
         }

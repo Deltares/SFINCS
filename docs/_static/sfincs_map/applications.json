@@ -1,25 +1,44 @@
 {
-  "_readme": "Countries where SFINCS has been applied, shown on the map in overview.rst. Add a country with its ISO 3166 alpha-3 code (as used in countries.geojson, e.g. GLP for Guadeloupe). 'links' is optional: a list of {title, url}.",
+  "_readme": "Countries where SFINCS has been applied, shown on the map in overview.rst. Add a country with its ISO 3166 alpha-3 code (as used in countries.geojson, e.g. GLP for Guadeloupe). Optional: 'links' (news articles, websites: list of {title, url}), shown first, and 'papers' (list of {year, title, doi}, or url instead of doi), shown below them.",
   "countries": [
     {"iso": "ABW"},
     {"iso": "AGO"},
     {"iso": "AIA"},
     {"iso": "ASM"},
     {"iso": "ATG"},
-    {"iso": "AUS"},
-    {"iso": "BEL"},
-    {"iso": "BES"},
+    {"iso": "AUS", "papers": [
+      {"year": 2026, "title": "Hybrid surrogate modeling of compound flood events using SFINCS-LSG", "doi": "10.5194/egusphere-egu26-11062"},
+      {"year": 2025, "title": "Surrogate flood models for compound flood risk assessments and early warning", "doi": "10.5194/egusphere-egu25-5209"},
+      {"year": 2022, "title": "Developing a real-time data and modeling framework for operational flood inundation forecasting for Australian coastlines", "doi": "10.5194/ems2022-82"},
+      {"year": 2022, "title": "Developing a real-time data and modelling framework for operational flood inundation forecasting in Australia", "url": "https://search.informit.org/doi/abs/10.3316/informit.916755150845355"},
+      {"year": 2022, "title": "Developing large scale and fast compound flood models for Australian coastlines (ICCE 2022)", "doi": "10.9753/icce.v37.management.49"}
+    ]},
+    {"iso": "BEL", "papers": [
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
+      {"year": 2025, "title": "Comparing the effectiveness of upstream nature-based solutions with building-level adaptation measures: a case study for the Geul river", "doi": "10.5194/egusphere-egu25-11137"}
+    ]},
+    {"iso": "BES", "papers": [
+      {"year": 2023, "title": "An Integrated Assessment of Climate Change Impacts and Implications on Bonaire", "doi": "10.1007/s41885-023-00127-z"}
+    ]},
     {"iso": "BGD"},
     {"iso": "BHR"},
     {"iso": "BHS"},
     {"iso": "BLM"},
     {"iso": "BLZ"},
     {"iso": "BMU"},
-    {"iso": "BRA"},
+    {"iso": "BRA", "papers": [
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"}
+    ]},
     {"iso": "BRB"},
-    {"iso": "CAN"},
+    {"iso": "CAN", "papers": [
+      {"year": 2026, "title": "Probabilistic assessment and seasonal characterization of compound flood hazards in the Fraser River Estuary", "doi": "10.14288/1.0455963"}
+    ]},
     {"iso": "CHL"},
-    {"iso": "CHN"},
+    {"iso": "CHN", "papers": [
+      {"year": 2026, "title": "Pronounced Spatiotemporal Differences of Compound Flooding Inundation in China's Coastal Cities Under Climate Change", "doi": "10.1029/2026wr043721"},
+      {"year": 2025, "title": "Integrating climate change and land use change into storm flood impact analysis in coastal cities", "doi": "10.1016/j.ejrh.2025.102745"},
+      {"year": 2023, "title": "Simulation and assessment of compound flooding in coastal cities under climate change", "doi": "10.5194/egusphere-egu23-9259"}
+    ]},
     {"iso": "COK"},
     {"iso": "COL"},
     {"iso": "COM"},
@@ -27,11 +46,16 @@
     {"iso": "CUB"},
     {"iso": "CUW"},
     {"iso": "CYM"},
-    {"iso": "DEU"},
+    {"iso": "DEU", "papers": [
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
+      {"year": 2025, "title": "Comparing the effectiveness of upstream nature-based solutions with building-level adaptation measures: a case study for the Geul river", "doi": "10.5194/egusphere-egu25-11137"}
+    ]},
     {"iso": "DMA"},
     {"iso": "DNK", "links": [
       {"title": "Coastal flooding for the entire country of Denmark (EU Floods Directive)", "url": "https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts"},
       {"title": "Video", "url": "https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares"}
+    ], "papers": [
+      {"year": 2026, "title": "Verification of the SFINCS Model Applying GPS Measured Flood Marks from the Storm Surge, Babet, in Southern Denmark", "doi": "10.1007/978-3-032-15477-4_16"}
     ]},
     {"iso": "DOM"},
     {"iso": "EGY"},
@@ -40,7 +64,12 @@
     {"iso": "FJI"},
     {"iso": "FRA"},
     {"iso": "FSM"},
-    {"iso": "GBR"},
+    {"iso": "GBR", "papers": [
+      {"year": 2026, "title": "Climate change attribution of the compound 2013/14 winter storms flooding in Somerset, UK", "doi": "10.5194/ems2026-226"},
+      {"year": 2024, "title": "Alternative nature-based solutions for flood protection in a macrotidal estuary under a changing climate", "doi": "10.5194/egusphere-egu24-6436"},
+      {"year": 2024, "title": "Investigating the efficiency of nature-based solutions against estuarine coastal flooding under present and future conditions", "doi": "10.5194/egusphere-egu24-11438"},
+      {"year": 2024, "title": "Transdisciplinary co-design to assess impacts of climate change on coastal schemes", "doi": "10.5194/egusphere-egu24-7495"}
+    ]},
     {"iso": "GHA"},
     {"iso": "GLP"},
     {"iso": "GNB"},
@@ -49,12 +78,21 @@
     {"iso": "GUY"},
     {"iso": "HRV"},
     {"iso": "HTI"},
-    {"iso": "IDN"},
-    {"iso": "IND"},
+    {"iso": "IDN", "papers": [
+      {"year": 2026, "title": "A probabilistic tsunami hazard assessment for the southern coast of Java, Indonesia: building an inundation database through a two-stage framework", "doi": "10.1186/s40562-026-00515-9"},
+      {"year": 2026, "title": "A two-stage framework for a large-scale probabilistic tsunami inundation hazard assessment: A study case for the southern coast of Java, Indonesia", "doi": "10.5194/egusphere-egu26-10971"},
+      {"year": 2025, "title": "Coastal flood modelling of Jakarta using the SFINCS, a reduced-physics solver with high computational efficiency", "doi": "10.1088/1755-1315/1464/1/012018"}
+    ]},
+    {"iso": "IND", "papers": [
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"}
+    ]},
     {"iso": "IRL"},
     {"iso": "ITA"},
     {"iso": "JAM"},
-    {"iso": "JPN"},
+    {"iso": "JPN", "papers": [
+      {"year": 2026, "title": "Understanding Compound Pluvial–Fluvial Flood Hazards Under Climate Change: A Case Study of the Lower Tone River Basin, Japan", "doi": "10.1002/hyp.70403"},
+      {"year": 2021, "title": "Rapid Assessment of Tsunami Offshore Propagation and Inundation with D-FLOW Flexible Mesh and SFINCS for the 2011 Tōhoku Tsunami in Japan", "doi": "10.3390/jmse9050453"}
+    ]},
     {"iso": "KEN"},
     {"iso": "KIR"},
     {"iso": "KNA"},
@@ -62,16 +100,32 @@
     {"iso": "LBR"},
     {"iso": "LBY"},
     {"iso": "LCA"},
+    {"iso": "LTU", "papers": [
+      {"year": 2026, "title": "Curonian Lagoon SFINCS model: Storm Xaver 2013 hindcast", "doi": "10.5281/zenodo.22772337"}
+    ]},
     {"iso": "MAF"},
     {"iso": "MAR"},
-    {"iso": "MDG"},
+    {"iso": "MDG", "papers": [
+      {"year": 2025, "title": "Tropical cyclone induced compound flooding in Madagascar: a coupled modeling approach", "doi": "10.1007/s11069-025-07209-z"}
+    ]},
     {"iso": "MDV"},
     {"iso": "MEX"},
-    {"iso": "MHL"},
+    {"iso": "MHL", "papers": [
+      {"year": 2021, "title": "Efficient and accurate modeling of wave-driven flooding on coral reef-lined coasts: Case Study of Majuro Atoll, Republic of the Marshall Islands", "doi": "10.5194/egusphere-egu21-5418"}
+    ]},
     {"iso": "MMR"},
     {"iso": "MNP"},
     {"iso": "MOZ", "links": [
       {"title": "Coastal flooding at Beira", "url": "https://www.preventionweb.net/news/dutch-mozambican-consortium-help-protect-beira-against-coastal-flooding"}
+    ], "papers": [
+      {"year": 2026, "title": "Storyline impact attribution of climate and exposure drivers of compound flood impact from tropical cyclone Idai in Mozambique", "doi": "10.5194/egusphere-egu26-1264"},
+      {"year": 2025, "title": "Comprehensive Flood and Impact Modeling: Advanced Quantitative Tools for Emergency Management and Societal Resilience", "doi": "10.5194/egusphere-egu25-17951"},
+      {"year": 2025, "title": "Forecasting hurricane impacts on US coasts", "doi": "10.5194/egusphere-egu25-2869"},
+      {"year": 2025, "title": "Storyline climate attribution for compound flooding from tropical cyclone Idai in Mozambique", "doi": "10.5194/egusphere-egu25-2889"},
+      {"year": 2024, "title": "Accounting for uncertainties in forecasting tropical-cyclone-induced compound flooding", "doi": "10.5194/gmd-17-1789-2024"},
+      {"year": 2023, "title": "A globally applicable framework for compound flood hazard modeling", "doi": "10.5194/nhess-23-823-2023"},
+      {"year": 2022, "title": "A globally-applicable framework for compound flood risk modeling", "doi": "10.5194/egusphere-egu22-5528"},
+      {"year": 2022, "title": "An efficient multi-scale modelling framework for assessment of coastal flood events", "doi": "10.5194/egusphere-egu22-198"}
     ]},
     {"iso": "MSR"},
     {"iso": "MTQ"},
@@ -79,11 +133,18 @@
     {"iso": "NCL"},
     {"iso": "NGA"},
     {"iso": "NIU"},
-    {"iso": "NLD"},
+    {"iso": "NLD", "papers": [
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
+      {"year": 2026, "title": "Long-term household flood adaptation under government policies: a coupled hydrological, hydrodynamic, and agent-based model", "doi": "10.5194/egusphere-egu26-12778"},
+      {"year": 2025, "title": "Comparing the effectiveness of upstream nature-based solutions with building-level adaptation measures: a case study for the Geul river", "doi": "10.5194/egusphere-egu25-11137"}
+    ]},
     {"iso": "NRU"},
     {"iso": "OMN"},
     {"iso": "PAK"},
-    {"iso": "PHL"},
+    {"iso": "PHL", "papers": [
+      {"year": 2026, "title": "Fast Modelling of Wave-Driven Flooding for Sandy and Coral Reef-Lined Coasts", "doi": "10.1007/978-3-032-15477-4_25"},
+      {"year": 2022, "title": "An efficient multi-scale modelling framework for assessment of coastal flood events", "doi": "10.5194/egusphere-egu22-198"}
+    ]},
     {"iso": "PLW"},
     {"iso": "PNG"},
     {"iso": "PRI"},
@@ -92,12 +153,16 @@
     {"iso": "SAU"},
     {"iso": "SGP"},
     {"iso": "SLB"},
-    {"iso": "STP"},
+    {"iso": "STP", "papers": [
+      {"year": 2020, "title": "Uncertainties in coastal flood risk assessments in small island developing states", "doi": "10.5194/nhess-20-2397-2020"}
+    ]},
     {"iso": "SUR"},
     {"iso": "SXM"},
     {"iso": "SYC"},
     {"iso": "TCA"},
-    {"iso": "THA"},
+    {"iso": "THA", "papers": [
+      {"year": 2024, "title": "Impacts comparison by using different hydraulic models on the 2011 flood in Thailand", "doi": "10.5194/egusphere-egu24-7347"}
+    ]},
     {"iso": "TLS"},
     {"iso": "TON"},
     {"iso": "TTO"},
@@ -109,6 +174,33 @@
     {"iso": "USA", "links": [
       {"title": "Urban flooding and adaptation measures in the USA", "url": "https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks"},
       {"title": "Compound flooding along the whole US Southeast coast", "url": "https://www.deltares.nl/en/news/climate-hazards-for-u.s.-atlantic-coast"}
+    ], "papers": [
+      {"year": 2026, "title": "A Framework for Modeling Tropical Cyclone‐Induced Compound Flooding of the Continental US: Demonstrated in New Orleans", "doi": "10.1029/2025wr042016"},
+      {"year": 2026, "title": "Accounting for the uncertainty of precipitation forecasts and its impacts on probabilistic flood inundation mapping skill", "doi": "10.1016/j.jhydrol.2026.135429"},
+      {"year": 2026, "title": "Beyond the 100-year flood: probabilistic flood hazard assessment for King and Pierce Counties under future climate scenarios", "doi": "10.5194/nhess-26-3231-2026"},
+      {"year": 2026, "title": "Hybrid surrogate modeling of compound flood events using SFINCS-LSG", "doi": "10.5194/egusphere-egu26-11062"},
+      {"year": 2026, "title": "Rating Surfaces for Quantifying Compound Flooding at Points of Interest", "doi": "10.5194/egusphere-2026-577"},
+      {"year": 2025, "title": "Accelerating compound flood risk assessments through active learning: A case study of Charleston County (USA)", "doi": "10.5194/nhess-25-1353-2025"},
+      {"year": 2025, "title": "Determining the Relative Contributions of Runoff, Coastal, and Compound Processes to Flood Exposure Across the Carolinas During Hurricane Florence", "doi": "10.1029/2023wr036727"},
+      {"year": 2025, "title": "Forecasting hurricane impacts on US coasts", "doi": "10.5194/egusphere-egu25-2869"},
+      {"year": 2025, "title": "Projections of multiple climate-related coastal hazards for the US Southeast Atlantic", "doi": "10.1038/s41558-024-02180-2"},
+      {"year": 2025, "title": "Riding the wave (PhD thesis, Hurricane Florence)", "doi": "10.5463/thesis.1031"},
+      {"year": 2025, "title": "Surrogate flood models for compound flood risk assessments and early warning", "doi": "10.5194/egusphere-egu25-5209"},
+      {"year": 2025, "title": "The importance of waves in large-scale coastal compound flooding: A case study of Hurricane Florence (2018)", "doi": "10.1016/j.coastaleng.2025.104726"},
+      {"year": 2024, "title": "Advancing Coastal Resilience through Integrated Modeling of Compound Flooding Events", "doi": "10.5194/egusphere-egu24-21937"},
+      {"year": 2024, "title": "Compound flood impacts from Hurricane Sandy on New York City in climate-driven storylines", "doi": "10.5194/nhess-24-29-2024"},
+      {"year": 2024, "title": "Dynamic Modeling of Coastal Compound Flooding Hazards Due to Tides, Extratropical Storms, Waves, and Sea-Level Rise: A Case Study in the Salish Sea, Washington (USA)", "doi": "10.3390/w16020346"},
+      {"year": 2024, "title": "Probabilistic Storm Surge and Flood-Inundation Modeling for the Texas Gulf Coast Using Super-Fast INundation of CoastS (SFINCS)", "doi": "10.1016/j.coastaleng.2025.104721"},
+      {"year": 2024, "title": "Tropical or extratropical cyclones: what drives the compound flood hazard, impact, and risk for the United States Southeast Atlantic coast?", "doi": "10.1007/s11069-024-06552-x"},
+      {"year": 2023, "title": "Comparison of a reduced-complexity model to a full model for storm surge predictions", "doi": "10.5194/egusphere-egu23-3668"},
+      {"year": 2023, "title": "Forecasting hurricane impacts on coasts using Coastal Storm Modeling System (CoSMoS)", "doi": "10.1142/9789811275135_0242"},
+      {"year": 2023, "title": "Probabilistic compound flood hazard analysis for coastal risk assessment: A case study in Charleston, South Carolina", "doi": "10.34237/1009122"},
+      {"year": 2023, "title": "Rapid modeling of compound flooding across broad coastal regions and the necessity to include rainfall driven processes: a case study of Hurricane Florence (2018)", "doi": "10.1142/9789811275135_0235"},
+      {"year": 2022, "title": "An efficient multi-scale modelling framework for assessment of coastal flood events", "doi": "10.5194/egusphere-egu22-198"},
+      {"year": 2022, "title": "Flooding at the Fringe: A reduced-physics model for assessing compound flooding from pluvial, fluvial, and coastal hazards (AGU)", "url": "https://ui.adsabs.harvard.edu/abs/2022AGUFMNH36A..03G/abstract"},
+      {"year": 2022, "title": "Multilevel multifidelity Monte Carlo methods for assessing uncertainty in coastal flooding (Myrtle Beach)", "doi": "10.5194/nhess-22-2491-2022"},
+      {"year": 2021, "title": "Hindcast of pluvial, fluvial, and coastal flood damage in Houston, Texas during Hurricane Harvey (2017) using SFINCS", "doi": "10.1007/s11069-021-04922-3"},
+      {"year": 2021, "title": "Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: including fluvial, pluvial, tidal, wind- and wave-driven processes", "doi": "10.1016/j.coastaleng.2020.103796"}
     ]},
     {"iso": "VCT"},
     {"iso": "VGB"},
