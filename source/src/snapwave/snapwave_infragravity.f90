@@ -529,7 +529,7 @@ module snapwave_infragravity
     w1=0
     k1=0    
     !
-    ! Steps indepent of loop, that can be done once a priori
+    ! Steps independent of loop, that can be done once a priori
     ! Determine angular velocity of primary waves
     w1=2*pi*fgen
     !
@@ -1011,7 +1011,7 @@ module snapwave_infragravity
                 k1 = prev(1, itheta, k)
                 k2 = prev(2, itheta, k)
                 !
-                if (k1 > 0 .and. k2 > 0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being uncorrectly skipped!!!
+                if (k1 > 0 .and. k2 > 0) then ! IMPORTANT - for some reason (k1*k2)>0 is not reliable always, resulting in directions being incorrectly skipped!!!
                     !
                     ! First calculate upwind direction dependent variables
                     !

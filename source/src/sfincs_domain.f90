@@ -1352,7 +1352,7 @@ contains
    !
    if (nonhydrostatic) then
       !
-      ! Intialize mask for cells with non-hydrostatic corrections
+      ! Initialize mask for cells with non-hydrostatic corrections
       !
       allocate(mask_nonh(np))
       !
