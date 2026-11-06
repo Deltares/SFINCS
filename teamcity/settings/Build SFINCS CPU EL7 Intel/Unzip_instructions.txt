@@ -14,5 +14,5 @@ cd sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts
 5) Unzip latest linux build:
 unzip sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts.zip
 
-6) Change acces rights:
+6) Change access rights:
 chmod -R 777 /p/11202255-sfincs/executables/linux/sfincs_Build_SFINCS_CPU_EL7_Intel_206_artifacts

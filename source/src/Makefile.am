@@ -136,5 +136,5 @@ AM_FCFLAGS+=${OPENACC_CFLAGS}
 AM_FCFLAGS+=${-O3}
 
 
-# Manualy add the netcdff (fortran dll), bug in pkg-config file is not fixed until in NetCDF 4.4 HEAD
+# Manually add the netcdff (fortran dll), bug in pkg-config file is not fixed until in NetCDF 4.4 HEAD
 LIBS+=${NETCDF_LIBS} ${NETCDF_FORTRAN_LIBS}

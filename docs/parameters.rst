@@ -59,7 +59,7 @@ Parameters for model input
 	  :min:			0
 	  :max:			1
 	advection_scheme	
-	  :description:		Advection scheme selection, new scheme is 'upw1', default. Original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
+	  :description:		Advection scheme selection, new scheme is 'upw1', default. Original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatibility. NOTE - from SFINCS 2024.01 release onwards.
 	  :units:		-	
 	  :default:		upw1	
 	  :min:			upw1	
@@ -77,7 +77,7 @@ Parameters for model input
 	  :min:			0.1 (recommended)	
 	  :max:			0.75 (recommended)		
 	friction2d	
-	  :description:		Option to select to include 2D component for determining friction term as well: friction2d - true, default. Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
+	  :description:		Option to select to include 2D component for determining friction term as well: friction2d - true, default. Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatibility. NOTE - from SFINCS 2024.01 release onwards.
 	  :units:		-	
 	  :default:		true		
 	  :min:			false	
@@ -96,7 +96,7 @@ Parameters for model input
 	  :min:			0.8
 	  :max:			1.0
 	hmin_cfl - added from SFINCS v2.2.0 onwards	
-	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the deafult of 0.1 m (as was default before became user option).
+	  :description:		Minimum water depth to determine maximum timestep using CFL-conditions. Possibility to lower the maximum timestep for increased stability by putting a larger values than the default of 0.1 m (as was default before became user option).
 	  :units:		m	
 	  :default:		0.1		
 	  :min:			0.0001	
@@ -115,7 +115,7 @@ Parameters for model input
 	  :min:			0
 	  :max:			1
 	nuviscdim
-	  :description:		Depricated after Cauberg release of SFINCS.
+	  :description:		Deprecated after Cauberg release of SFINCS.
 	  :units:		-  
 	nuvisc
 	  :description:		Viscosity coefficient 'per meter of grid cell length', used if 'viscosity=1' and multiplied internally with the grid cell size (per quadtree level in quadtree mesh mode).
@@ -556,7 +556,7 @@ Parameters for model output
 	  :units:		-
 	  :default:		0
 	storetzsmax
-	  :description:		Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occured (storetzsmax = 1). Only if zsmax output is saved (dtmaxout > 0).
+	  :description:		Flag to turn on writing away the time stamp that the maximum water surface elevation during simulation occurred (storetzsmax = 1). Only if zsmax output is saved (dtmaxout > 0).
 	  :units:		-
 	  :default:		0	
 	timestep_analysis
@@ -587,7 +587,7 @@ SFINCS consists of many different input files, this overview gives a description
    :width: 800px
    :align: center
 
-   Overview of input file of SFINCS with indication whther they are required or not	
+   Overview of input file of SFINCS with indication whether they are required or not	
 	
 
 Domain
@@ -685,7 +685,7 @@ Domain
 	  :required:		no	  
 	  :format:		bin	 		  	   	  
 	sbgfile = sfincs.sbg
-	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Recommended netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatability.
+	  :description:		File containing subgrid tables, only needed by SFINCS if you want to run your model in the subgrid mode. Recommended netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2024, binary file option still possible for backwards compatibility.
 	  :units:		-
 	  :required:		Only for running SFINCS in subgrid mode	  
 	  :format:		new is netcdf, old is binary		  
