@@ -183,7 +183,7 @@ module snapwave_windsource
       !
       pi = 4.0*atan(1.0)
       ! Compute celerities and refraction speed
-      ! in a seperate routine because will be called more often in a model with varying wave period
+      ! in a separate routine because will be called more often in a model with varying wave period
       call disper_approx_1(hh,2.0*pi/sig,kwav,cg)
       !   
       sinhkh = sinh(min(kwav*hh,50.0))

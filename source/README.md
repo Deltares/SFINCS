@@ -33,7 +33,7 @@ To prepare the source code directory for building you need to run autoreconf onc
     $ autoreconf -vif
 ```
 
-At this point you should be able to build the software. Please consult `./configure --help` for extra options, such as compiler selection (`FC=gfortran`) and the install location (`--prefix`). If you want to use openmp and openacc the options are checked against the corresponding C compiler. So if you change the compiler make sure you also spcify the corresponding C compiler (for example CC=gcc FC=gfortran or CC=nvc FC=nvfortran). You might need to pass `--with-pic` or `--disable-shared` on certain platforms.
+At this point you should be able to build the software. Please consult `./configure --help` for extra options, such as compiler selection (`FC=gfortran`) and the install location (`--prefix`). If you want to use openmp and openacc the options are checked against the corresponding C compiler. So if you change the compiler make sure you also specify the corresponding C compiler (for example CC=gcc FC=gfortran or CC=nvc FC=nvfortran). You might need to pass `--with-pic` or `--disable-shared` on certain platforms.
 
 ```
     $ ./configure

@@ -171,7 +171,7 @@ contains
             !
             ! Expand lookup table to per-cell arrays
             !
-            ! FIXME - parallellisation possible?
+            ! FIXME - parallelisation possible?
             !
             do nm = 1, np
                 type_idx = vegetation_type_index(nm)

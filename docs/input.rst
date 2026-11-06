@@ -274,7 +274,7 @@ The SFINCS model functionality has been extended so that SFINCS can also calcula
 Hereby high-resolution elevation data is used to derive relations between the water level and the volume in a cell to do the continuity update, and a representative water depth used to calculate momentum fluxes.
 The derivation of these subgrid tables is a pre-processing step outside of the model, that only needs to be done once!
 The advantage of the subgrid version of SFINCS is that generally one can compute on coarser grid sizes, while still having accurate results utilizing the high-resolution elevation data to its full potential.
-Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2025, binary file option still possible for backwards compatability.
+Recommended Netcdf file input option available from SFINCS 2024.01 release onwards as in Van Ormondt et al. 2025, binary file option still possible for backwards compatibility.
 
 The subgrid file ('sbgfile') contains two types of tables, which are the same for a regular and a quadtree grid:
 
@@ -638,7 +638,7 @@ Storage volume
 Storage volume for green infrastructure on the 2D grid, specifies the maximum storage volume of water per grid cell in cubic meters.
 Water will be stored in this storage volume before it will contribute to surface runoff.
 
-**NOTE - Only useable in subgrid mode (on either regular or quadtree grid)**
+**NOTE - Only usable in subgrid mode (on either regular or quadtree grid)**
 
 **volfile = sfincs.vol**
 
@@ -952,7 +952,7 @@ The default value is 1.0 which is recommended for the regular version of SFINCS,
 'advection' sets whether to turn on or off the advection term used in the momentum equation, varying between the default of turned on (advection = 1, default), or off (advection = 0).
 Recommended is to turn the advection term always on.
 
-'advection_scheme' selects the advection scheme option. It is possible to select the new (2024.01 release) advection scheme using 'advection_scheme = upw1' = default, or the original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability.  NOTE - from SFINCS 2024.01 release onwards.
+'advection_scheme' selects the advection scheme option. It is possible to select the new (2024.01 release) advection scheme using 'advection_scheme = upw1' = default, or the original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatibility.  NOTE - from SFINCS 2024.01 release onwards.
 
 'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is set to 1 (2025.01 release onwards).
 
@@ -965,7 +965,7 @@ Recommended is to turn the advection term always on.
 
 **friction2d**
 
-'friction2d' sets whether to include the 2D component for determining the friction term or not (default = true). Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatability. NOTE - from SFINCS 2024.01 release onwards.
+'friction2d' sets whether to include the 2D component for determining the friction term or not (default = true). Original implementation from Leijnse et al. (2021) can be selected as 'friction2d = false' for backwards compatibility. NOTE - from SFINCS 2024.01 release onwards.
 
 **viscosity**
 

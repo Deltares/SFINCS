@@ -111,7 +111,7 @@ module sfincs_date
   !
   ! At midday on 4th October 1582, 2,299,160.5 Julian days had elapsed.
   ! The Gregorian Calendar then carried on at this point from 15th October
-  ! 1582, so its beginning occured on the Julian date 2,299,160.5.
+  ! 1582, so its beginning occurred on the Julian date 2,299,160.5.
   ! 
   ! Note: the astronomical year -4712 corresponds to the year 4713 BC, the
   !       year 0 to the year 1 BC; thereafter the astronomical year match

@@ -760,7 +760,7 @@ contains
             !
             write(logstr,*)'Warning : Found a Neumann cell (msk=6) that does not have any valid neighbouring regular cell (msk=1)!'
             call write_log(logstr, 0)
-            write(logstr,*)'Therefore cell set back to innactive (msk=0) for nm= ', nm
+            write(logstr,*)'Therefore cell set back to inactive (msk=0) for nm= ', nm
             call write_log(logstr, 0)
             ! 
          endif
