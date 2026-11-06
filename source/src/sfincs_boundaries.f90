@@ -760,7 +760,7 @@ contains
             !
             write(logstr,*)'Warning : Found a Neumann cell (msk=6) that does not have any valid neighbouring regular cell (msk=1)!'
             call write_log(logstr, 0)
-            write(logstr,*)'Therefore cell set back to innactive (msk=0) for nm= ', nm
+            write(logstr,*)'Therefore cell set back to inactive (msk=0) for nm= ', nm
             call write_log(logstr, 0)
             ! 
          endif
@@ -1097,7 +1097,7 @@ contains
    ! UV fluxes at boundaries
    !
    !$acc parallel present( index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, kcuv, zs, z_volume, q, uvmean, uv, zb, zbuv, zsb, zsb0, &
-   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, kcs ) vector_length(32)
+   !$acc                  subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_havg_zmax, subgrid_z_zmin, ibuvdir, zsmax, t_zsmax, kcs ) vector_length(32)
    !$acc loop independent gang vector
    !$omp parallel private ( ib, indb, nmb, nmi, ip, zsnmi, zsnmb, zs0nmb, zsuv, depthuv, dzuv, iuv, facint, hnmb, ui, ub ) if(nkcuv2 > 10000)
    !$omp do schedule(dynamic, 64)
@@ -1252,12 +1252,33 @@ contains
          !
          if (store_maximum_waterlevel) then
             !
-            ! Store when the maximum water level changed
+            ! Store when the maximum water level changed, only when the boundary
+            ! cell is wet (same depth check as in sfincs_continuity)
             !
             if (store_t_zsmax) then
-                if (zs(nmb) > zsmax(nmb)) then
-                    t_zsmax(nmb) = t
-                endif
+               !
+               if (zs(nmb) > zsmax(nmb)) then
+                  !
+                  if (subgrid) then
+                     !
+                     if ((zs(nmb) - subgrid_z_zmin(nmb)) > huthresh) then
+                        !
+                        t_zsmax(nmb) = t
+                        !
+                     endif
+                     !
+                  else
+                     !
+                     if ((zs(nmb) - zb(nmb)) > huthresh) then
+                        !
+                        t_zsmax(nmb) = t
+                        !
+                     endif
+                     !
+                  endif
+                  !
+               endif
+               !
             endif
             !
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))

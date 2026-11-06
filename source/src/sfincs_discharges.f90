@@ -26,11 +26,6 @@ module sfincs_discharges
    !     Called from update_continuity (sfincs_continuity) once per
    !     time step, before update_src_structures.
    !
-   !   count_tokens(line, ntok)
-   !     Count whitespace-separated tokens in a string; used to decide
-   !     between the 2-column (x y) and 3-column (x y name) src formats.
-   !     Called from initialize_discharges (this module).
-   !
    ! ------------ Copyright notice SFINCS ------------
    !
    ! Copyright (C)  Stichting Deltares, 2016-2026.
@@ -122,10 +117,9 @@ contains
       implicit none
       !
       real*4    :: dummy
-      integer   :: isrc, itsrc, nmq, n, stat, ntok
+      integer   :: isrc, itsrc, nmq, n, stat, j1, j2
       logical   :: ok
       character(len=1024) :: line, line_trim
-      character(len=src_name_len) :: name_tmp
       !
       discharges          = .false.
       nr_discharge_points = 0
@@ -208,27 +202,24 @@ contains
             read(500, '(a)') line
             line_trim = adjustl(line)
             !
-            ! Count whitespace-separated tokens on the line.
+            read(line_trim, *) xsrc(n), ysrc(n)
             !
-            call count_tokens(line_trim, ntok)
+            ! Optional name between single or double quotes, which may contain
+            ! spaces (e.g. "Point 001"), as in the obs file. Without quotes the
+            ! name is auto-generated and further columns are ignored.
             !
-            if (ntok == 2) then
+            j1 = scan(line_trim, '"''')
+            j2 = 0
+            !
+            if (j1 > 0) j2 = index(line_trim(j1 + 1:), line_trim(j1:j1))
+            !
+            if (j2 > 1) then
                !
-               read(line_trim, *) xsrc(n), ysrc(n)
-               write(src_name(n), '(a,i4.4)') 'discharge_', n
-               !
-            elseif (ntok == 3) then
-               !
-               read(line_trim, *) xsrc(n), ysrc(n), name_tmp
-               src_name(n) = adjustl(trim(name_tmp))
+               src_name(n) = adjustl(line_trim(j1 + 1:j1 + j2 - 1))
                !
             else
                !
-               write(logstr,'(a,i0,a,i0,a)') ' Error ! src file line ', n, ' has ', ntok, &
-                  ' tokens -- expected 2 (x y) or 3 (x y name) !'
-               call write_log(logstr, 1)
-               error = 1
-               return
+               write(src_name(n), '(a,i4.4)') 'discharge_', n
                !
             endif
             !
@@ -405,58 +396,6 @@ contains
       enddo
       !$omp end parallel do
       !$acc end parallel loop
-      !
-   end subroutine
-   !
-   !-----------------------------------------------------------------------------------------------------!
-   !
-   subroutine count_tokens(line, ntok)
-      !
-      ! Count the number of whitespace-separated tokens in a string.
-      ! Whitespace = spaces and tabs. Empty string returns 0.
-      !
-      ! Input:
-      !   line : line of text
-      !
-      ! Output:
-      !   ntok : number of whitespace-separated tokens
-      !
-      ! Called from: initialize_discharges (this module) to disambiguate the
-      ! 2-column vs 3-column srcfile layout.
-      !
-      implicit none
-      !
-      character(len=*), intent(in)  :: line
-      integer,          intent(out) :: ntok
-      !
-      integer :: i, n
-      logical :: in_tok
-      character(len=1) :: c
-      !
-      ntok   = 0
-      in_tok = .false.
-      n      = len_trim(line)
-      !
-      do i = 1, n
-         !
-         c = line(i:i)
-         !
-         if (c == ' ' .or. c == char(9)) then
-            !
-            in_tok = .false.
-            !
-         else
-            !
-            if (.not. in_tok) then
-               !
-               ntok   = ntok + 1
-               in_tok = .true.
-               !
-            endif
-            !
-         endif
-         !
-      enddo
       !
    end subroutine
    !

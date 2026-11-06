@@ -233,7 +233,7 @@
       !
       write(logstr,'(a,i0,a)')' WARNING! ', nrwovl, ' cells are covered by both wavemaker polyline files !'
       call write_log(logstr, 1)
-      write(logstr,'(a)')' These cells will be forced by SnapWave, the simulation will continue. Note that the 2 wavemaker types should NOT overlap or directly neighbour eachother!'
+      write(logstr,'(a)')' These cells will be forced by SnapWave, the simulation will continue. Note that the 2 wavemaker types should NOT overlap or directly neighbour each other!'
       call write_log(logstr, 1)
       !
    endif
