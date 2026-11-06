@@ -1,0 +1,75 @@
+#sfincs-map {
+  height: 450px;
+  width: 100%;
+  margin: 12px 0;
+  border: 1px solid #ccc;
+}
+
+/* sphinx_rtd_theme styles img/ul globally; keep Leaflet tiles and popups intact */
+#sfincs-map img { max-width: none; }
+#sfincs-map .leaflet-popup-content ul li { list-style: disc; margin: 0; }
+
+.sfincs-map-legend {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.sfincs-map-legend span {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: middle;
+  opacity: 0.6;
+}
+
+.sfincs-map-logo {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 6px;
+  border-radius: 3px;
+  line-height: 0;
+}
+
+#sfincs-map .sfincs-map-logo img {
+  width: 160px;
+  height: auto;
+}
+
+/* Deltares logo in the top-right corner, to the left of the zoom buttons */
+#sfincs-map .leaflet-top.leaflet-right {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+}
+
+#sfincs-map .leaflet-top.leaflet-right .leaflet-control {
+  margin-left: 6px;
+}
+
+#sfincs-map .sfincs-map-logo-deltares img {
+  width: 100px;
+}
+
+/* Popups: scroll when a country has many links */
+#sfincs-map .leaflet-popup-content {
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#sfincs-map .leaflet-popup-content ul {
+  margin: 4px 0 0 0;
+  padding-left: 16px;
+}
+
+#sfincs-map .leaflet-popup-content li {
+  margin-bottom: 3px;
+}
+
+.sfincs-map-papers {
+  margin-top: 6px;
+  font-weight: bold;
+}
