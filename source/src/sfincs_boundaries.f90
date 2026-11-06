@@ -1252,12 +1252,33 @@ contains
          !
          if (store_maximum_waterlevel) then
             !
-            ! Store when the maximum water level changed
+            ! Store when the maximum water level changed, only when the boundary
+            ! cell is wet (same depth check as in sfincs_continuity)
             !
             if (store_t_zsmax) then
-                if (zs(nmb) > zsmax(nmb)) then
-                    t_zsmax(nmb) = t
-                endif
+               !
+               if (zs(nmb) > zsmax(nmb)) then
+                  !
+                  if (subgrid) then
+                     !
+                     if ((zs(nmb) - subgrid_z_zmin(nmb)) > huthresh) then
+                        !
+                        t_zsmax(nmb) = t
+                        !
+                     endif
+                     !
+                  else
+                     !
+                     if ((zs(nmb) - zb(nmb)) > huthresh) then
+                        !
+                        t_zsmax(nmb) = t
+                        !
+                     endif
+                     !
+                  endif
+                  !
+               endif
+               !
             endif
             !
             zsmax(nmb) = max(zsmax(nmb), zs(nmb))
