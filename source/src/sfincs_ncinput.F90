@@ -265,7 +265,7 @@ module sfincs_ncinput
       !
    endif      
    !
-   ! Read time attibute
+   ! Read time attribute
    NF90(nf90_get_att(net_file_bndbzsbzi%ncid, net_file_bndbzsbzi%time_varid, UNITS, treftimefews))
    !      
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
@@ -349,7 +349,7 @@ module sfincs_ncinput
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%time_varid, tsrc(:)) )
    NF90(nf90_get_var(net_file_srcdis%ncid, net_file_srcdis%q_varid,    qsrc_ts(:,:)) )
    !   
-   ! Read time attibute
+   ! Read time attribute
    !
    NF90(nf90_get_att(net_file_srcdis%ncid, net_file_srcdis%time_varid, UNITS, treftimefews))
    !      
@@ -900,7 +900,7 @@ module sfincs_ncinput
    amuv_dx = wx(2) - wx(1)   ! Input grid has to be a rectilinear, not curvilinear! So amuv_dx/dy is constant
    amuv_dy = wy(2) - wy(1)   
    !
-   ! Read time attibute
+   ! Read time attribute
    !
    NF90(nf90_get_att(net_file_amuv%ncid, net_file_amuv%time_varid, UNITS, treftimefews))
    !      
@@ -1018,7 +1018,7 @@ module sfincs_ncinput
    amp_dx = px(2) - px(1)   ! Input grid has to be a rectilinear, not curvilinear! So amp_dx/dy is constant
    amp_dy = py(2) - py(1)   
    !   
-   ! Read time attibute
+   ! Read time attribute
    !
    NF90(nf90_get_att(net_file_amp%ncid, net_file_amp%time_varid, UNITS, treftimefews))
    !         
@@ -1141,7 +1141,7 @@ module sfincs_ncinput
    ampr_dx = px(2) - px(1)   ! Input grid has to be a rectilinear, not curvilinear! So ampr_dx/dy is constant
    ampr_dy = py(2) - py(1)   
    !   
-   ! Read time attibute
+   ! Read time attribute
    NF90(nf90_get_att(net_file_ampr%ncid, net_file_ampr%time_varid, UNITS, treftimefews))
    !         
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
@@ -1158,7 +1158,7 @@ module sfincs_ncinput
     !
     ! Called from: read_meteo_data (sfincs_meteo)
     !
-    ! Read the orginal (Bert) implementation
+    ! Read the original (Bert) implementation
     ! 
     use sfincs_date   
     use netcdf
@@ -1288,7 +1288,7 @@ module sfincs_ncinput
        !
     enddo
     ! 
-    ! Read time attibute and convert time to seconds since tref
+    ! Read time attribute and convert time to seconds since tref
     ! 
     NF90(nf90_get_att(net_file_spw%ncid, net_file_spw%time_varid, 'units', treftimefews))
     !

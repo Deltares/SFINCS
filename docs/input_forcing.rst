@@ -16,7 +16,7 @@ For more information regarding specific parameters see the pages 'Input paramete
    :width: 800px
    :align: center
 
-   Overview of input file of SFINCS with indication whther they are required or not
+   Overview of input file of SFINCS with indication whether they are required or not
 
 Forcing
 ^^^^^^^^^
@@ -61,7 +61,7 @@ Water level time-series
 Then in the file 'sfincs.bzs' the water level time-series are specified per input location.
 Times are specified in seconds with respect to SFINCS' internal reference time 'tref', as specified in sfincs.inp.
 
-**NOTE - The time and length of values you prescibe per boundary input location should be all the same in the bzsfile**
+**NOTE - The time and length of values you prescribe per boundary input location should be all the same in the bzsfile**
 
 **bzsfile = sfincs.bzs**
 
@@ -127,7 +127,7 @@ Netcdf format input
 ^^^^^^^^^
 
 As alternative, the bnd/bzs/bzi data can also be specified using a single Netcdf file with FEWS input type format 'netbndbzsbzifile'.
-SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalant) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"
+SFINCS assumes that the input variables 'x', 'y', 'time', 'zs' (needed, for bzsfile equivalent), 'zi' (optional, for bzifile equivalent) and 'stations' are available in the netcdf file, including a reference time as UNIT in variable 'time' of the Fews time format: "minutes since 1970-01-01 00:00:00.0 +0000"
 
 **Python example using HydroMT-SFINCS**
 

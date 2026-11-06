@@ -301,7 +301,7 @@ contains
          !
       endif
       !
-      ! 5) Check whether infiltration input type (orignal vs netcdf) are correctly matched to grid type (regular vs quadtree)
+      ! 5) Check whether infiltration input type (original vs netcdf) are correctly matched to grid type (regular vs quadtree)
       !
       if (infiltration .and. inftype /= 'con') then !constant uniform works for both options
          !
@@ -631,7 +631,7 @@ contains
    GA_Lu      = GA_Lu / 1000                  ! from mm to m
    ksfield    = ksfield / 1000 / 3600         ! from mm/hr to m/s
    !
-   ! First time step doesnt have an estimate yet
+   ! First time step doesn't have an estimate yet
    !
    allocate(qinffield(np))
    qinffield = 0.0
@@ -909,7 +909,7 @@ contains
             !
          else
             !
-            ! Initalise these variables for new rainfall event
+            ! Initialise these variables for new rainfall event
             !
             scs_P1(nm)          = 0.0               ! cumulative rainfall for this 'event'
             scs_F1(nm)          = 0.0               ! cumulative infiltration for this 'event'
@@ -950,7 +950,7 @@ contains
          !
          if (scs_rain(nm) == 1) then
             !
-            ! if it was raining before; cange logic and set rate to 0
+            ! if it was raining before; change logic and set rate to 0
             !
             scs_rain(nm)   = 0
             qinfmap(nm)    = 0.0
@@ -1158,7 +1158,7 @@ contains
          if (I < 0.01) then
             !
             I           = 0.0                           ! which reduces qinfmap to horton_fc
-            rain_T1(nm) = rain_T1(nm) + dt              ! also make sure time doesnt further decrease
+            rain_T1(nm) = rain_T1(nm) + dt              ! also make sure time doesn't further decrease
             qinfmap(nm) = horton_fc(nm) / 3600 / 1000   ! from mm/hr to m/s
             !
          else

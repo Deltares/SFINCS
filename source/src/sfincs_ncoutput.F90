@@ -965,7 +965,7 @@ contains
    NF90(nf90_put_att(his_file%ncid,nf90_global, "Build-Date", trim(build_date)))
    NF90(nf90_put_att(his_file%ncid,nf90_global, "title", "SFINCS his point netcdf output"))     
    !
-   ! add input params for reproducability   
+   ! add input params for reproducibility   
    call ncoutput_add_params(his_file%ncid,his_file%inp_varid)   
    !
    ! Create variables
@@ -1983,7 +1983,7 @@ contains
    !
    integer :: ncid, varid
    !
-   ! add user input params for reproducability
+   ! add user input params for reproducibility
         ! User input
         NF90(nf90_def_var(ncid, 'inp', NF90_INT, varid)) ! use order of sfincs_input.f90
         NF90(nf90_put_att(ncid, varid, 'mmax', mmax)) !without dummy cells

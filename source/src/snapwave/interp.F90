@@ -570,7 +570,7 @@ contains
       ! Subroutine from 'Numerical recipes' Fortran  edition.
       ! Given an array XX of length N, given value X, return a value J
       ! such that X is between XX(J) en XX (J+1)
-      ! XX must be monotonic, either decreasing or increasin
+      ! XX must be monotonic, either decreasing or increasing
       ! J=0 or J=N indicates X is out of range.
 
 
@@ -648,7 +648,7 @@ contains
       ! Subroutine from 'Numerical recipes' Fortran  edition.
       ! Given an array XX of length N, given value X, return a value J
       ! such that X is between XX(J) en XX (J+1)
-      ! XX must be monotonic, either decreasing or increasin
+      ! XX must be monotonic, either decreasing or increasing
       ! J=0 or J=N indicates X is out of range.
 
 

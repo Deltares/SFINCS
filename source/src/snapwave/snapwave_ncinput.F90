@@ -133,7 +133,7 @@ module snapwave_ncinput
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%wd_varid, wd_bwv(:,:)) )   
    NF90(nf90_get_var(net_file_snapwave%ncid, net_file_snapwave%ds_varid, ds_bwv(:,:)) )      
    !
-   ! Read time attibute
+   ! Read time attribute
    NF90(nf90_get_att(net_file_snapwave%ncid, net_file_snapwave%time_varid, UNITS, treftimefews))
    !      
    ! Convert input time to sfincs time wrt treftime, time in same timezone as sfincs (UTC)
