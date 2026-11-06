@@ -47,8 +47,7 @@ contains
       ! SFINCS enters thousands of short parallel regions per second. The Intel
       ! OpenMP runtime puts its worker threads to sleep KMP_BLOCKTIME (200 ms by
       ! default) after a region and wakes them through the operating system for
-      ! the next one; on small grids that costs more than the work itself
-      ! (Bellinge, 18 000 cells and 1020 1D nodes: 70 to 110 s instead of 12 s).
+      ! the next one; on small grids that costs more than the work itself.
       ! Unless the user set KMP_BLOCKTIME or OMP_WAIT_POLICY, the threads are
       ! told to keep spinning, the equivalent of KMP_BLOCKTIME=infinite. This is
       ! a property of the runtime library the compiler links (libiomp5 for ifort
