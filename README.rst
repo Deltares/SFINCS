@@ -76,25 +76,27 @@ SFINCS seeks active contribution from the hydro modelling community, so feel fre
 
 How to ask questions to other users?
 -------------------------------------------------------
-For the SFINCS model itself, questions to fellow users can be asked in the SFINCS `github discussion board section. <https://github.com/Deltares/SFINCS/discussions>`_ 
+For the SFINCS model itself, questions to fellow users can be asked in the SFINCS `github discussion board section <https://github.com/Deltares/SFINCS/discussions>`__. 
 
-Questions to fellow users regarding model building with the Python toolbox HydroMT-SFINCS can be asked in the HydroMT-SFINCS `github discussion board section. <https://github.com/Deltares/hydromt_sfincs/discussions>`_ 
+Questions to fellow users regarding model building with the Python toolbox HydroMT-SFINCS can be asked in the HydroMT-SFINCS `github discussion board section <https://github.com/Deltares/hydromt_sfincs/discussions>`__. 
 
 Licensing conditions source code?
 -------------------------------------------------------
 This source code is available open source under GNU GPL-3.0 license, see attached.
 This means (summarised, for details always read license):
-	- Permissions: Commercial use, Distribution, Modification, Patent use, Private use
-	- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
-	- Limitations: No liability, no warranty
+
+- Permissions: Commercial use, Distribution, Modification, Patent use, Private use
+- Conditions: Disclose source, License and copyright notice, Same license (so no distributing closed source versions), State changes
+- Limitations: No liability, no warranty
 
 SFINCS makes use of several third-party codes and libraries, which are subject to their respective licenses:
-	- SnapWave (``source/src/snapwave/``): GNU LGPL-2.1, see ``source/src/snapwave/LICENSE``. Copyright Dano Roelvink / IHE Delft. Parts of the SnapWave code are adapted from XBeach (copyright UNESCO-IHE, Deltares and Delft University). SFINCS-SnapWave comes with modifications of and additions to SnapWave by Deltares (copyright Deltares). The header of each file lists its copyright holders.
-	- NetCDF-Fortran 4.6.1 (``source/third_party_open/netcdf/netcdf-fortran-4.6.1/``): copyright University Corporation for Atmospheric Research/Unidata, BSD-style license, see ``COPYRIGHT`` in that folder; the Fortran 2003 interfaces are under Apache-2.0, see ``F03Interfaces_LICENSE``.
-	- NetCDF-C 4.9.2 (Windows binaries in ``source/third_party_open/netcdf/netCDF 4.9.2/``): copyright UCAR/Unidata, BSD-style license. These binaries include HDF5, HDF4, zlib, libcurl and libjpeg, each under its own permissive license.
-	- TOML-Fortran (``source/third_party_open/utils/toml-f/``): copyright Sebastian Ehlert, dual-licensed under Apache-2.0 or MIT, see ``LICENSE-Apache`` and ``LICENSE-MIT`` in that folder.
-	- ``hpsort_eps`` heapsort (``source/third_party_open/utils/hpsort_eps.f90``): from EPW / Quantum ESPRESSO, copyright Samuel Poncé, Roxana Margine, Carla Verdi, Feliciano Giustino, Jesse Noffsinger and Brad Malone, GNU GPL.
-	- Astronomical tide routines (``source/third_party_open/Delft3D/astro.f90``): from Delft3D, copyright Stichting Deltares, GNU GPL-3.0.
+
+- SnapWave (``source/src/snapwave/``): GNU LGPL-2.1, see ``source/src/snapwave/LICENSE``. Copyright Dano Roelvink / IHE Delft. Parts of the SnapWave code are adapted from XBeach (copyright UNESCO-IHE, Deltares and Delft University). SFINCS-SnapWave comes with modifications of and additions to SnapWave by Deltares (copyright Deltares). The header of each file lists its copyright holders.
+- NetCDF-Fortran 4.6.1 (``source/third_party_open/netcdf/netcdf-fortran-4.6.1/``): copyright University Corporation for Atmospheric Research/Unidata, BSD-style license, see ``COPYRIGHT`` in that folder; the Fortran 2003 interfaces are under Apache-2.0, see ``F03Interfaces_LICENSE``.
+- NetCDF-C 4.9.2 (Windows binaries in ``source/third_party_open/netcdf/netCDF 4.9.2/``): copyright UCAR/Unidata, BSD-style license. These binaries include HDF5, HDF4, zlib, libcurl and libjpeg, each under its own permissive license.
+- TOML-Fortran (``source/third_party_open/utils/toml-f/``): copyright Sebastian Ehlert, dual-licensed under Apache-2.0 or MIT, see ``LICENSE-Apache`` and ``LICENSE-MIT`` in that folder.
+- ``hpsort_eps`` heapsort (``source/third_party_open/utils/hpsort_eps.f90``): from EPW / Quantum ESPRESSO, copyright Samuel Poncé, Roxana Margine, Carla Verdi, Feliciano Giustino, Jesse Noffsinger and Brad Malone, GNU GPL.
+- Astronomical tide routines (``source/third_party_open/Delft3D/astro.f90``): from Delft3D, copyright Stichting Deltares, GNU GPL-3.0.
 
 SnapWave and the other libraries are integrated into SFINCS, which as a whole is distributed under GNU GPL-3.0, as above.
 
@@ -103,16 +105,18 @@ Licensing conditions executables?
 The SFINCS pre-compiled executables on Windows and Docker(linux) are available under the conditions as indicated when downloading SFINCS from https://download.deltares.nl/sfincs.
 
 SFINCS is available under Deltares Freeware license without monetary fee, meaning (summarised, for details always read license):
-	- Permissions: Commercial use allowed, Research publishing allowed, no distribution, no modification
+
+- Permissions: Commercial use allowed, Research publishing allowed, no distribution, no modification
     	- IP, ownership: Deltares owns the copyright to SFINCS Software and the Deltares Software Documentation
-	- Conditions: Disclose source, License and copyright notice, Same license (so no distribution of closed source versions), no changes
-	- Limitations: No liability, no warranty
-	- Support: Deltares will only provide any maintenance and/or support for SFINCS Software as part of separate project and/or a maintenance Agreement as agreed with Deltares
+- Conditions: Disclose source, License and copyright notice, Same license (so no distribution of closed source versions), no changes
+- Limitations: No liability, no warranty
+- Support: Deltares will only provide any maintenance and/or support for SFINCS Software as part of separate project and/or a maintenance Agreement as agreed with Deltares
 
 Acknowledgments
 -------------------------------------------------------
 SFINCS is developed and maintained by Deltares, with contributions from the wider open-source community. We thank all contributors and users for their support and engagement with SFINCS.
 In particular, we want to thank our special collaborators and user contributions by:
+
 - Danish Coastal Authority
 - USGS
 - ONR
@@ -129,6 +133,7 @@ In particular, we want to thank our special collaborators and user contributions
 (We try to acknowledge all contributors, but apologize if anyone is missing - please let us know.)
 
 Also, we want to thank our TKI Joint Industry project partners for their valuable contributions and collaboration:
+
 - Svasek - HKV
 - CDR
 - Fathom
