@@ -387,20 +387,37 @@ contains
       !
    endif   
    !
-   ! Determine Cd coefficients
+   ! Determine Cd coefficients. Below the first and above the last breakpoint the drag coefficient is kept constant.
    !
    do iw = 1, 1000
+      !
       wnd = iw*0.1
-      do icd = 1, cd_nr - 1
-         cdval(iw) = cd_val(icd)
-         if (wnd>=cd_wnd(icd) .and. wnd<cd_wnd(icd + 1)) then
-            cdval(iw) = cd_val(icd) + (wnd - cd_wnd(icd))*(cd_val(icd + 1) - cd_val(icd))/(cd_wnd(icd + 1) - cd_wnd(icd))
-            exit
-         elseif (wnd>=cd_wnd(cd_nr)) then  
-            cdval(iw) = cd_val(cd_nr)
-            exit
-         endif
-      enddo   
+      !
+      if (wnd <= cd_wnd(1)) then
+         !
+         cdval(iw) = cd_val(1)
+         !
+      elseif (wnd >= cd_wnd(cd_nr)) then
+         !
+         cdval(iw) = cd_val(cd_nr)
+         !
+      else
+         !
+         cdval(iw) = cd_val(cd_nr)
+         !
+         do icd = 1, cd_nr - 1
+            !
+            if (wnd >= cd_wnd(icd) .and. wnd < cd_wnd(icd + 1)) then
+               !
+               cdval(iw) = cd_val(icd) + (wnd - cd_wnd(icd))*(cd_val(icd + 1) - cd_val(icd))/(cd_wnd(icd + 1) - cd_wnd(icd))
+               exit
+               !
+            endif
+            !
+         enddo
+         !
+      endif
+      !
    enddo
    !
    ! Now apply wind, pressure and rain enhancement factors: factor_wind, factor_pres, factor_precip (default all set to 1.0)
@@ -785,7 +802,7 @@ contains
             !
          else
             !
-            cd = cdval(int(vmag * 10) + 1)
+            cd = cdval(min(int(vmag * 10) + 1, 1000))
             !
          endif
          !
@@ -951,7 +968,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/amuv_dy) + 1
+         iy = floor((yul - y)/amuv_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -960,14 +977,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/amuv_dx) + 1
+         ix = floor((x - xll)/amuv_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1)*amuv_dx)) / amuv_dx
          !
-         if (iy<=1 .or. iy>=amuv_nrows .or. ix<=0 .or. ix>=amuv_ncols) then
+         if (iy<1 .or. iy>=amuv_nrows .or. ix<1 .or. ix>=amuv_ncols) then
             !
             ! Point outside rectangular amu/amv grid, this should really produce an error ...
             !
@@ -1018,7 +1035,7 @@ contains
             !
          else
             !
-            cd = cdval(int(vmag*10)+1)
+            cd = cdval(min(int(vmag*10)+1, 1000))
             !
          endif
          !
@@ -1131,7 +1148,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y) / amp_dy) + 1
+         iy = floor((yul - y) / amp_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -1140,14 +1157,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll) / amp_dx) + 1
+         ix = floor((x - xll) / amp_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1) * amp_dx)) / amp_dx
          !
-         if (iy <= 1 .or. iy >= amp_nrows .or. ix <= 0 .or. ix >= amp_ncols) then
+         if (iy < 1 .or. iy >= amp_nrows .or. ix < 1 .or. ix >= amp_ncols) then
             !
             ! Point outside rectangular amp grid
             !
@@ -1272,7 +1289,7 @@ contains
          !
          ! Determine row indices
          !
-         iy = int((yul - y)/ampr_dy) + 1
+         iy = floor((yul - y)/ampr_dy) + 1
          ind1(1) = iy
          ind1(2) = iy
          ind1(3) = iy + 1
@@ -1281,14 +1298,14 @@ contains
          !
          ! Determine column indices
          !
-         ix = int((x - xll)/ampr_dx) + 1
+         ix = floor((x - xll)/ampr_dx) + 1
          ind2(1) = ix
          ind2(2) = ix + 1
          ind2(3) = ix + 1
          ind2(4) = ix
          di1     = (x - (xll + (ix - 1)*ampr_dx)) / ampr_dx
          !
-         if (iy<=1 .or. iy>=ampr_nrows .or. ix<=0 .or. ix>=ampr_ncols) then
+         if (iy<1 .or. iy>=ampr_nrows .or. ix<1 .or. ix>=ampr_ncols) then
             !
             ! Point outside rectangular ampr grid
             !
