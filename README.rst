@@ -14,23 +14,6 @@ Why SFINCS?
 -------------------------------------------------------
 Compound flooding during extreme events can result in tremendous amounts of property damage and loss of life. Early warning systems and multi-hazard risk analysis can reduce these impacts. However, traditional approaches either do not involve relevant physics or are too computationally expensive to do so for large stretches of coastline. The SFINCS model is a new reduced-complexity engine recently developed by Deltares, that is capable of simulating compound flooding including a high computational efficiency balanced with good accuracy.
 
-Where do I find more information about SFINCS?
--------------------------------------------------------
-For general information see: https://www.deltares.nl/en/software/sfincs/
-
-Find the user manual and more information on: https://sfincs.readthedocs.io/en/latest/
-
-How to cite?
--------------------------------------------------------
-To reference the software please use the the DOI provided in the SFINCS badge that points to the latest release: |doi|
-
-The following paper presents the introduction of SFINCS:
-
-   Leijnse, T., van Ormondt, M., Nederhoff, K., & van Dongeren, A. (2021). Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: Including fluvial, pluvial, tidal, wind-      and wave-driven processes. Coastal Engineering, 163, 103796. https://doi.org/10.1016/j.coastaleng.2020.103796
-
-   van Ormondt, M., Leijnse, T., de Goede, R., Nederhoff, K., and van Dongeren, A. (2025). Subgrid corrections for the linear inertial equations of a compound flood model – a case study using SFINCS 2.1.1 Dollerup release, Geosci. Model Dev., 18, 843–861, https://doi.org/10.5194/gmd-18-843-2025
-
-   van Ormondt, M., Leijnse, T., Nederhoff, K., de Goede, R., van Dongeren, A., Bovenschen, T., van Asselt, K., Roelvink, D., Reyns, J., & van der Lugt, M. (2025). SFINCS: Super-Fast INundation of CoastS model (Versions 2.3.0 mt Faber Release 2025.02) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.17651112
 
 Acknowledge our efforts when using SFINCS for your own work
 -----------------------------------------------------------
@@ -50,7 +33,7 @@ Milestones
 During the 2026 Delft Software Days we celebrated:
 
  - 10 years of SFINCS, started in 2016 by Maarten van Ormondt
- - SFINCS' 5th user days
+ - SFINCS' 5th user days, as part of Deltares' Delft Software Days
  - 250 SFINCS scholar citations
  - and 2000+ executable downloads!
 
@@ -60,6 +43,18 @@ During the 2026 Delft Software Days we celebrated:
      <source src="docs/movies/sfincs_quadtree_banner_3d_60fps.mp4" type="video/mp4">
    </video>
 
+How to cite?
+-------------------------------------------------------
+To reference the software please use the the DOI provided in the SFINCS badge that points to the latest release: |doi|
+
+The following paper presents the introduction of SFINCS:
+
+   Leijnse, T., van Ormondt, M., Nederhoff, K., & van Dongeren, A. (2021). Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: Including fluvial, pluvial, tidal, wind-      and wave-driven processes. Coastal Engineering, 163, 103796. https://doi.org/10.1016/j.coastaleng.2020.103796
+
+   van Ormondt, M., Leijnse, T., de Goede, R., Nederhoff, K., and van Dongeren, A. (2025). Subgrid corrections for the linear inertial equations of a compound flood model – a case study using SFINCS 2.1.1 Dollerup release, Geosci. Model Dev., 18, 843–861, https://doi.org/10.5194/gmd-18-843-2025
+
+   van Ormondt, M., Leijnse, T., Nederhoff, K., de Goede, R., van Dongeren, A., Bovenschen, T., van Asselt, K., Roelvink, D., Reyns, J., & van der Lugt, M. (2025). SFINCS: Super-Fast INundation of CoastS model (Versions 2.3.0 mt Faber Release 2025.02) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.17651112
+
 How do I get SFINCS?
 -------------------------------------------------------
 Download the latest windows executable here: https://download.deltares.nl/sfincs
@@ -68,6 +63,11 @@ Get the Docker of version of SFINCS to run on Mac, Linux or HPC here: https://hu
 
 docker pull deltares/sfincs-cpu:sfincs-v2.5.0-Hautacam-Release
 
+Where do I find more information about SFINCS?
+-------------------------------------------------------
+For general information see: https://www.deltares.nl/en/software/sfincs/
+
+Find the user manual and more information on: https://sfincs.readthedocs.io/en/latest/
 
 How to contribute?
 -------------------------------------------------------

@@ -54,9 +54,7 @@ Developing excellent software takes significant time and effort, and funding, fr
 
 We greatly appreciate any acknowledgment and support from the community when using SFINCS in your work.
 By doing research and projects together, involving us in papers and research proposals, getting help through SFINCS service contracts, following trainings, sharing bugfixes and improvements - we all benefit and contribute to the continued development and success of SFINCS.
-
 We thank all contributors and users for their support and engagement with SFINCS, and we are very busy fulfilling our ambition:
-
 **Making the best, fit-for-purpose, fast open-source compound flood model – in the world!**
 
 **Open source & licensing:** 
