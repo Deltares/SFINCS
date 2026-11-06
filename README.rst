@@ -37,11 +37,9 @@ During the 2026 Delft Software Days we celebrated:
  - 250 SFINCS scholar citations
  - and 2000+ executable downloads!
 
-.. raw:: html
-
-   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
-     <source src="docs/movies/sfincs_quadtree_banner_3d_60fps.mp4" type="video/mp4">
-   </video>
+.. image:: docs/movies/Hautacam_2026_02_release.gif
+   :alt: The SFINCS logo flooding on a quadtree mesh, simulated with SFINCS
+   :target: https://sfincs.readthedocs.io/en/latest/
 
 How to cite?
 -------------------------------------------------------
