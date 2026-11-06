@@ -109,6 +109,46 @@ SFINCS is available under Deltares Freeware license without monetary fee, meanin
 	- Limitations: No liability, no warranty
 	- Support: Deltares will only provide any maintenance and/or support for SFINCS Software as part of separate project and/or a maintenance Agreement as agreed with Deltares
 
+Acknowledgments
+-------------------------------------------------------
+SFINCS is developed and maintained by Deltares, with contributions from the wider open-source community. We thank all contributors and users for their support and engagement with SFINCS.
+In particular, we want to thank our special collaborators and user contributions by:
+- Danish Coastal Authority
+- USGS
+- ONR
+- CDR
+- UCSC
+- University of Cantabria
+- IHE Cantabria
+- Institute for Environmental Studies (IVM) of VU Amsterdam
+- Rutgers University
+- IHE Delft
+- TU Delft
+- IMDC
+
+(We try to acknowledge all contributors, but apologize if anyone is missing - please let us know.)
+
+Also, we want to thank our TKI Joint Industry project partners for their valuable contributions and collaboration:
+- Svasek - HKV
+- CDR
+- Fathom
+- IHE Delft
+- UC Santa Cruz
+- Guy Carpenter - Marsh RE
+- IMDC
+- Kystdirektoratet (Danish Coastal Authority)
+- AON
+- Covea
+- Shelf Models
+- CBCL
+- The Water Institute
+- Deltares
+
+This project is part of the TKI subsidy program of the Dutch Ministry of Economic Affairs.
+For more info see: 
+https://publicwiki.deltares.nl/spaces/TKIP/pages/343966166/DEL194+-+TKI+SFINCS+-+DROMOS
+
+
 .. figure:: https://user-images.githubusercontent.com/28528822/200898347-d4016571-f3c7-4257-b59c-86aa1e97a699.png
    :width: 800px
    :align: center   
