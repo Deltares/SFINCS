@@ -9,9 +9,9 @@ While SFINCS itself is coded in Fortran, it does not matter whether you create t
 To make the setting up of basic models easier, making a SFINCS model is supported by different open source available options:
 
 * Python script framework called **'HydroMT'**, with its dedicated plugin **'hydromt_sfincs'** --> highly recommended to use since 2023
-* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard'** --> the Matlab DDB GUI is currently depricated
+* Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard'** --> the Matlab DDB GUI is currently deprecated
 * Graphical User Interface (GUI) to make SFINCS models interactively: **'Delft Dashboard Python'** --> the Python DDB GUI prototype is currently being tested by users
-* Matlab scripts toolbox in the **'Open Earth Toolbox'** --> the Matlab OET scripts are currently depricated
+* Matlab scripts toolbox in the **'Open Earth Toolbox'** --> the Matlab OET scripts are currently deprecated
 
 If you need a more tailor-made solution for setting up your SFINCS models get in touch with us!
 
@@ -94,7 +94,7 @@ On linux
 Dedicated linux compiled version
 ^^^^^
 
-Generally for Linux (HPC) systems, running using Docker or Apptainer is the most generic and succesfull way.
+Generally for Linux (HPC) systems, running using Docker or Apptainer is the most generic and successful way.
 In case you need a dedicated Linux build, get in touch and we can create a version specifically for you.
 We have experience doing this for our own Deltares cluster.
 

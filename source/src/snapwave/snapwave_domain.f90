@@ -376,7 +376,7 @@ contains
    theta360 = theta360*pi/180
    dtheta   = dtheta*pi/180   
    ! 
-   ! Read polygon outlining valid boundary points - TL: take out of upwfile loop, should be independent on whether we re-use upwfile or not
+   ! Read polygon outlining valid boundary points - TL: take out of upwfile loop, should be independent on whether we reuse upwfile or not
    !
    if (.not. any(msk == 2)) then
        !
@@ -907,7 +907,7 @@ contains
       ! Subroutine from 'Numerical recipes' Fortran  edition.
       ! Given an array XX of length N, given value X, return a value J
       ! such that X is between XX(J) en XX (J+1)
-      ! XX must be monotonic, either decreasing or increasin
+      ! XX must be monotonic, either decreasing or increasing
       ! J=0 or J=N indicates X is out of range.
 
 

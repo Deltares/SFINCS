@@ -177,7 +177,7 @@ contains
    allocate(eet_bwv(ntheta, nwbnd))    
    !
    ! Determine IG wave height and period at boundary point(s) later using Herbers 1994 
-   ! (depends on local -changing- water depth, so not calculatable a priori)
+   ! (depends on local -changing- water depth, so not calculable a priori)
    !
    if (igwaves) then
       ! 

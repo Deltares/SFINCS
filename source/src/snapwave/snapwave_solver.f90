@@ -137,7 +137,7 @@ contains
       Tp      = max(tpmean_bwv, Tpini)   ! to check voor windgroei
       sig     = 2.0 * pi / Tp
       Tp_ig   = tpmean_bwv_ig! TL: now determined in snapwave_boundaries.f90 instead of Tinc2ig*Tp
-      sigm_ig = 2.0 * pi / Tp_ig !TODO - TL: Question do we want Tp_ig now as contant, or also spatially varying like Tp ?
+      sigm_ig = 2.0 * pi / Tp_ig !TODO - TL: Question do we want Tp_ig now as constant, or also spatially varying like Tp ?
       expon   = - (sig * sqrt(depth / g))**2.5
       kwav    = sig**2 / g * (1.0 - exp(expon))**-0.4
       C       = sig / kwav

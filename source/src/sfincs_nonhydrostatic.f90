@@ -186,7 +186,7 @@ contains
    allocate(uv_index_of_nhuv(nhuv))
    uv_index_of_nhuv = 0
    !   
-   ! Now find neigboring indices of nh uv points
+   ! Now find neighboring indices of nh uv points
    !
    inhuv = 0
    !
