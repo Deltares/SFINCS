@@ -1,0 +1,47 @@
+{
+  "_readme": "Countries where SFINCS has been applied, shown on the map in overview.rst. Add a country with its ISO 3166 alpha-3 code (as used in countries.geojson, e.g. GLP for Guadeloupe). 'links' is optional: a list of {title, url}.",
+  "countries": [
+    {"iso": "AUS"},
+    {"iso": "BHS"},
+    {"iso": "BHR"},
+    {"iso": "BGD"},
+    {"iso": "BRB"},
+    {"iso": "BLZ"},
+    {"iso": "CUB"},
+    {"iso": "DNK", "links": [
+      {"title": "Coastal flooding for the entire country of Denmark (EU Floods Directive)", "url": "https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts"},
+      {"title": "Video", "url": "https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares"}
+    ]},
+    {"iso": "DMA"},
+    {"iso": "DOM"},
+    {"iso": "FRA"},
+    {"iso": "GRD"},
+    {"iso": "GLP"},
+    {"iso": "GUY"},
+    {"iso": "IDN"},
+    {"iso": "IRL"},
+    {"iso": "ITA"},
+    {"iso": "JAM"},
+    {"iso": "LAO"},
+    {"iso": "LBR"},
+    {"iso": "MTQ"},
+    {"iso": "MOZ", "links": [
+      {"title": "Coastal flooding at Beira", "url": "https://www.preventionweb.net/news/dutch-mozambican-consortium-help-protect-beira-against-coastal-flooding"}
+    ]},
+    {"iso": "MMR"},
+    {"iso": "NLD"},
+    {"iso": "NGA"},
+    {"iso": "PAK"},
+    {"iso": "PHL"},
+    {"iso": "PRI"},
+    {"iso": "VCT"},
+    {"iso": "STP"},
+    {"iso": "SAU"},
+    {"iso": "SUR"},
+    {"iso": "TUR"},
+    {"iso": "USA", "links": [
+      {"title": "Urban flooding and adaptation measures in the USA", "url": "https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks"},
+      {"title": "Compound flooding along the whole US Southeast coast", "url": "https://www.deltares.nl/en/news/climate-hazards-for-u.s.-atlantic-coast"}
+    ]}
+  ]
+}

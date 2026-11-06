@@ -157,11 +157,27 @@ SFINCS has been applied in these international projects, with attached links to 
 
 * `Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive <https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts>`_  `(also see video) <https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares>`_
 
-.. figure:: ./figures/Countries_covered_by_SFINCS_models.png
-   :width: 600px
-   :align: center
+.. To add a country to the map, edit docs/_static/sfincs_map/applications.json (ISO 3166 alpha-3 codes).
 
-   Overview of countries globally where SFINCS has been used, including all SIDS
+.. only:: html
+
+   .. raw:: html
+
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+      <link rel="stylesheet" href="_static/sfincs_map/map.css">
+      <div id="sfincs-map" data-base="_static/sfincs_map/"></div>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <script src="_static/sfincs_map/map.js"></script>
+
+   Interactive overview of countries globally where SFINCS has been used. Click a country for links to projects.
+
+.. only:: latex
+
+   .. figure:: ./figures/Countries_covered_by_SFINCS_models.png
+      :width: 600px
+      :align: center
+
+      Overview of countries globally where SFINCS has been used, including all SIDS
 
 SFINCS has been applied (or still is) in multiple other international projects:
 

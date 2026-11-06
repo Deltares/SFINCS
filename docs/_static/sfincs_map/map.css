@@ -1,0 +1,26 @@
+#sfincs-map {
+  height: 450px;
+  width: 100%;
+  margin: 12px 0;
+  border: 1px solid #ccc;
+}
+
+/* sphinx_rtd_theme styles img/ul globally; keep Leaflet tiles and popups intact */
+#sfincs-map img { max-width: none; }
+#sfincs-map .leaflet-popup-content ul li { list-style: disc; margin: 0; }
+
+.sfincs-map-legend {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.sfincs-map-legend span {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: middle;
+  opacity: 0.6;
+}
