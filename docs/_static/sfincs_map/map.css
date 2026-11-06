@@ -24,3 +24,30 @@
   vertical-align: middle;
   opacity: 0.6;
 }
+
+.sfincs-map-logo {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 6px;
+  border-radius: 3px;
+  line-height: 0;
+}
+
+#sfincs-map .sfincs-map-logo img {
+  width: 160px;
+  height: auto;
+}
+
+/* Deltares logo in the top-right corner, to the left of the zoom buttons */
+#sfincs-map .leaflet-top.leaflet-right {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+}
+
+#sfincs-map .leaflet-top.leaflet-right .leaflet-control {
+  margin-left: 6px;
+}
+
+#sfincs-map .sfincs-map-logo-deltares img {
+  width: 100px;
+}
