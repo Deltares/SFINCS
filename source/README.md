@@ -47,4 +47,12 @@ To install it into your system you can use make install.
     $ make install
 ```
 
+The build records the source revision it was built from (`git describe --tags --always --dirty` of this source tree) and SFINCS writes it as `Source-Revision` to `sfincs.log` and to the netCDF output. Without git metadata (for example a release tarball, or a Docker build context without `.git`) the value is `unknown`. To set it yourself, set `SFINCS_GIT_REVISION` in the environment (or pass it to both `make` and `make install`, which check the value again):
+
+```
+    $ export SFINCS_GIT_REVISION=v2.5.0
+    $ make
+    $ make install
+```
+
 See the [autobook](https://www.sourceware.org/autobook/autobook/autobook_toc.html) for documentation on the build system.
