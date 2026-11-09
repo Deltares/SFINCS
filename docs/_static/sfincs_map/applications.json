@@ -150,9 +150,12 @@
     {"iso": "PRI"},
     {"iso": "PRT"},
     {"iso": "PYF"},
+    {"iso": "RWA"},
     {"iso": "SAU"},
+    {"iso": "SDN"},
     {"iso": "SGP"},
     {"iso": "SLB"},
+    {"iso": "SSD"},
     {"iso": "STP", "papers": [
       {"year": 2020, "title": "Uncertainties in coastal flood risk assessments in small island developing states", "doi": "10.5194/nhess-20-2397-2020"}
     ]},
@@ -170,6 +173,7 @@
     {"iso": "TUV"},
     {"iso": "TWN"},
     {"iso": "TZA"},
+    {"iso": "UGA"},
     {"iso": "UKR"},
     {"iso": "USA", "links": [
       {"title": "Urban flooding and adaptation measures in the USA", "url": "https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks"},
