@@ -211,7 +211,7 @@ contains
       ! Advance zs(np) by dt on the non-subgrid (bathtub / simple bathy)
       ! path. Applies cell-wise qsrc contributions and the horizontal
       ! flux divergence, handles the optional wavemaker cells (kcs == 4),
-      ! updates the snapwave-filtered water level zsm, and accumulates
+      ! updates the filtered water level zsm (wave makers), and accumulates
       ! zsmax / t_zsmax when requested.
       !
       ! Input:
@@ -242,13 +242,23 @@ contains
       real*4           :: qndm
       real*4           :: factime
       !
-      if (snapwave) then ! need to compute filtered water levels for snapwave
+      if (wavemaker) then ! need to compute filtered water levels zsm for wave makers
          !
-         factime = min(dt / wavemaker_filter_time, 1.0)
+         if (wavemaker_filter_time > 0.0) then
+            !
+            factime = min(dt / wavemaker_filter_time, 1.0)
+            !
+         else
+            !
+            ! No filtering, zsm follows zs
+            !
+            factime = 1.0
+            !
+         endif
          !
       endif
       !
-      !$acc parallel present( kcs, zs, zb, q, qext, zsmax, zsm, maxzsm, &
+      !$acc parallel present( kcs, zs, zb, q, qext, zsmax, t_zsmax, zsm, maxzsm, &
       !$acc                   z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
       !$acc                   dxm, dxrm, dyrm, dxminv, dxrinv, dyrinv, cell_area_m2, cell_area,  &
@@ -365,9 +375,9 @@ contains
             !
          endif
          !
-         if (snapwave) then
+         if (wavemaker) then
             !
-            ! Time-averaged water level used for SnapWave using exponential filter
+            ! Time-averaged water level used for SnapWave (with wave makers) using exponential filter
             !
             ! Would double exponential filtering be better?
             !
@@ -423,7 +433,7 @@ contains
       ! storage_volume (when use_storage_volume is set), updates
       ! z_volume, and recovers the new water level via subgrid table
       ! interpolation. Also handles wavemaker cells (kcs == 4), the
-      ! snapwave-filtered zsm, and zsmax / t_zsmax accumulation.
+      ! filtered water level zsm (wave makers), and zsmax / t_zsmax accumulation.
       !
       ! Input:
       !   dt : time step [s]
@@ -463,9 +473,19 @@ contains
       real*4           :: zs00
       real*4           :: zs11
       !
-      if (wavemaker) then
+      if (wavemaker) then ! need to compute filtered water levels zsm for wave makers
          !
-         factime = min(dt / wavemaker_filter_time, 1.0)
+         if (wavemaker_filter_time > 0.0) then
+            !
+            factime = min(dt / wavemaker_filter_time, 1.0)
+            !
+         else
+            !
+            ! No filtering, zsm follows zs
+            !
+            factime = 1.0
+            !
+         endif
          !
       endif
       !
@@ -473,7 +493,7 @@ contains
       !$omp private ( dvol, nmd, nmu, ndm, num, a, iuv, facint, dzvol, iwm, &
       !$omp           qnmd, qnmu, qndm, qnum, dv, zs00, zs11 )
       !$omp do schedule ( dynamic, 256 )
-      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, zvolmax, zsm, maxzsm, zsderv, &
+      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, t_zsmax, zvolmax, zsm, maxzsm, zsderv, &
       !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
       !$acc                   q, qext, z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
@@ -709,9 +729,9 @@ contains
             !
          endif
          !
-         if (snapwave) then
+         if (wavemaker) then
             !
-            ! Time-averaged water level used for SnapWave using exponential filter
+            ! Time-averaged water level used for SnapWave (with wave makers) using exponential filter
             !
             ! Would double exponential filtering be better?
             !

@@ -3,7 +3,7 @@
 Introduction
 ============
 
-This documentation descibes the following:
+This documentation describes the following:
 
 o howto build the sfincs-cpu container on (for example the v-hydrax001.directory.intra). 
 
@@ -46,7 +46,7 @@ Building the singularity SFINCS container image
 
 In the future, this subsection should be covered in a Teamcity buildstep, which hopefully will spit out the sincs-cpu.sif
 Also, a normal user doesn't have permission to build a Singularity container on the Rekencluster. That's why we  use a local
-installed Virtual Machine. In reality, you should not have to do this becuase it is in a buildstep.
+installed Virtual Machine. In reality, you should not have to do this because it is in a buildstep.
 
 Cloning the SFINCS git repository
 ---------------------------------
@@ -244,7 +244,7 @@ Using HPC Tooling to set up a SFINCS model queue
 Premises
 --------
 
-The last part of the last seection was fine-and-dandy, but it does not use one thing of the HPC. In this section we set up a numnber of models for running
+The last part of the last seection was fine-and-dandy, but it does not use one thing of the HPC. In this section we set up a number of models for running
 in the HPC's queuing mechanism.
 
 Setup a model directory
@@ -279,7 +279,7 @@ Setting up the HPC Control Scripts
 ----------------------------------
 
 The HPC Control Scripts really are two simple bash scripts which make it easier to run all the models in our **model** directory, submitting a job to a
-HPC queueu for each model. 
+HPC queue for each model. 
 
 The first shell script is a script to run a job (called test-job.sh, but you may call it whatever you want)::
 

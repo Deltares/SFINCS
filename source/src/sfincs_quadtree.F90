@@ -526,7 +526,7 @@ contains
       !
    endif
    !
-   ! Read attibute (should read EPSG code here ?)
+   ! Read attribute (should read EPSG code here ?)
    !
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'x0', quadtree_x0))
    NF90(nf90_get_att(net_file_qtr%ncid, nf90_global, 'y0', quadtree_y0))
@@ -1057,7 +1057,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       xpb = xpol(ipol + 1)
       ypb = ypol(ipol + 1)
       !
-      ! First rotate line segement to quadtree coordinate system in order to find nearby cells
+      ! First rotate line segment to quadtree coordinate system in order to find nearby cells
       !
       xtmpa =   quadtree_cosrot*(xpa - x0) + quadtree_sinrot*(ypa - y0)
       ytmpa = - quadtree_sinrot*(xpa - x0) + quadtree_cosrot*(ypa - y0)

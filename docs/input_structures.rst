@@ -1,4 +1,4 @@
-﻿Structures
+﻿User manual - Structures
 ==========
 
 Overview
@@ -304,7 +304,7 @@ Culvert (detailed)
 
 **NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
 
-**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+**NOTE - Prototype status: Prototypes are used in pilots and internal projects, they are field-tested but still being iteratively improved. **
 
 The detailed culvert models a barrel with a rectangular (``width`` × ``height``) or circular (``diameter``) cross-section, selected with ``shape``. The controlling sill is the higher of the two inverts, :math:`z_\text{sill} = \max(\text{invert}_1, \text{invert}_2)`; upstream and downstream are assigned on the fly from the sign of :math:`\Delta h = z_{s,1} - z_{s,2}`, so the structure is bidirectional (restrict with ``direction`` if needed).
 
@@ -460,7 +460,7 @@ Dike breach
 
 **NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
 
-**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+**NOTE - Prototype status: Prototypes are used in pilots and internal projects, they are field-tested but still being iteratively improved. **
 
 A dike breach has been implemented as source-sink structure type of element, both the location and timing of the breach are predefined. The development of the breach width (and therefore discharge) depend on the outside and inside waterlevels. The breach first deepens and then widens, following the two-phase breach model of Verheij & Van der Knaap (2003). Like the other structures, a dike breach moves water from ``src_1`` to ``src_2`` (or back) and does not change the model bathymetry. The dike itself must therefore be represented in the model, for example by the topography or a weir, which the breach then bypasses.
 
@@ -555,7 +555,7 @@ All common keys are accepted. The breach width in time is written to ``sfincs_hi
 
 **NOTE - Available from SFINCS v2026.02 Hautacam release onwards**
 
-**NOTE - Prototype status: this functionality is field-tested, but is still being improved iteratively**
+**NOTE - Prototype status: Prototypes are used in pilots and internal projects, they are field-tested but still being iteratively improved. **
 
 Any structure can carry an ordered list of control rules, written as ``[[src_structure.rule]]`` tables directly below its ``[[src_structure]]`` block. Each rule has two keys:
 

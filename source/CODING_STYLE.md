@@ -142,7 +142,7 @@ module sfincs_continuity
    !
 ```
 
-**Licence block**: the module header of every file in `source/src` ends with the block below, unchanged. Its first and last lines are the only banner lines allowed:
+**Licence block**: the module header of every file in `source/src` (except `source/src/snapwave/`, see below) ends with the block below, unchanged. Its first and last lines are the only banner lines allowed:
 
 ```fortran
    ! ------------ Copyright notice SFINCS ------------
@@ -174,6 +174,225 @@ module sfincs_continuity
    ! ------------ Copyright notice SFINCS ------------
    !
 ```
+
+**SnapWave licence block**: files in `source/src/snapwave/` are SnapWave code, licensed under LGPL-2.1 (Deltares' modifications included). Their module header ends with the block below instead, unchanged. Its first and last lines are the only banner lines allowed. SFINCS-specific coupling code belongs in GPL files outside this folder (e.g. `sfincs_snapwave.f90`) with the SFINCS block:
+
+```fortran
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Dano Roelvink, IHE Delft, 2020-2026.
+   !
+   ! This file is part of SnapWave.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! This file has been modified by Stichting Deltares for coupling
+   ! with SFINCS. The modifications are distributed under the same
+   ! licence (GNU Lesser General Public License version 2.1).
+   !
+   ! Modifications Copyright (C)  Stichting Deltares, 2021-2026.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+```
+
+Exception: `snapwave_infragravity.f90` (infragravity boundary conditions and source/sink term) was written at Deltares, with parts adapted from XBeach. It gets this block instead:
+
+```fortran
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2023-2026.
+   !
+   ! This file is part of SnapWave as coupled with SFINCS.
+   !
+   ! Parts of this file are adapted from XBeach (waveparams.F90),
+   ! Copyright (C)  UNESCO-IHE, Deltares and Delft University, 2007-2026,
+   ! distributed under the GNU Lesser General Public License version 2.1
+   ! or (at your option) any later version.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+```
+
+Exception: `snapwave_RFtable.f90` holds the Rienecker-Fenton table from XBeach (`RFveg.inc`), wrapped for SnapWave at Deltares. It gets this block instead:
+
+```fortran
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  UNESCO-IHE, Deltares and Delft University, 2007-2026.
+   !
+   ! This file is part of SnapWave as coupled with SFINCS.
+   !
+   ! The Rienecker-Fenton table in this file is taken from XBeach
+   ! (RFveg.inc), distributed under the GNU Lesser General Public License
+   ! version 2.1 or (at your option) any later version.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! This file has been modified by Stichting Deltares for coupling
+   ! with SFINCS. The modifications are distributed under the same
+   ! licence (GNU Lesser General Public License version 2.1).
+   !
+   ! Modifications Copyright (C)  Stichting Deltares, 2025-2026.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+```
+
+Exception: `snapwave_vegetation.f90` holds the vegetation routines that Deltares adapted from XBeach (`vegetation.F90`). It gets this block instead:
+
+```fortran
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2024-2026.
+   !
+   ! This file is part of SnapWave as coupled with SFINCS.
+   !
+   ! The routines in this file are adapted from XBeach (vegetation.F90),
+   ! Copyright (C)  UNESCO-IHE, Deltares and Delft University, 2011-2026,
+   ! distributed under the GNU Lesser General Public License version 2.1
+   ! or (at your option) any later version.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+```
+
+Exception: `interp.F90` is largely XBeach's `interp.F90`, extended by Dano Roelvink and (with the `real4` variants) by Deltares. It gets this block instead:
+
+```fortran
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Dano Roelvink, IHE Delft, 2020-2026.
+   !
+   ! This file is part of SnapWave.
+   !
+   ! Parts of this file are adapted from XBeach (interp.F90),
+   ! Copyright (C)  UNESCO-IHE, Deltares and Delft University, 2007-2026,
+   ! distributed under the GNU Lesser General Public License version 2.1
+   ! or (at your option) any later version.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! This file has been modified by Stichting Deltares for coupling
+   ! with SFINCS. The modifications are distributed under the same
+   ! licence (GNU Lesser General Public License version 2.1).
+   !
+   ! Modifications Copyright (C)  Stichting Deltares, 2024-2026.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+```
+
+Exception: `snapwave_ncinput.F90` was written entirely at Deltares. It gets this block instead:
+
+```fortran
+   ! ------------ Copyright notice SnapWave ------------
+   !
+   ! Copyright (C)  Stichting Deltares, 2024-2026.
+   !
+   ! This file is part of SnapWave as coupled with SFINCS.
+   !
+   ! SnapWave is free software: you can redistribute it and/or modify
+   ! it under the terms of the GNU Lesser General Public License as
+   ! published by the Free Software Foundation version 2.1.
+   !
+   ! SnapWave is distributed in the hope that it will be useful,
+   ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+   ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   ! GNU Lesser General Public License for more details.
+   !
+   ! You should have received a copy of the GNU Lesser General Public
+   ! License along with SnapWave.  If not, see <http://www.gnu.org/licenses/>.
+   !
+   ! contact: software@deltares.nl
+   ! Stichting Deltares
+   ! P.O. Box 177
+   ! 2600 MH Delft, The Netherlands
+   !
+   ! ------------ Copyright notice SnapWave ------------
+   !
+```
+
+**Copyright years**: the end year of every copyright line (SFINCS and SnapWave blocks alike, e.g. `2016-2026`) is the year of the latest commit to that file. When you commit a change to a file in a later year, update all end years in its licence block to that year (e.g. `-2027` for a commit in 2027). Start years never change. This is the only allowed change to the blocks above; the examples show the blocks as of 2026.
 
 **Per-subroutine header**: describe what it does and list (module -> subroutine) who calls it:
 

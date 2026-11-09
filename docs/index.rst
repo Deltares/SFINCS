@@ -12,11 +12,51 @@ SFINCS is a super-fast open-source flood model developed at Deltares.
 It enables rapid simulation of storm surge, riverine (fluvial) flooding, rainfall-runoff (pluvial), and wave-driven flooding from national, regional to local scales. 
 Designed to run in minutes instead of days, SFINCS supports scenario testing, operational forecasting, and climate adaptation planning worldwide. 
 
-.. figure:: ./figures/SFINCS_banner_floodadapt_style.png
-   :width: 800px
-   :align: center
-   
-   
+.. raw:: html
+
+   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
+     <source src="_static/sfincs_2026.02_release_3d.mp4" type="video/mp4">
+   </video>
+   <p><em>The SFINCS logo flooding on a quadtree mesh, simulated with SFINCS (v2.5.0 Hautacam release).</em></p>
+
+**Where is SFINCS applied?**
+
+SFINCS has been applied around the world in these countries, in various news items, international projects, papers and conference abstracts.
+Click a country for links to model applications:
+
+.. To add a country to the map, edit docs/_static/sfincs_map/applications.json (ISO 3166 alpha-3 codes).
+
+.. only:: html
+
+   .. raw:: html
+
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+      <link rel="stylesheet" href="_static/sfincs_map/map.css">
+      <div id="sfincs-map" data-base="_static/sfincs_map/"></div>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <script src="_static/sfincs_map/map.js"></script>
+
+   Interactive overview of countries globally where SFINCS has been used. 
+
+.. only:: latex
+
+   .. figure:: ./figures/Countries_covered_by_SFINCS_models.png
+      :width: 600px
+      :align: center
+
+      Overview of countries globally where SFINCS has been used, including all SIDS
+
+**Acknowledge our efforts when using SFINCS for your own work**
+
+When using SFINCS in your research or projects, please cite the relevant papers and the DOI of the release you used, and acknowledge Deltares, HydroMT-SFINCS, SFINCS and its open-source community.
+SFINCS is brought to you by the collaborative efforts of the Deltares team and the wider SFINCS and HydroMT-SFINCS open-source, open-access community.
+Developing excellent software takes significant time and effort, and funding, from Deltares and partners.
+
+We greatly appreciate any acknowledgment and support from the community when using SFINCS in your work.
+By doing research and projects together, involving us in papers and research proposals, getting help through SFINCS service contracts, following trainings, sharing bugfixes and improvements - we all benefit and contribute to the continued development and success of SFINCS.
+We thank all contributors and users for their support and engagement with SFINCS, and we are very busy fulfilling our ambition:
+**Making the best, fit-for-purpose, fast open-source compound flood model – in the world!**
+
 **Open source & licensing:** 
 
 The SFINCS source code is released under the GNU GPL v3.0 license. You can: 
@@ -33,11 +73,16 @@ While basic user help is provided free of charge, Deltares also offers structure
 These packages (e.g. Basic and Advanced) include guaranteed support hours, faster response time, consulting and configuration help, model setup, etc. 
 For more, see “Support Packages” or contact software@deltares.nl 
 
+.. figure:: ./figures/SFINCS_banner_floodadapt_style.png
+   :width: 800px
+   :align: center
+
+   
 **Scientific Foundation and model adoptation:** 
 
 SFINCS has been widely validated and applied in numerous scientific studies and practical applications worldwide.
-The model has been adopted by both the scientific community, where the main SFINCS publications have reached 200+ citations and are listed below for reference.
-SFINCS has also been adopted by practitioners for flood risk assessment, emergency planning, and climate adaptation strategies, with 1000+ downloads of the SFINCS executable and counting...
+The model has been adopted by both the scientific community, where the main SFINCS publications have reached 240+ citations and are listed below for reference.
+SFINCS has also been adopted by practitioners for flood risk assessment, emergency planning, and climate adaptation strategies, with 2000+ downloads of the SFINCS executable and counting...
 
 Key publications:
 
@@ -105,6 +150,7 @@ The SFINCS team also includes Koen van Asselt, Tycho Bovenschen, Ap van Dongeren
    :caption: User manual:
 
    input
+   input_quadtree
    input_forcing
    input_structures
 

@@ -70,7 +70,7 @@ contains
    !
    ! Copy arrays to GPU memory
    ! 
-   !$acc enter data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
+   !$acc enter data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, t_zsmax, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
@@ -87,6 +87,7 @@ contains
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_length, &
    !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
@@ -104,7 +105,8 @@ contains
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, prcp, qext, &
+   !$acc               nmi_gbp, index_bdr_gbp, index_zsi_bdr, dzs_bdr, &
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, qext, &
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
@@ -128,7 +130,7 @@ contains
    !
    ! Called from: sfincs_finalize (sfincs_lib)
    !
-   !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, zsm, z_volume, &
+   !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, t_zsmax, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
@@ -145,6 +147,7 @@ contains
    !$acc               src_struc_opening_duration, src_struc_closing_duration, &
    !$acc               src_struc_height, &
    !$acc               src_struc_invert_1, src_struc_invert_2, &
+   !$acc               src_struc_length, &
    !$acc               src_struc_submergence_ratio, &
    !$acc               src_struc_z_crest, src_struc_t_breach, src_struc_z_min, &
    !$acc               src_struc_B0, src_struc_t0, src_struc_dike_core, &
@@ -162,8 +165,9 @@ contains
    !$acc               tauwu, tauwv, tauwu0, tauwv0, tauwu1, tauwv1, &
    !$acc               windu, windv, windu0, windv0, windu1, windv1, windmax, &
    !$acc               patm, patm0, patm1, patmb, nmindbnd, &
-   !$acc               prcp, prcp0, prcp1, cumprcp, qext, &
-   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
+   !$acc               nmi_gbp, index_bdr_gbp, index_zsi_bdr, dzs_bdr, &
+   !$acc               prcp, prcp0, prcp1, cumprcp, netprcp, qext, &
+   !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc               x73, &

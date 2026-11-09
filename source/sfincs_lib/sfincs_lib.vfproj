@@ -72,7 +72,6 @@
 				<File RelativePath="..\src\snapwave\snapwave_boundaries.f90">
 				</File>
 				<File RelativePath="..\src\snapwave\snapwave_data.f90"/>
-				<File RelativePath="..\src\snapwave\snapwave_date.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_input.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_domain.f90">
 				</File>
@@ -97,12 +96,14 @@
 				<File RelativePath="..\src\snapwave\snapwave_RFtable.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_solver.f90">
 				</File>
+				<File RelativePath="..\src\snapwave\snapwave_vegetation.f90"/>
 				<File RelativePath="..\src\snapwave\snapwave_windsource.f90"/>
 			</Filter>
 			<File RelativePath="..\third_party_open\Delft3D\astro.f90"/>
 			<File RelativePath="..\third_party_open\bicgstab\bicgstab_solver_ilu.f90"/>
 			<File RelativePath="..\third_party_open\utils\deg2utm.f90"/>
 			<File RelativePath="..\third_party_open\utils\geometry.f90"/>
+			<File RelativePath="..\third_party_open\utils\hpsort_eps.f90"/>
 			<File RelativePath="..\src\sfincs_bathtub.f90"/>
 			<File RelativePath="..\src\sfincs_boundaries.f90"/>
 			<File RelativePath="..\src\sfincs_continuity.f90">

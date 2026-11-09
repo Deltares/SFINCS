@@ -14,6 +14,13 @@ For super-critical flow conditions or when modelling waves, the advection term n
 For this purpose, the SFINCS-SSWE version can be used (including advection).
 For more information see Leijnse et al. (2020): https://doi.org/10.1016/j.coastaleng.2020.103796
 
+.. raw:: html
+
+   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
+     <source src="_static/hernani_SFINCS_coastview_orbit_60s.mp4" type="video/mp4">
+   </video>
+   <p><em>Typhoon waves flooding Hernani (Eastern Samar, Philippines), simulated with SFINCS coupled to SnapWave (including infragravity waves).</em></p>
+
 Why SFINCS?
 ^^^^^^^^^^^
 Compound flooding during tropical cyclones and other extreme events result in tremendous amounts of property damage and loss of life. Early warning systems and multi-hazard risk analysis can reduce these impacts. 
@@ -56,7 +63,7 @@ In some cases local rainfall might be relevant too for a coastal model.
 Coral reef model
 ^^^^^^^^^^^^^^^^
 SFINCS models have also been setup in coral reef type environments, where individual waves are forced to compute wave-driven flooding.
-This generally has a large contribution to flooding for Small Island Developping States (SIDS) or other coasts/islands with coral reef type coasts.
+This generally has a large contribution to flooding for Small Island Developing States (SIDS) or other coasts/islands with coral reef type coasts.
 
 .. figure:: ./figures/Figure_coralreef_model.png
    :width: 600px
@@ -87,7 +94,7 @@ Riverine model
 For inland riverine types of environments, boundary conditions are generally different than for coastal models.
 Generally at the upstream end of rivers, one can provide discharge points with discharge time-series.
 At the downstream end of rivers, water level time-series need to be specified, which in case of sub-critical flow conditions will influence the flow upstream.
-Additionaly, besides the general river discharge, local rainfall adding water to the river can be very relevant too.
+Additionally, besides the general river discharge, local rainfall adding water to the river can be very relevant too.
 
 .. figure:: ./figures/Figure_riverine_model.png
    :width: 600px
@@ -136,7 +143,7 @@ Hereby the joint effect of multiple flood drivers that can enhance flooding can 
 Applied international projects
 ------------------------------
 
-SFINCS has been applied in these international projects, with attached links to news articles:
+SFINCS has been applied in many international projects, with attached links to news articles:
 
 * `Modelling of urban flooding and adaptation measures in the USA <https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks>`_
 
@@ -150,13 +157,13 @@ SFINCS has been applied in these international projects, with attached links to 
 
 * `Modelling coastal flooding for the entire country of Denmark by the Danish Coastal Authority for the EU Floods Directive <https://specials.deltares.nl/impact_report_2023/estimating_flood_impacts>`_  `(also see video) <https://www.youtube.com/watch?v=TbzTC82ijyU&t=15s&ab_channel=Deltares>`_
 
-.. figure:: ./figures/Countries_covered_by_SFINCS_models.png
-   :width: 600px
-   :align: center
+.. raw:: html
 
-   Overview of countries globally where SFINCS has been used, including all SIDS
+   <video width="800" style="max-width: 100%; height: auto;" controls autoplay loop muted playsinline>
+     <source src="_static/SFINCS_globe.mp4" type="video/mp4">
+   </video>
 
-SFINCS has been applied (or still is) in multiple other international projects:
+SFINCS has been applied (or still is) in multiple other international projects. For the full list, see the SFINCS the interactive dashboard on the front page.
 
 * Modelling compound flooding for the islands of Sao Tome en Principe
 

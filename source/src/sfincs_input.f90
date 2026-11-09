@@ -472,10 +472,21 @@ contains
       !
       if (dtmaxout <= 0.0) then
          !
+         ! t_zsmax and twet are only written with the max output, so switch them off
+         ! too (t_zsmax is only updated together with zsmax anyway).
+         !
+         if (store_t_zsmax .or. store_twet) then
+            !
+            call write_log('Warning : storetzsmax and storetwet require dtmaxout > 0, they are switched off', 1)
+            !
+         endif
+         !
          store_maximum_waterlevel = .false.
          store_maximum_velocity   = .false.
          store_maximum_flux       = .false.
          store_zvolume_max        = .false.
+         store_t_zsmax            = .false.
+         store_twet               = .false.
          !
       endif
       !

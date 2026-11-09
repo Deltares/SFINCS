@@ -264,7 +264,21 @@ module sfincs_output
          !$acc update host(patm)
          !
       endif
-      !      
+      !
+      ! Subgrid volumes (map output only; flags are already off without subgrid)
+      !
+      if (write_map) then
+         !
+         if (store_zvolume) then
+            !$acc update host(z_volume)
+         endif
+         !
+         if (store_storagevolume) then
+            !$acc update host(storage_volume)
+         endif
+         !
+      endif
+      !
    endif
    !
    if (write_map) then
@@ -306,7 +320,13 @@ module sfincs_output
          !$acc update host(cumprcp)
       endif
       !
-      if (precip .and. scsfile(1:4) /= 'none') then !!! also include other infiltration
+      if (store_zvolume_max) then
+         !$acc update host(zvolmax)
+      endif
+      !
+      ! cuminf is updated on the device for all infiltration types and written whenever infiltration is on
+      !
+      if (infiltration) then
          !$acc update host(cuminf)
       endif
       !
