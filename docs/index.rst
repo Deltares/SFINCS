@@ -30,10 +30,9 @@ Click a country for links to model applications:
 
    .. raw:: html
 
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
       <link rel="stylesheet" href="_static/sfincs_map/map.css">
       <div id="sfincs-map" data-base="_static/sfincs_map/"></div>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
       <script src="_static/sfincs_map/map.js"></script>
 
    Interactive overview of countries globally where SFINCS has been used. 

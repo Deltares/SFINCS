@@ -1,18 +1,101 @@
 #sfincs-map {
-  height: 450px;
+  position: relative;
   width: 100%;
+  aspect-ratio: 2 / 1;
+  min-height: 260px;
   margin: 12px 0;
   border: 1px solid #ccc;
+  background: #f4f7fc;
+  overflow: hidden;
+  font-size: 12px;
 }
 
-/* sphinx_rtd_theme styles img/ul globally; keep Leaflet tiles and popups intact */
+#sfincs-map svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+#sfincs-map svg:active { cursor: grabbing; }
+
+/* sphinx_rtd_theme styles img/ul globally; keep logos and popups intact */
 #sfincs-map img { max-width: none; }
-#sfincs-map .leaflet-popup-content ul li { list-style: disc; margin: 0; }
+#sfincs-map [hidden] { display: none !important; }
+
+.sfincs-map-sphere { fill: #e6eef9; stroke: #b9c6dc; }
+.sfincs-map-graticule { fill: none; stroke: #ccd7ea; stroke-width: 0.5; vector-effect: non-scaling-stroke; }
+.sfincs-map-land { fill: #dcdee4; stroke: #ffffff; stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+
+.sfincs-map-applied,
+.sfincs-map-island {
+  fill: #0a28a3;
+  stroke: #0a28a3;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.sfincs-map-applied { fill-opacity: 0.5; }
+.sfincs-map-island { fill-opacity: 0.8; }
+.sfincs-map-applied:hover,
+.sfincs-map-island:hover { fill-opacity: 0.85; }
+
+.sfincs-map-logo {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 6px;
+  border-radius: 3px;
+  line-height: 0;
+}
+
+.sfincs-map-logo-sfincs {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+#sfincs-map .sfincs-map-logo-sfincs img { width: 160px; height: auto; }
+
+/* Deltares logo in the top-right corner, to the left of the zoom buttons */
+.sfincs-map-topright {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+#sfincs-map .sfincs-map-logo-deltares img { width: 100px; height: auto; }
+
+.sfincs-map-zoom {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sfincs-map-zoom button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: #fff;
+  color: #000;
+  font: bold 18px/30px "Lucida Console", Monaco, monospace;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sfincs-map-zoom button + button { border-top: 1px solid #ccc; }
+.sfincs-map-zoom button:hover { background: #f4f4f4; }
 
 .sfincs-map-legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
   background: rgba(255, 255, 255, 0.85);
   padding: 4px 8px;
-  font-size: 12px;
   border-radius: 3px;
 }
 
@@ -25,48 +108,59 @@
   opacity: 0.6;
 }
 
-.sfincs-map-logo {
-  background: rgba(255, 255, 255, 0.85);
-  padding: 4px 6px;
+.sfincs-map-attribution {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0 5px;
+  font-size: 11px;
+  color: #333;
+}
+
+.sfincs-map-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #ccc;
   border-radius: 3px;
-  line-height: 0;
-}
-
-#sfincs-map .sfincs-map-logo img {
-  width: 160px;
-  height: auto;
-}
-
-/* Deltares logo in the top-right corner, to the left of the zoom buttons */
-#sfincs-map .leaflet-top.leaflet-right {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: flex-start;
-}
-
-#sfincs-map .leaflet-top.leaflet-right .leaflet-control {
-  margin-left: 6px;
-}
-
-#sfincs-map .sfincs-map-logo-deltares img {
-  width: 100px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Popups: scroll when a country has many links */
-#sfincs-map .leaflet-popup-content {
+.sfincs-map-popup {
+  position: absolute;
+  width: min(360px, calc(100% - 20px));
   max-height: 260px;
   overflow-y: auto;
-  font-size: 12px;
+  background: #fff;
+  border-radius: 6px;
+  padding: 10px 22px 10px 12px;
   line-height: 1.35;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
 }
 
-#sfincs-map .leaflet-popup-content ul {
+.sfincs-map-popup-close {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  border: 0;
+  background: none;
+  color: #757575;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+#sfincs-map .sfincs-map-popup ul {
   margin: 4px 0 0 0;
   padding-left: 16px;
 }
 
-#sfincs-map .leaflet-popup-content li {
-  margin-bottom: 3px;
+#sfincs-map .sfincs-map-popup ul li {
+  list-style: disc;
+  margin: 0 0 3px 0;
 }
 
 .sfincs-map-papers {
