@@ -83,14 +83,16 @@ contains
    implicit none
    !
    logical :: ok
+   integer :: status
    !
    ok = check_file_exists(sbgfile, 'Sub-grid sbg file', .true.)
    !
-   ! Check what sort of file we're dealing with
+   ! Check what sort of file we're dealing with. Opening the 'old' binary format as netCDF fails, which is
+   ! expected here, so the status is checked directly instead of through the (fatal) NF90 error handler.
    !
-   NF90(nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid))
+   status = nf90_open(trim(sbgfile), NF90_CLOBBER, net_file_sbg%ncid)
    !
-   if (net_file_sbg%ncid > 0) then
+   if (status == nf90_noerr) then
       !
       NF90(nf90_close(net_file_sbg%ncid))
       !
@@ -1034,7 +1036,8 @@ contains
 
    subroutine handle_err(status,file,line)
       !
-      ! Report a netCDF error with file name and line number.
+      ! Stop SFINCS with a netCDF error message, file name and line number. Continuing would leave
+      ! the subgrid tables with missing or stale data (for example a missing variable).
       !
       ! Input:
       !   status : netCDF status code returned by the call
@@ -1043,21 +1046,20 @@ contains
       !
       ! Called from: the NF90 preprocessor macro, used throughout this module
       !
+      implicit none
+      !
       integer, intent ( in)    :: status
       character(*), intent(in) :: file
       integer, intent ( in)    :: line
-      integer :: status2
-      !   
+      !
       if (status /= nf90_noerr) then
          !
-         ! Do not give error message if this is not a valid netcdf file (it's possible that we tried to open a file with the 'old' binary format)
-         !  
-         if (status /= -51) then
-            write(0,'("NETCDF ERROR: ",a,i6,":",a)') file, line, trim(nf90_strerror(status) )
-         endif 
-         !  
-      end if
-      !  
+         write(logstr,'(a,a,a,i0,a,a)')'Error ! NetCDF error reading subgrid file (', trim(file), ', line ', line, '): ', &
+            trim(nf90_strerror(status))
+         call stop_sfincs(trim(logstr), 1)
+         !
+      endif
+      !
    end subroutine handle_err
 
 end module
