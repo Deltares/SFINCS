@@ -22,6 +22,8 @@ contains
    integer   :: itype
    integer   :: iuv
    integer   :: icuv
+   integer   :: isp                             ! index in uv_spacing_inv
+   integer   :: n_wet                           ! number of wet uv points in this time step
    !
    real*4    :: hu
    real*4    :: dxuvinv
@@ -59,6 +61,11 @@ contains
    real*4    :: umax                            ! local characteristic speed bound sqrt(g*hu) + |u|
    real*4    :: dnminv                          ! 1/(D_nm + D_nmu) reused for both advective speeds
    real*4    :: dzdx
+   real*4    :: q_abs                           ! |q0| at this uv point (floored), for the partner weights
+   real*4    :: q_k                             ! |q0| at a partner face
+   real*4    :: q_ref                           ! flux below which a partner gets a weight below 1
+   real*4    :: hu_w                            ! depth used in q_ref (hu, or 0 to only skip dry partners)
+   real*4    :: wt_nmd, wt_nmu, wt_ndm, wt_num  ! weights of the four partner faces in the advection stencil
    !
    real*4    :: hwet
    real*4    :: phi
@@ -98,6 +105,8 @@ contains
    !
    logical   :: iwet
    !
+   real*4, dimension(:), allocatable :: swap                 ! work array to swap q and q0, uv and uv0
+   !
    call timer_start('momentum')
    !
    min_dt = dtmax
@@ -124,43 +133,44 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   ! Copy velocity and flux from the previous time step (the velocity form
-   ! advects uv0; q0 provides the consistent previous-step fluxes for the
-   ! momentum-conserving cross-advection speeds)
+   ! Velocity and flux from the previous time step (the velocity form advects uv0; q0 provides
+   ! the consistent previous-step fluxes for the momentum-conserving cross-advection speeds).
+   ! The arrays are swapped instead of copied: uv0 and q0 now hold the previous time step, uv and
+   ! q hold older values and are overwritten below at every point. Points that are not computed
+   ! here (open boundaries, structures, wave makers) get the previous-step value, as with a copy.
+   ! The dummy point npuv + ncuv + 1 is 0.0 in both sets of arrays.
    !
-   !$acc parallel, present( uv, uv0, q, q0 )
-   !$omp parallel &
-   !$omp private ( ip )
-   !$omp do
-   !$acc loop gang vector
-   do ip = 1, npuv + ncuv
-      !
-      uv0(ip) = uv(ip)
-      q0(ip)  = q(ip)
-      !
-   enddo
-   !$acc end parallel
-   !$omp end do
-   !$omp end parallel
+   call move_alloc(q0, swap)
+   call move_alloc(q, q0)
+   call move_alloc(swap, q)
+   !
+   call move_alloc(uv0, swap)
+   call move_alloc(uv, uv0)
+   call move_alloc(swap, uv)
+   !
+   n_wet = 0
    !
    !$omp parallel &
-   !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
+   !$omp private ( icuv ) &
+   !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,isp,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, &
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
    !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu, &
-   !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff ) &
-   !$omp reduction ( min : min_dt  )
-   !$omp do schedule ( dynamic, 256 )
+   !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff, &
+   !$omp           q_abs,q_k,q_ref,hu_w,wt_nmd,wt_nmu,wt_ndm,wt_num )
+   !$omp do schedule ( dynamic, 256 ) &
+   !$omp reduction ( min : min_dt  ) &
+   !$omp reduction ( + : n_wet )
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc                    zb, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
+   !$acc                    zb, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, uv_spacing_inv, &
    !$acc                    z_hwet, subgrid_z_dzbdm, subgrid_z_dzbdn, subgrid_z_zmin, w_uv, iup_uv, &
    !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
-   !$acc loop, reduction( min : min_dt ), gang, vector
+   !$acc loop, reduction( min : min_dt ), reduction( + : n_wet ), gang, vector
    do ip = 1, npuv
       !
       if (store_slope_regime) then
@@ -228,6 +238,8 @@ contains
             !
             ! UV point is wet 
             !
+            n_wet = n_wet + 1
+            !
             if (use_quadtree) then
                iref  = uv_flags_iref(ip) ! refinement level
                itype = uv_flags_type(ip) ! -1 is fine to coarse, 0 is normal, 1 is coarse to fine
@@ -294,57 +306,17 @@ contains
                !
             else
                !
-               ! Projected coordinate system
+               ! Projected coordinate system: inverse grid spacings from the table set in
+               ! sfincs_domain (regular or refinement transition, u or v point)
                !
-               if (itype==0) then
-                  !
-                  ! Regular
-                  !
-                  if (idir==0) then
-                     !
-                     ! U point
-                     !
-                     dxuvinv  = dxrinv(iref)
-                     dyuvinv  = dyrinv(iref)
-                     dxuv2inv = dxr2inv(iref)
-                     dyuv2inv = dyr2inv(iref)
-                     !
-                  else
-                     !
-                     ! V point
-                     !
-                     dxuvinv  = dyrinv(iref)
-                     dyuvinv  = dxrinv(iref)
-                     dxuv2inv = dyr2inv(iref)
-                     dyuv2inv = dxr2inv(iref)
-                     !
-                  endif   
-                  !
-               else   
-                  !
-                  ! Fine to coarse or coarse to fine
-                  !
-                  if (idir==0) then
-                     !
-                     ! U point
-                     !
-                     dxuvinv  = dxrinvc(iref)
-                     dyuvinv  = dyrinv(iref)
-                     dxuv2inv = 0.0 ! no viscosity
-                     dyuv2inv = dyr2inv(iref)
-                     !
-                  else
-                     !
-                     ! V point
-                     !
-                     dxuvinv  = dyrinvc(iref)
-                     dyuvinv  = dxrinv(iref)
-                     dxuv2inv = 0.0 ! no viscosity
-                     dyuv2inv = dxr2inv(iref)
-                     !
-                  endif   
-                  !
-               endif
+               isp = 4 * iref - 3 + idir
+               !
+               if (itype /= 0) isp = isp + 2
+               !
+               dxuvinv  = uv_spacing_inv(1, isp)
+               dyuvinv  = uv_spacing_inv(2, isp)
+               dxuv2inv = uv_spacing_inv(3, isp)
+               dyuv2inv = uv_spacing_inv(4, isp)
                !
                fcoriouv = fcorio
                !
@@ -352,16 +324,23 @@ contains
             !
             ! Get velocities from the previous time step
             !
-            if (advection .or. coriolis .or. viscosity .or. friction2d) then
+            if (advection .or. viscosity) then
                !
-               ! Get the neighbors
+               ! Get the neighbors in the same direction (advection and viscosity)
                !
                uu_nm   = uv0(ip)
                uu_nmd  = uv0(uv_index_u_nmd(ip))
                uu_nmu  = uv0(uv_index_u_nmu(ip))
                uu_ndm  = uv0(uv_index_u_ndm(ip))
                uu_num  = uv0(uv_index_u_num(ip))
-               vu      = (uv0(uv_index_v_ndm(ip)) + uv0(uv_index_v_ndmu(ip)) + uv0(uv_index_v_nm(ip)) + uv0(uv_index_v_nmu(ip))) / 4
+               !
+            endif
+            !
+            if (coriolis .or. friction2d) then
+               !
+               ! Velocity in the other direction (Coriolis and 2D friction)
+               !
+               vu = (uv0(uv_index_v_ndm(ip)) + uv0(uv_index_v_ndmu(ip)) + uv0(uv_index_v_nm(ip)) + uv0(uv_index_v_nmu(ip))) / 4
                !
             endif
             !
@@ -507,9 +486,11 @@ contains
                !
             endif
             !
-            ! Compute wet average depth hwet (used in wind and wave forcing)
+            ! Compute wet average depth hwet (only used in wind and wave forcing)
             !
-            hwet = hu_flux / phi
+            if (wind .or. snapwave) then
+               hwet = hu_flux / phi
+            endif
             !
             ! Velocity form: build frc directly as an acceleration [m/s^2]. Forces that scale
             ! with depth (pressure, viscosity, Coriolis, atm) are written WITHOUT hu -- their hu
@@ -519,7 +500,8 @@ contains
             !
             if (advection) then
                !
-!               if (mask_adv(ip) == 1) then
+               if (mask_adv(ip) == 1) then
+                  !
                   !
                   ! Momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
                   ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
@@ -598,7 +580,60 @@ contains
                   up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
                   un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)
                   !
-                  dqxudx = ( up * (uu_nm - uu_nmd) + un * (uu_nmu - uu_nm) ) * dxuvinv
+                  ! Weights of the four partner faces (advection_partner_weight, default off).
+                  ! A dry partner face has u = 0, so the upwind differences below treat every
+                  ! staircase step of a bank as a real 90 degree corner: the water arrives without
+                  ! momentum and the face is slowed down. That drag is independent of the grid size.
+                  ! A dry partner is a closed wall, on which free slip applies: its difference is
+                  ! dropped (option 1). On subgrid grids bank faces are partly wet, so option 2
+                  ! (default) scales the difference with the larger of the depth ratio and the flux
+                  ! ratio between partner and face (at most 1). 1D flow over a step is not affected,
+                  ! because the flux ratio is 1 there.
+                  !
+                  ! Option 2: wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth
+                  ! hu_k = q_k / u_k, written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|), so
+                  ! that a division is only needed for the few partners with a weight below 1.
+                  ! Option 1 is the same with q_ref = 0. A wet partner with exactly zero velocity
+                  ! has q_k = 0 and gets weight 0.
+                  !
+                  wt_nmd = 1.0
+                  wt_nmu = 1.0
+                  wt_ndm = 1.0
+                  wt_num = 1.0
+                  !
+                  if (advection_partner_weight > 0) then
+                     !
+                     q_abs = max(abs(q0(ip)), 1.0e-9)
+                     !
+                     if (advection_partner_weight == 1) then
+                        hu_w = 0.0
+                     else
+                        hu_w = hu
+                     endif
+                     !
+                     q_k   = abs(q0(uv_index_u_nmd(ip)))
+                     q_ref = min(abs(uu_nmd) * hu_w, q_abs)
+                     if (q_k < q_ref)  wt_nmd = q_k / q_ref
+                     if (q_k <= 0.0)   wt_nmd = 0.0
+                     !
+                     q_k   = abs(q0(uv_index_u_nmu(ip)))
+                     q_ref = min(abs(uu_nmu) * hu_w, q_abs)
+                     if (q_k < q_ref)  wt_nmu = q_k / q_ref
+                     if (q_k <= 0.0)   wt_nmu = 0.0
+                     !
+                     q_k   = abs(q0(uv_index_u_ndm(ip)))
+                     q_ref = min(abs(uu_ndm) * hu_w, q_abs)
+                     if (q_k < q_ref)  wt_ndm = q_k / q_ref
+                     if (q_k <= 0.0)   wt_ndm = 0.0
+                     !
+                     q_k   = abs(q0(uv_index_u_num(ip)))
+                     q_ref = min(abs(uu_num) * hu_w, q_abs)
+                     if (q_k < q_ref)  wt_num = q_k / q_ref
+                     if (q_k <= 0.0)   wt_num = 0.0
+                     !
+                  endif
+                  !
+                  dqxudx = ( up * wt_nmd * (uu_nm - uu_nmd) + un * wt_nmu * (uu_nmu - uu_nm) ) * dxuvinv
                   !
                   ! Cross-advection of u by v -- momentum-conserving two-sided upwind
                   ! (Yamazaki et al. 2009, eq. 22): advective speeds from the y-FLUXES
@@ -612,17 +647,9 @@ contains
                   vp = min(max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 ),  umax)
                   vn = max(min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 ), -umax)
                   !
-                  dqyudy = ( vp * (uu_nm - uu_ndm) + vn * (uu_num - uu_nm) ) * dyuvinv
+                  dqyudy = ( vp * wt_ndm * (uu_nm - uu_ndm) + vn * wt_num * (uu_num - uu_nm) ) * dyuvinv
                   !
                   adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
-                  !
-                  if (subgrid .and. advection_fade_power > 0) then
-                     !
-                     ! Fade advection on partly wet subgrid faces (phi = wet fraction of the face)
-                     !
-                     adv = adv * max(phi, 0.0)**advection_fade_power
-                     !
-                  endif
                   !
                   if (w > 0.0) then
                      !
@@ -635,7 +662,7 @@ contains
 !                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
                   frc = frc + adv   ! advective speeds are already clamped to umax above
                   !
-!               endif
+               endif
                !
             endif
             !
@@ -858,19 +885,25 @@ contains
             !
          endif
          !
+      else
+         !
+         ! Not computed here (open boundary, structure, wave maker or inactive point): keep the
+         ! value of the previous time step
+         !
+         q(ip)  = q0(ip)
+         uv(ip) = uv0(ip)
+         !
       endif
    enddo   
    !$omp end do
-   !$omp end parallel
    !$acc end parallel
    !
    if (ncuv > 0) then
       !
-      ! Loop through combined uv points and determine average uv and q
+      ! Loop through combined uv points and determine average uv and q (same parallel region
+      ! as the loop above, which has finished at this point)
       ! The combined q and uv values are used in the continuity equation and in the netcdf output
       !
-      !$omp parallel &
-      !$omp private ( icuv )
       !$omp do
       !$acc parallel, present( q, uv, cuv_index_uv, cuv_index_uv1, cuv_index_uv2  )
       !$acc loop gang vector
@@ -884,9 +917,15 @@ contains
       enddo
       !$acc end parallel
       !$omp end do
-      !$omp end parallel
       !
    endif
+   !
+   !$omp end parallel
+   !
+   ! Wet fraction of the uv points (reported at the end of the run)
+   !
+   momentum_n_wet    = momentum_n_wet + n_wet
+   momentum_n_points = momentum_n_points + npuv
    !
    if (store_slope_regime) then
       !

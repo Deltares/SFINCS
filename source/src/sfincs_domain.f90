@@ -1624,6 +1624,45 @@ contains
          !
       enddo   
       !
+      ! Inverse grid spacings of the uv points, as used in the momentum equation: (1) along the
+      ! uv direction, (2) across it, (3) and (4) the same squared (viscosity; 0.0 along the uv
+      ! direction at a refinement transition). The second index is
+      ! 4 * (iref - 1) + 1 + idir (0 is u, 1 is v) + 2 at a refinement transition.
+      !
+      allocate(uv_spacing_inv(4, 4 * nref))
+      !
+      do iref = 1, nref
+         !
+         ! Regular u point
+         !
+         uv_spacing_inv(1, 4 * iref - 3) = dxrinv(iref)
+         uv_spacing_inv(2, 4 * iref - 3) = dyrinv(iref)
+         uv_spacing_inv(3, 4 * iref - 3) = dxr2inv(iref)
+         uv_spacing_inv(4, 4 * iref - 3) = dyr2inv(iref)
+         !
+         ! Regular v point
+         !
+         uv_spacing_inv(1, 4 * iref - 2) = dyrinv(iref)
+         uv_spacing_inv(2, 4 * iref - 2) = dxrinv(iref)
+         uv_spacing_inv(3, 4 * iref - 2) = dyr2inv(iref)
+         uv_spacing_inv(4, 4 * iref - 2) = dxr2inv(iref)
+         !
+         ! u point at a refinement transition
+         !
+         uv_spacing_inv(1, 4 * iref - 1) = dxrinvc(iref)
+         uv_spacing_inv(2, 4 * iref - 1) = dyrinv(iref)
+         uv_spacing_inv(3, 4 * iref - 1) = 0.0
+         uv_spacing_inv(4, 4 * iref - 1) = dyr2inv(iref)
+         !
+         ! v point at a refinement transition
+         !
+         uv_spacing_inv(1, 4 * iref)     = dyrinvc(iref)
+         uv_spacing_inv(2, 4 * iref)     = dxrinv(iref)
+         uv_spacing_inv(3, 4 * iref)     = 0.0
+         uv_spacing_inv(4, 4 * iref)     = dxr2inv(iref)
+         !
+      enddo
+      !
       ! Determine minimum and maximum time step
       !
       ! dtmax will ensure that time step does not become too large because all cells are dry
@@ -3078,6 +3117,8 @@ contains
    !
    ! And now set the mask
    ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
+   ! A missing cross-direction neighbor (dummy index npuv + ncuv + 1, next to an inactive cell) does not switch off advection:
+   ! the edge of the active domain is a closed wall, not an open boundary.
    !
    if (advection) then
       !
@@ -3094,10 +3135,10 @@ contains
                !
                if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
                     kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_nm(ip)) /= 1  .or. &
-                    kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
+                    (kcuv(uv_index_v_nm(ip))   /= 1 .and. uv_index_v_nm(ip)   <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nmu(ip))  /= 1 .and. uv_index_v_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndm(ip))  /= 1 .and. uv_index_v_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndmu(ip)) /= 1 .and. uv_index_v_ndmu(ip) <= npuv + ncuv) .or. &
                     kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
                     kcuv(uv_index_u_num(ip)) /= 1 ) then
                   !

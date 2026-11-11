@@ -54,6 +54,8 @@ module sfincs_data
       !!! Time variables
       real*4  :: dtavg
       real*4  :: min_dt
+      integer*8 :: momentum_n_wet    = 0     ! number of wet uv points, summed over all time steps
+      integer*8 :: momentum_n_points = 0     ! number of uv points, summed over all time steps
       !!!
       !!! Error code
       integer :: error
@@ -163,7 +165,7 @@ module sfincs_data
       integer baro
       integer advection_scheme
       integer momentum_scheme   ! 0 = Bates flux form (default), 1 = velocity form
-      integer advection_fade_power ! adv is multiplied by phi**advection_fade_power (phi = subgrid uv wet fraction), 0 = no fade
+      integer advection_partner_weight ! velocity scheme: weight of the upwind partner faces in the advection stencil (0 = off, 1 = skip dry partners, 2 = depth/flux ratio)
       !
       character*256 :: depfile
       character*256 :: mskfile
@@ -387,6 +389,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: dyr2inv
       real*4, dimension(:),   allocatable :: dxrinvc
       real*4, dimension(:),   allocatable :: dyrinvc
+      real*4, dimension(:,:), allocatable :: uv_spacing_inv
       real*4, dimension(:),   allocatable :: cell_area
       real*4, dimension(:),   allocatable :: dxyr      
       !

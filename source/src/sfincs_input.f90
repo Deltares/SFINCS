@@ -138,7 +138,7 @@ contains
       call get_keyword(500, 'nc_deflate_level',                nc_deflate_level,                2)                 ! netCDF deflate level (0-9)
       call get_keyword(500, 'bndtype',                         bndtype,                         1)                 ! boundary condition type
       call get_keyword(500, 'advection',                       advection,                       .true.)            ! enable momentum advection terms
-      call get_keyword(500, 'advection_fade_power',            advection_fade_power,            0)                 ! velocity scheme: advection x (face wet fraction)**power on partly wet subgrid faces; 0 = off
+      call get_keyword(500, 'advection_partner_weight',        advection_partner_weight,        2)                 ! velocity scheme: free slip at dry/shallow partner faces in the advection stencil (0 = off, 1 = skip dry partners, 2 = depth/flux ratio)
       call get_keyword(500, 'latitude',                        latitude,                        0.0)               ! reference latitude for projected Coriolis (deg)
       call get_keyword(500, 'pavbnd',                          pavbnd,                          0.0)               ! atmospheric pressure applied at boundary (Pa)
       call get_keyword(500, 'gapres',                          gapres,                          101200.0)          ! atmospheric reference pressure (Pa)
