@@ -25,15 +25,17 @@ SFINCS has been applied around the world in these countries, in various news ite
 Click a country for links to model applications:
 
 .. To add a country to the map, edit docs/_static/sfincs_map/applications.json (ISO 3166 alpha-3 codes).
+   When you change map.js or map.css, raise the ?v= number on both lines below, so browsers
+   do not combine this page with an older cached copy of those files.
 
 .. only:: html
 
    .. raw:: html
 
-      <link rel="stylesheet" href="_static/sfincs_map/map.css">
+      <link rel="stylesheet" href="_static/sfincs_map/map.css?v=2">
       <div id="sfincs-map" data-base="_static/sfincs_map/"></div>
       <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
-      <script src="_static/sfincs_map/map.js"></script>
+      <script src="_static/sfincs_map/map.js?v=2"></script>
 
    Interactive overview of countries globally where SFINCS has been used. 
 
