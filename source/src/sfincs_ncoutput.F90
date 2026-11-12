@@ -2027,6 +2027,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'outputtype_his',outputtype_his))
         NF90(nf90_put_att(ncid, varid, 'bndtype',bndtype))
         NF90(nf90_put_att(ncid, varid, 'advection',logical2int(advection)))  
+        NF90(nf90_put_att(ncid, varid, 'advection_partner_weight',logical2int(advection_partner_weight)))  
         NF90(nf90_put_att(ncid, varid, 'latitude',latitude))  
         NF90(nf90_put_att(ncid, varid, 'pavbnd',pavbnd))  
         NF90(nf90_put_att(ncid, varid, 'gapres',gapres))  

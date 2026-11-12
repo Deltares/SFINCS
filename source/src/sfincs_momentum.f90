@@ -122,6 +122,10 @@ contains
    real*4    :: ud
    real*4    :: qy
    real*4    :: dzdx
+   real*4    :: q_abs                           ! |q0| at this uv point (floored), for the partner weights
+   real*4    :: q_k                             ! |q0| at a partner face
+   real*4    :: q_ref                           ! flux below which a partner gets a weight below 1
+   real*4    :: wt_nmd, wt_nmu, wt_ndm, wt_num  ! weights of the four partner faces in the advection stencil
    !
    real*4    :: hwet
    real*4    :: phi
@@ -135,6 +139,10 @@ contains
    !integer, parameter :: expo = 1
    !
    logical   :: iok
+   !
+   real*4    :: y_cbrt                          ! cube-root approximation hu^(1/3)
+   integer*4 :: i_cbrt                          ! bit pattern of hu/y_cbrt for the cube-root seed
+   real*4, dimension(:), allocatable :: swap    ! work array to swap q and q0, uv and uv0
    !
    call timer_start('momentum')
    !
@@ -162,22 +170,17 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   ! Copy flux and velocity from previous time step
+   ! Flux and velocity from the previous time step. The arrays are swapped instead of copied: q0
+   ! and uv0 now hold the previous time step, q and uv hold older values and are overwritten
+   ! below at every point (points that are not computed here get the previous-step value).
    !
-   !$acc parallel, present( q, q0, uv, uv0 )
-   !$omp parallel &
-   !$omp private ( ip )
-   !$omp do
-   !$acc loop gang vector
-   do ip = 1, npuv + ncuv
-      !
-      q0(ip)  = q(ip)
-      uv0(ip) = uv(ip)
-      !
-   enddo
-   !$acc end parallel
-   !$omp end do
-   !$omp end parallel
+   call move_alloc(q0, swap)
+   call move_alloc(q, q0)
+   call move_alloc(swap, q)
+   !
+   call move_alloc(uv0, swap)
+   call move_alloc(uv, uv0)
+   call move_alloc(swap, uv)
    !
    ! Copy flux and velocity from previous time step
    !
@@ -192,7 +195,8 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip,y_cbrt,i_cbrt, &
+   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -494,6 +498,47 @@ contains
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
+                     ! Weights of the four partner faces (advection_partner_weight, off by
+                     ! default). A dry partner face has u = 0, so the velocity differences below treat
+                     ! every staircase step of a bank as a real 90 degree corner and slow the face down.
+                     ! Each difference is therefore scaled with the larger of the depth ratio and the flux
+                     ! ratio between partner and face (at most 1):
+                     ! wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth hu_k = q_k / u_k,
+                     ! written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|). Only the terms with du/dx
+                     ! and du/dy are weighted. The terms with dqu/dx and dqv/dy add up to u times the flux
+                     ! divergence of the upwind cell, which is zero in steady flow.
+                     !
+                     wt_nmd = 1.0
+                     wt_nmu = 1.0
+                     wt_ndm = 1.0
+                     wt_num = 1.0
+                     !
+                     if (advection_partner_weight) then
+                        !
+                        q_abs = max(abs(qx_nm), 1.0e-9)
+                        !
+                        q_k   = abs(qx_nmd)
+                        q_ref = min(abs(uu_nmd) * hu, q_abs)
+                        if (q_k < q_ref)  wt_nmd = q_k / q_ref
+                        if (q_k <= 0.0)   wt_nmd = 0.0
+                        !
+                        q_k   = abs(qx_nmu)
+                        q_ref = min(abs(uu_nmu) * hu, q_abs)
+                        if (q_k < q_ref)  wt_nmu = q_k / q_ref
+                        if (q_k <= 0.0)   wt_nmu = 0.0
+                        !
+                        q_k   = abs(q0(uv_index_u_ndm(ip)))
+                        q_ref = min(abs(uu_ndm) * hu, q_abs)
+                        if (q_k < q_ref)  wt_ndm = q_k / q_ref
+                        if (q_k <= 0.0)   wt_ndm = 0.0
+                        !
+                        q_k   = abs(q0(uv_index_u_num(ip)))
+                        q_ref = min(abs(uu_num) * hu, q_abs)
+                        if (q_k < q_ref)  wt_num = q_k / q_ref
+                        if (q_k <= 0.0)   wt_num = 0.0
+                        !
+                     endif
+                     !
                      ! d qu u / dx
                      !
                      qd = (qx_nmd + qx_nm) / 2
@@ -501,12 +546,12 @@ contains
                      !
                      if (qd > 1.0e-6) then
                         ud = (uu_nmd + uu_nm) / 2
-                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
+                        dqxudx = ( qd * wt_nmd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
                      endif
                      !
                      if (qu < -1.0e-6) then
                         uu = (uu_nm + uu_nmu) / 2
-                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) ) * dxuvinv
+                        dqxudx = dqxudx + ( qu * wt_nmu * (uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) ) * dxuvinv
                      endif
                      ! 
                      ! d qv u / dy
@@ -517,11 +562,11 @@ contains
                      qd = (qy_ndm + qy_ndmu) / 2
                      !
                      if (qd > 1.0e-6) then
-                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
+                        dqyudy = qd * wt_ndm * (uu_nm - uu_ndm) * dyuvinv
                      endif
                      !
                      if (qu < -1.0e-6) then
-                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
+                        dqyudy = dqyudy + qu * wt_num * (uu_num - uu_nm) * dyuvinv
                      endif
                      ! 
                      ! u d qv / dy
@@ -651,11 +696,19 @@ contains
             !
             ! Compute flux qfr used for friction term
             !
+            ! hu**(1/3) via a fast cube root: an integer bit-hack seed (magic constant 709921077)
+            ! refined by one Newton iteration, about 0.1 % accurate
+            !
+            i_cbrt = transfer(hu, i_cbrt)
+            i_cbrt = i_cbrt / 3 + 709921077
+            y_cbrt = transfer(i_cbrt, y_cbrt)
+            y_cbrt = y_cbrt - (y_cbrt * y_cbrt * y_cbrt - hu) / (3.0 * y_cbrt * y_cbrt)
+            !
             if (kfuv(ip) == 0) then
                !
                ! This uv point just became wet, so estimate equilibrium flux 
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * y_cbrt * y_cbrt
                !
             else   
                !
@@ -702,19 +755,7 @@ contains
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            if (h73table) then
-               !
-               ! Get hu**(7/3) from look-up table
-               !
-               hu73 = power7over3(max(hu, 1.0e-6))
-               !
-            else
-               !
-               ! Compute hu**(7/3)
-               !
-               hu73 = hu**2 * hu**expo
-               !
-            endif
+            hu73 = hu * hu * y_cbrt
             ! 
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
@@ -790,6 +831,14 @@ contains
             kfuv(ip) = 0
             !
          endif
+         !
+      else
+         !
+         ! Not computed here (open boundary, structure, wave maker or inactive point): keep the
+         ! value of the previous time step
+         !
+         q(ip)  = q0(ip)
+         uv(ip) = uv0(ip)
          !
       endif
    enddo   

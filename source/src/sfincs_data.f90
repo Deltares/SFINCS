@@ -159,6 +159,7 @@ module sfincs_data
       integer cd_nr
       integer baro
       integer advection_scheme
+      logical advection_partner_weight ! weight the upwind partner faces in the advection stencil (upw1) with their depth/flux ratio (free slip at dry or shallow partners)
       !
       character*256 :: depfile
       character*256 :: mskfile
