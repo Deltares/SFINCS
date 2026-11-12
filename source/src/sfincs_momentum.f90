@@ -122,6 +122,10 @@ contains
    real*4    :: ud
    real*4    :: qy
    real*4    :: dzdx
+   real*4    :: q_abs                           ! |q0| at this uv point (floored), for the partner weights
+   real*4    :: q_k                             ! |q0| at a partner face
+   real*4    :: q_ref                           ! flux below which a partner gets a weight below 1
+   real*4    :: wt_nmd, wt_nmu, wt_ndm, wt_num  ! weights of the four partner faces in the advection stencil
    !
    real*4    :: hwet
    real*4    :: phi
@@ -192,7 +196,8 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip, &
+   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -494,6 +499,47 @@ contains
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
+                     ! Weights of the four partner faces (advection_partner_weight, off by default in
+                     ! this scheme). A dry partner face has u = 0, so the velocity differences below treat
+                     ! every staircase step of a bank as a real 90 degree corner and slow the face down.
+                     ! Each difference is therefore scaled with the larger of the depth ratio and the flux
+                     ! ratio between partner and face (at most 1):
+                     ! wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth hu_k = q_k / u_k,
+                     ! written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|). Only the terms with du/dx
+                     ! and du/dy are weighted. The terms with dqu/dx and dqv/dy add up to u times the flux
+                     ! divergence of the upwind cell, which is zero in steady flow.
+                     !
+                     wt_nmd = 1.0
+                     wt_nmu = 1.0
+                     wt_ndm = 1.0
+                     wt_num = 1.0
+                     !
+                     if (advection_partner_weight) then
+                        !
+                        q_abs = max(abs(qx_nm), 1.0e-9)
+                        !
+                        q_k   = abs(qx_nmd)
+                        q_ref = min(abs(uu_nmd) * hu, q_abs)
+                        if (q_k < q_ref)  wt_nmd = q_k / q_ref
+                        if (q_k <= 0.0)   wt_nmd = 0.0
+                        !
+                        q_k   = abs(qx_nmu)
+                        q_ref = min(abs(uu_nmu) * hu, q_abs)
+                        if (q_k < q_ref)  wt_nmu = q_k / q_ref
+                        if (q_k <= 0.0)   wt_nmu = 0.0
+                        !
+                        q_k   = abs(q0(uv_index_u_ndm(ip)))
+                        q_ref = min(abs(uu_ndm) * hu, q_abs)
+                        if (q_k < q_ref)  wt_ndm = q_k / q_ref
+                        if (q_k <= 0.0)   wt_ndm = 0.0
+                        !
+                        q_k   = abs(q0(uv_index_u_num(ip)))
+                        q_ref = min(abs(uu_num) * hu, q_abs)
+                        if (q_k < q_ref)  wt_num = q_k / q_ref
+                        if (q_k <= 0.0)   wt_num = 0.0
+                        !
+                     endif
+                     !
                      ! d qu u / dx
                      !
                      qd = (qx_nmd + qx_nm) / 2
@@ -501,12 +547,12 @@ contains
                      !
                      if (qd > 1.0e-6) then
                         ud = (uu_nmd + uu_nm) / 2
-                        dqxudx = ( qd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
+                        dqxudx = ( qd * wt_nmd * (uu_nm - uu_nmd) + ud * (qx_nm - qx_nmd) ) * dxuvinv
                      endif
                      !
                      if (qu < -1.0e-6) then
                         uu = (uu_nm + uu_nmu) / 2
-                        dqxudx = dqxudx + ( qu*(uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) ) * dxuvinv
+                        dqxudx = dqxudx + ( qu * wt_nmu * (uu_nmu - uu_nm) + uu * (qx_nmu - qx_nm) ) * dxuvinv
                      endif
                      ! 
                      ! d qv u / dy
@@ -517,11 +563,11 @@ contains
                      qd = (qy_ndm + qy_ndmu) / 2
                      !
                      if (qd > 1.0e-6) then
-                        dqyudy = qd * (uu_nm - uu_ndm) * dyuvinv
+                        dqyudy = qd * wt_ndm * (uu_nm - uu_ndm) * dyuvinv
                      endif
                      !
                      if (qu < -1.0e-6) then
-                        dqyudy = dqyudy + qu * (uu_num - uu_nm) * dyuvinv
+                        dqyudy = dqyudy + qu * wt_num * (uu_num - uu_nm) * dyuvinv
                      endif
                      ! 
                      ! u d qv / dy

@@ -87,6 +87,8 @@ contains
       character(len=256) :: wmsigstr
       character(len=256) :: advstr
       character(len=256) :: momstr
+      character(len=256) :: valstr_pw
+      logical            :: partner_weight_found
       !
       iok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
       !
@@ -138,7 +140,7 @@ contains
       call get_keyword(500, 'nc_deflate_level',                nc_deflate_level,                2)                 ! netCDF deflate level (0-9)
       call get_keyword(500, 'bndtype',                         bndtype,                         1)                 ! boundary condition type
       call get_keyword(500, 'advection',                       advection,                       .true.)            ! enable momentum advection terms
-      call get_keyword(500, 'advection_partner_weight',        advection_partner_weight,        2)                 ! velocity scheme: free slip at dry/shallow partner faces in the advection stencil (0 = off, 1 = skip dry partners, 2 = depth/flux ratio)
+      call get_keyword(500, 'advection_partner_weight',        advection_partner_weight,        .false.)           ! weight the partner faces in the advection stencil with their depth/flux ratio (default: on for the velocity and split schemes, off for bates, where it is only used with upw1)
       call get_keyword(500, 'latitude',                        latitude,                        0.0)               ! reference latitude for projected Coriolis (deg)
       call get_keyword(500, 'pavbnd',                          pavbnd,                          0.0)               ! atmospheric pressure applied at boundary (Pa)
       call get_keyword(500, 'gapres',                          gapres,                          101200.0)          ! atmospheric reference pressure (Pa)
@@ -204,7 +206,7 @@ contains
       ! Numerical parameters
       !
       call get_keyword(500, 'advection_scheme',                advstr,                          'upw1')            ! advection scheme label ('upw1' = 1st-order upwind, 'original' = legacy)
-      call get_keyword(500, 'momentum_scheme',                 momstr,                          'bates')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form)
+      call get_keyword(500, 'momentum_scheme',                 momstr,                          'bates')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form, 'split' = velocity form with operator splitting)
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
@@ -389,6 +391,15 @@ contains
       ! Backward compatibility for the obsolete advection = 2
       !
       call read_legacy_advection(500)
+      !
+      ! Was advection_partner_weight given in the input (its default depends on the momentum
+      ! scheme)? The obsolete value 2 (depth/flux ratio) means on.
+      !
+      call find_value(500, 'advection_partner_weight', valstr_pw, partner_weight_found)
+      !
+      if (partner_weight_found) then
+         if (valstr_pw(1:1) == '2') advection_partner_weight = .true.
+      endif
       !
       close(500)
       !
@@ -624,11 +635,18 @@ contains
          store_storagevolume = .false.
       endif
       !
-      ! Momentum scheme: Bates flux form (default) or velocity form
+      ! Momentum scheme: Bates flux form (default), velocity form, or velocity form with operator
+      ! splitting (advection of the pressure-updated velocity)
       !
       if (trim(momstr) == 'bates') then
          !
          momentum_scheme = 0
+         !
+      elseif (trim(momstr) == 'split') then
+         !
+         momentum_scheme = 2
+         !
+         call write_log('Info    : momentum scheme : velocity form with operator splitting', 0)
          !
       else
          !
@@ -643,11 +661,20 @@ contains
          !
       endif
       !
+      ! Partner weights in the advection stencil: on by default (option 2) in the velocity and
+      ! split schemes, off by default in the Bates scheme (there only used with upw1)
+      !
+      if (.not. partner_weight_found) then
+         !
+         advection_partner_weight = momentum_scheme /= 0
+         !
+      endif
+      !
       ! Effective bed level. Subgrid models have no reliable per-cell zb, but the velocity-form
       ! advection and the non-hydrostatic solver need one. For those combinations zb is
       ! recomputed every step in sfincs_continuity as zs - z_volume/area.
       !
-      zb_effective = subgrid .and. (momentum_scheme == 1 .or. nonhydrostatic)
+      zb_effective = subgrid .and. (momentum_scheme >= 1 .or. nonhydrostatic)
       !
       if (zb_effective) then
          call write_log('Info    : subgrid: using effective bed level zb = zs - V/A (velocity scheme / nonh)', 0)
@@ -662,8 +689,8 @@ contains
             call stop_sfincs('slope_driven_flow requires a subgrid model (sbgfile)!', 1)
          endif
          !
-         if (momentum_scheme /= 1) then
-            call stop_sfincs('slope_driven_flow requires momentum_scheme = velocity!', 1)
+         if (momentum_scheme == 0) then
+            call stop_sfincs('slope_driven_flow requires momentum_scheme = velocity or split!', 1)
          endif
          !
          call write_log('Info    : turning on slope-driven flow regime detection', 0)
@@ -677,7 +704,7 @@ contains
       ! The cell wet fraction z_wetfrac is only used by the velocity-form momentum scheme
       ! (wiggle suppression and slope-driven flow regime).
       !
-      compute_wetfrac = momentum_scheme == 1 .and. (wiggle_suppression .or. slope_driven_flow)
+      compute_wetfrac = momentum_scheme >= 1 .and. (wiggle_suppression .or. slope_driven_flow)
       !
       if (advection) then
          !

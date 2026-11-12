@@ -69,6 +69,7 @@ module sfincs_lib
    use sfincs_ncoutput
    use sfincs_momentum
    use sfincs_momentum_velocity, only : compute_fluxes_velocity
+   use sfincs_momentum_split, only : compute_fluxes_split
    use sfincs_continuity
    use sfincs_snapwave
    use sfincs_wavemaker
@@ -518,6 +519,12 @@ module sfincs_lib
             ! Velocity-form momentum scheme
             !
             call compute_fluxes_velocity(dt)
+            !
+         elseif (momentum_scheme == 2) then
+            !
+            ! Velocity-form momentum scheme with operator splitting
+            !
+            call compute_fluxes_split(dt)
             !
          else
             !

@@ -23,7 +23,6 @@ contains
    integer   :: iuv
    integer   :: icuv
    integer   :: isp                             ! index in uv_spacing_inv
-   integer   :: n_wet                           ! number of wet uv points in this time step
    !
    real*4    :: hu
    real*4    :: dxuvinv
@@ -64,7 +63,6 @@ contains
    real*4    :: q_abs                           ! |q0| at this uv point (floored), for the partner weights
    real*4    :: q_k                             ! |q0| at a partner face
    real*4    :: q_ref                           ! flux below which a partner gets a weight below 1
-   real*4    :: hu_w                            ! depth used in q_ref (hu, or 0 to only skip dry partners)
    real*4    :: wt_nmd, wt_nmu, wt_ndm, wt_num  ! weights of the four partner faces in the advection stencil
    !
    real*4    :: hwet
@@ -148,8 +146,6 @@ contains
    call move_alloc(uv, uv0)
    call move_alloc(swap, uv)
    !
-   n_wet = 0
-   !
    !$omp parallel &
    !$omp private ( icuv ) &
    !$omp private ( ip,hu,ufr,nm,nmu,dzdx,frc,idir,itype,iref,isp,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
@@ -157,10 +153,9 @@ contains
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
    !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu, &
    !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff, &
-   !$omp           q_abs,q_k,q_ref,hu_w,wt_nmd,wt_nmu,wt_ndm,wt_num )
+   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num )
    !$omp do schedule ( dynamic, 256 ) &
-   !$omp reduction ( min : min_dt  ) &
-   !$omp reduction ( + : n_wet )
+   !$omp reduction ( min : min_dt  )
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
@@ -170,7 +165,7 @@ contains
    !$acc                    zb, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, uv_spacing_inv, &
    !$acc                    z_hwet, subgrid_z_dzbdm, subgrid_z_dzbdn, subgrid_z_zmin, w_uv, iup_uv, &
    !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, cell_area, cell_area_m2, z_flags_iref, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
-   !$acc loop, reduction( min : min_dt ), reduction( + : n_wet ), gang, vector
+   !$acc loop, reduction( min : min_dt ), gang, vector
    do ip = 1, npuv
       !
       if (store_slope_regime) then
@@ -237,8 +232,6 @@ contains
          if (iwet) then
             !
             ! UV point is wet 
-            !
-            n_wet = n_wet + 1
             !
             if (use_quadtree) then
                iref  = uv_flags_iref(ip) ! refinement level
@@ -580,54 +573,46 @@ contains
                   up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
                   un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)
                   !
-                  ! Weights of the four partner faces (advection_partner_weight, default off).
-                  ! A dry partner face has u = 0, so the upwind differences below treat every
-                  ! staircase step of a bank as a real 90 degree corner: the water arrives without
-                  ! momentum and the face is slowed down. That drag is independent of the grid size.
-                  ! A dry partner is a closed wall, on which free slip applies: its difference is
-                  ! dropped (option 1). On subgrid grids bank faces are partly wet, so option 2
-                  ! (default) scales the difference with the larger of the depth ratio and the flux
-                  ! ratio between partner and face (at most 1). 1D flow over a step is not affected,
-                  ! because the flux ratio is 1 there.
+                  ! Weights of the four partner faces (advection_partner_weight, on by default).
+                  ! A dry partner face has u = 0, so the upwind differences below treat every staircase
+                  ! step of a bank as a real 90 degree corner: the water arrives without momentum and the
+                  ! face is slowed down. That drag is independent of the grid size. Each difference is
+                  ! therefore scaled with the larger of the depth ratio and the flux ratio between partner
+                  ! and face (at most 1): a dry partner acts as a closed wall with free slip, a partly wet
+                  ! bank face counts in proportion. 1D flow over a step is not affected, because the flux
+                  ! ratio is 1 there.
                   !
-                  ! Option 2: wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth
-                  ! hu_k = q_k / u_k, written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|), so
-                  ! that a division is only needed for the few partners with a weight below 1.
-                  ! Option 1 is the same with q_ref = 0. A wet partner with exactly zero velocity
-                  ! has q_k = 0 and gets weight 0.
+                  ! wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth hu_k = q_k / u_k,
+                  ! written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|), so that a division is only
+                  ! needed for the few partners with a weight below 1. A wet partner with exactly zero
+                  ! velocity has q_k = 0 and gets weight 0.
                   !
                   wt_nmd = 1.0
                   wt_nmu = 1.0
                   wt_ndm = 1.0
                   wt_num = 1.0
                   !
-                  if (advection_partner_weight > 0) then
+                  if (advection_partner_weight) then
                      !
                      q_abs = max(abs(q0(ip)), 1.0e-9)
                      !
-                     if (advection_partner_weight == 1) then
-                        hu_w = 0.0
-                     else
-                        hu_w = hu
-                     endif
-                     !
                      q_k   = abs(q0(uv_index_u_nmd(ip)))
-                     q_ref = min(abs(uu_nmd) * hu_w, q_abs)
+                     q_ref = min(abs(uu_nmd) * hu, q_abs)
                      if (q_k < q_ref)  wt_nmd = q_k / q_ref
                      if (q_k <= 0.0)   wt_nmd = 0.0
                      !
                      q_k   = abs(q0(uv_index_u_nmu(ip)))
-                     q_ref = min(abs(uu_nmu) * hu_w, q_abs)
+                     q_ref = min(abs(uu_nmu) * hu, q_abs)
                      if (q_k < q_ref)  wt_nmu = q_k / q_ref
                      if (q_k <= 0.0)   wt_nmu = 0.0
                      !
                      q_k   = abs(q0(uv_index_u_ndm(ip)))
-                     q_ref = min(abs(uu_ndm) * hu_w, q_abs)
+                     q_ref = min(abs(uu_ndm) * hu, q_abs)
                      if (q_k < q_ref)  wt_ndm = q_k / q_ref
                      if (q_k <= 0.0)   wt_ndm = 0.0
                      !
                      q_k   = abs(q0(uv_index_u_num(ip)))
-                     q_ref = min(abs(uu_num) * hu_w, q_abs)
+                     q_ref = min(abs(uu_num) * hu, q_abs)
                      if (q_k < q_ref)  wt_num = q_k / q_ref
                      if (q_k <= 0.0)   wt_num = 0.0
                      !
@@ -921,11 +906,6 @@ contains
    endif
    !
    !$omp end parallel
-   !
-   ! Wet fraction of the uv points (reported at the end of the run)
-   !
-   momentum_n_wet    = momentum_n_wet + n_wet
-   momentum_n_points = momentum_n_points + npuv
    !
    if (store_slope_regime) then
       !

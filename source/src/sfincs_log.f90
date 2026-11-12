@@ -422,8 +422,6 @@ contains
       ! Input:
       !   dtavg : average time step [s]
       !
-      use sfincs_data, only: momentum_n_wet, momentum_n_points
-      !
       implicit none
       !
       real, intent(in) :: dtavg
@@ -445,13 +443,6 @@ contains
       !
       write(logstr,'(a,20f10.3)') ' Average time step (s)  : ', dtavg
       call write_log(logstr, 1)
-      !
-      if (momentum_n_points > 0) then
-         !
-         write(logstr,'(a,f10.3)') ' Wet uv points (%)      : ', 100.0 * real(momentum_n_wet, 8) / real(momentum_n_points, 8)
-         call write_log(logstr, 1)
-         !
-      endif
       !
       call write_log('', 1)
       !

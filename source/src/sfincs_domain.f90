@@ -1874,7 +1874,7 @@ contains
       ! The non-hydrostatic initialization freezes its w_b bed slopes from the
       ! cell-mean bed computed here.
       !
-      if (nonhydrostatic .or. momentum_scheme == 1) then
+      if (nonhydrostatic .or. momentum_scheme >= 1) then
          !
          allocate(zb(np))
          !
