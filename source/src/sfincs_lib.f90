@@ -78,6 +78,7 @@ module sfincs_lib
    use sfincs_openacc
    use sfincs_log
    use sfincs_timers
+   use sfincs_omp
    use sfincs_timestep_analysis
    !
    implicit none
@@ -264,7 +265,9 @@ module sfincs_lib
    !
    call write_log('', 1)
    call write_log('---------- Starting simulation -----------', 1)
-   write(logstr,'(a,i0,a,i0,a)')'---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'   
+   write(logstr,'(a,i0,a,i0,a)')'---- Using ', omp_get_max_threads(), ' of ', omp_get_num_procs(), ' available threads ----'
+   call write_log(logstr, 1)
+   call set_openmp_wait_policy(logstr)
    call write_log(logstr, 1)
    call write_log('', 1)
    !
