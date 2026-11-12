@@ -215,7 +215,6 @@ contains
       call get_keyword(500, 'nh_tstop',                        nh_tstop,                        -999.0)            ! non-hydrostatic stop time (s rel. tref); -999 = t1+999
       call get_keyword(500, 'nh_tol',                          nh_tol,                          0.001)             ! non-hydrostatic solver tolerance
       call get_keyword(500, 'nh_itermax',                      nh_itermax,                      100)               ! non-hydrostatic solver max iterations
-      call get_keyword(500, 'h73table',                        h73table,                        .false.)           ! tabulate h^(7/3) for friction
       call get_keyword(500, 'rugdepth',                        runup_gauge_depth,               0.05)              ! runup gauge trigger depth (m)
       call get_keyword(500, 'wave_enhanced_roughness',         wave_enhanced_roughness,         .false.)           ! augment bed roughness with wave orbital velocity
       call get_keyword(500, 'use_bcafile',                     use_bcafile,                     .true.)            ! use tidal components from bca file
