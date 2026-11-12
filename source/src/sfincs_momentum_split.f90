@@ -20,10 +20,12 @@ contains
    !    The upwind depth in the flux already advects the water level in continuity; advecting the
    !    old velocity next to that is a forward-Euler step that amplifies short waves.
    !
-   ! 2. Where no advection is applied (advection off, or next to open boundaries and wave makers),
+   ! 2. Where no advection is applied (next to open boundaries and wave makers),
    !    the flux q is carried from one time step to the next instead of the velocity: the update
    !    starts from q0 / hu. Rebuilding the flux from the old velocity and the new depth advects the
    !    water level without advecting the velocity, which is unstable as well.
+   !
+   ! This routine always runs with advection (sfincs_input turns it on for momentum_scheme = split).
    !
    real*4    :: dt
    !
@@ -55,6 +57,7 @@ contains
    integer   :: ipk                             ! index of a partner face
    integer   :: ipc                             ! same, limited to the regular uv points
    real*4    :: fsp                             ! spacing factor of this uv point (1.5 at a refinement transition)
+   real*4    :: uvup                            ! velocity that selects the upwind cell (zero where no advection is applied)
    real*4    :: uv_prev                         ! starting value of the update (uv0, or q0 / hu where no advection is applied)
    !
    real*4    :: uu_nm
@@ -175,7 +178,7 @@ contains
    !$omp           fcoriouv,gnavg2,iwet,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,dqxudx,dqyudy,un,up,vp,vn,umax, &
    !$omp           dnminv,qu,qd,hwet,phi,adv,mdrv,phiz,fac,hu43,y_cbrt,i_cbrt,min_dt_ip,zs2w,zs1e,dnm,dnmu,zrec,zbup,ipw,ipe,zbnm,zbnmu, &
    !$omp           iup,idn,w,s_s,hwet_up,d_up,zb_face,tol_edge,r_slope,hu_flux,hu_fric,dzdx_eff, &
-   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num,uv_prev,gdt,dzk,ipk,ipc,fsp,sqgh_flux,sqgh )
+   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num,uv_prev,uvup,gdt,dzk,ipk,ipc,fsp,sqgh_flux,sqgh )
    !$omp do schedule ( dynamic, 256 ) &
    !$omp reduction ( min : min_dt  )
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
@@ -207,12 +210,17 @@ contains
          iwet  = .false.
          !
          ! Upwind cell of the uv point, from the sign of the previous-step velocity, else the
-         ! higher water level; zsu and, for regular grids, zbup follow it
+         ! higher water level; zsu and, for regular grids, zbup follow it. Where no advection is
+         ! applied the flux is carried (see the header) and the higher water level is always used,
+         ! as in the Bates scheme: a carried flux over the depth of a draining upwind cell gives a
+         ! velocity that keeps growing (thin layers in run-up and run-down)
          !
-         if (uv0(ip) > 1.0e-6) then
+         uvup = uv0(ip) * real(mask_adv(ip), 4)
+         !
+         if (uvup > 1.0e-6) then
             iup = nm
             idn = nmu
-         elseif (uv0(ip) < -1.0e-6) then
+         elseif (uvup < -1.0e-6) then
             iup = nmu
             idn = nm
          else
@@ -337,19 +345,14 @@ contains
                !
             endif
             !
-            ! Get velocities from the previous time step
+            ! Velocities of the previous time step at this point and its neighbors in the same direction
+            ! (advection and viscosity)
             !
-            if (advection .or. viscosity) then
-               !
-               ! Get the neighbors in the same direction (advection and viscosity)
-               !
-               uu_nm   = uv0(ip)
-               uu_nmd  = uv0(uv_index_u_nmd(ip))
-               uu_nmu  = uv0(uv_index_u_nmu(ip))
-               uu_ndm  = uv0(uv_index_u_ndm(ip))
-               uu_num  = uv0(uv_index_u_num(ip))
-               !
-            endif
+            uu_nm   = uv0(ip)
+            uu_nmd  = uv0(uv_index_u_nmd(ip))
+            uu_nmu  = uv0(uv_index_u_nmu(ip))
+            uu_ndm  = uv0(uv_index_u_ndm(ip))
+            uu_num  = uv0(uv_index_u_num(ip))
             !
             if (coriolis .or. friction2d) then
                !
@@ -521,217 +524,212 @@ contains
             !
             uv_prev = q0(ip) / max(hu_flux, 1.0e-6)
             !
-            if (advection) then
+            if (mask_adv(ip) == 1) then
                !
-               if (mask_adv(ip) == 1) then
+               uv_prev = uv0(ip)
+               !
+               ! Advect the velocities after the pressure update (see the header): uv0 - g * dt *
+               ! dzs/dx at this uv point and at its four partners. A partner that was dry or
+               ! blocked in the previous time step has uv0 = 0 and stays 0; combined and dummy
+               ! points (index above npuv) keep uv0.
+               !
+               gdt = g * dt
+               !
+               ! Spacing of a partner relative to this point (1.5 times larger at a refinement
+               ! transition)
+               !
+               fsp = merge(1.0, 1.5, itype == 0)
+               !
+               if (kfuv(ip) == 1) uu_nm = uu_nm - gdt * dzdx
+               !
+               ! Water levels one cell further west and east (also used in the reconstruction
+               ! below). Only use the +/-2 stencil when the neighbor is a REGULAR uv point
+               ! (<= npuv). At a quadtree refinement boundary uv_index_u_nm* points to a
+               ! COMBINED uv point (index > npuv), for which uv_index_z_* is out of bounds
+               ! (those arrays are sized npuv); fall back to 1st order there. Note ipw/ipe
+               ! are never 0 (sfincs_domain sets a missing neighbor to ip), so the old
+               ! "> 0" test never triggered the fallback.
+               !
+               ipw = uv_index_u_nmd(ip)
+               ipe = uv_index_u_nmu(ip)
+               !
+               if (ipw > 0 .and. ipw <= npuv) then
+                  zs2w = zs(uv_index_z_nm(ipw))
+               else
+                  zs2w = zs(nm)
+               endif
+               !
+               if (ipe > 0 .and. ipe <= npuv) then
+                  zs1e = zs(uv_index_z_nmu(ipe))
+               else
+                  zs1e = zs(nmu)
+               endif
+               !
+               ! In-line partners: a regular partner lies between this point's cell and the cell
+               ! one further (for a combined partner the difference below is zero)
+               !
+               dzk = (zs(nm) - zs2w) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(min(ipw, npuv)) == 0)
+               !
+               if (uu_nmd == 0.0) dzk = 0.0
+               !
+               uu_nmd = uu_nmd - gdt * dzk
+               !
+               dzk = (zs1e - zs(nmu)) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(min(ipe, npuv)) == 0)
+               !
+               if (uu_nmu == 0.0) dzk = 0.0
+               !
+               uu_nmu = uu_nmu - gdt * dzk
+               !
+               ! Cross partners
+               !
+               ipk = uv_index_u_ndm(ip)
+               ipc = min(ipk, npuv)
+               dzk = (zs(uv_index_z_nmu(ipc)) - zs(uv_index_z_nm(ipc))) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(ipc) == 0)
+               !
+               if (ipk > npuv .or. uu_ndm == 0.0) dzk = 0.0
+               !
+               uu_ndm = uu_ndm - gdt * dzk
+               !
+               ipk = uv_index_u_num(ip)
+               ipc = min(ipk, npuv)
+               dzk = (zs(uv_index_z_nmu(ipc)) - zs(uv_index_z_nm(ipc))) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(ipc) == 0)
+               !
+               if (ipk > npuv .or. uu_num == 0.0) dzk = 0.0
+               !
+               uu_num = uu_num - gdt * dzk
+               !
+               !
+               ! Momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
+               ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
+               ! upwind-zeta flux  FLU = mean(U)*(upwind surface zeta + still-depth h), h=-zb;
+               ! zeta reconstructed 2nd-order (upwind face, +/-2 stencil) when co-directional,
+               ! else 1st-order. Cross term: flux-based two-sided upwind (eq. 22, see below).
+               ! 'adv' is a VELOCITY tendency [m/s^2] (added straight into frc).
+               !
+               ! One path for regular and subgrid bathymetry: on subgrid models zb
+               ! is the EFFECTIVE bed zs - z_volume/area maintained every step in
+               ! continuity (zb_effective; the file zb is not a valid conveyance
+               ! bed), so D = zs - zb is the subgrid cell-mean depth there. Then
+               ! zrec - zbnm = D_cell + 0.5*(upwind dzs) -- centered depth when
+               ! flat, with the upwind-surface boost at a front (subgrid-consistent
+               ! Mader reconstruction).
+               !
+               dnm   = max(zs(nm)  - zb(nm),  0.0)
+               dnmu  = max(zs(nmu) - zb(nmu), 0.0)
+               !
+               zbnm  = zb(nm)
+               zbnmu = zb(nmu)
+               !
+               if (uu_nmd >= 0.0) then
+                  zrec = 0.5 * (zs2w + zs(nm))
+               else
+                  zrec = zs(nm)
+               endif
+               !
+               qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zbnm, 0.0)       ! FLU_p (west cell)
+               !
+               if (uu_nmu <= 0.0) then
+                  zrec = 0.5 * (zs(nmu) + zs1e)
+               else
+                  zrec = zs(nmu)
+               endif
+               !
+               qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zbnmu, 0.0)      ! FLU_n (east cell)
+               !
+               dnm    = max(dnm + dnmu, huthresh)    ! D_nm + D_nmu
+               dnminv = 2.0 / dnm
+               !
+               ! Clamp the advective speeds to the local characteristic speed
+               ! sqrt(g*hu) + |u|, the bound the time-step limiter guarantees to
+               ! resolve. On subgrid grids the cell-mean depth D used in dnminv can
+               ! be far smaller than the conveyance depth hu, so q/D can otherwise
+               ! exceed the advective CFL and blow up (e.g. steep valleys).
+               ! The bound is scaled by advection_umax_factor (default 3.0): next to
+               ! a near-dry cell q/D reaches ~2u, so a factor of 1 also cuts the
+               ! momentum flux into a supercritical run-up tongue (NTHMP BP04
+               ! breaking run-up 20-25 % low); a factor of 3 leaves such fronts alone.
+               !
+               sqgh = sqgh_flux
+               !
+               if (w > 0.0) sqgh = sqrt(g * hu)
+               !
+               umax = advection_umax_factor * (sqgh + abs(uv0(ip)))
+               !
+               up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
+               un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)
+               !
+               ! Weights of the four partner faces (advection_partner_weight, on by default).
+               ! A dry partner face has u = 0, so the upwind differences below treat every staircase
+               ! step of a bank as a real 90 degree corner: the water arrives without momentum and the
+               ! face is slowed down. That drag is independent of the grid size. Each difference is
+               ! therefore scaled with the larger of the depth ratio and the flux ratio between partner
+               ! and face (at most 1): a dry partner acts as a closed wall with free slip, a partly wet
+               ! bank face counts in proportion. 1D flow over a step is not affected, because the flux
+               ! ratio is 1 there.
+               !
+               ! wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth hu_k = q_k / u_k,
+               ! written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|), so that a division is only
+               ! needed for the few partners with a weight below 1. A wet partner with exactly zero
+               ! velocity has q_k = 0 and gets weight 0.
+               !
+               wt_nmd = 1.0
+               wt_nmu = 1.0
+               wt_ndm = 1.0
+               wt_num = 1.0
+               !
+               if (advection_partner_weight) then
                   !
-                  uv_prev = uv0(ip)
+                  q_abs = max(abs(q0(ip)), 1.0e-9)
                   !
-                  ! Advect the velocities after the pressure update (see the header): uv0 - g * dt *
-                  ! dzs/dx at this uv point and at its four partners. A partner that was dry or
-                  ! blocked in the previous time step has uv0 = 0 and stays 0; combined and dummy
-                  ! points (index above npuv) keep uv0.
+                  q_k   = abs(q0(uv_index_u_nmd(ip)))
+                  q_ref = min(abs(uu_nmd) * hu, q_abs)
+                  if (q_k < q_ref)  wt_nmd = q_k / q_ref
+                  if (q_k <= 0.0)   wt_nmd = 0.0
                   !
-                  gdt = g * dt
+                  q_k   = abs(q0(uv_index_u_nmu(ip)))
+                  q_ref = min(abs(uu_nmu) * hu, q_abs)
+                  if (q_k < q_ref)  wt_nmu = q_k / q_ref
+                  if (q_k <= 0.0)   wt_nmu = 0.0
                   !
-                  ! Spacing of a partner relative to this point (1.5 times larger at a refinement
-                  ! transition)
+                  q_k   = abs(q0(uv_index_u_ndm(ip)))
+                  q_ref = min(abs(uu_ndm) * hu, q_abs)
+                  if (q_k < q_ref)  wt_ndm = q_k / q_ref
+                  if (q_k <= 0.0)   wt_ndm = 0.0
                   !
-                  fsp = merge(1.0, 1.5, itype == 0)
-                  !
-                  if (kfuv(ip) == 1) uu_nm = uu_nm - gdt * dzdx
-                  !
-                  ! Water levels one cell further west and east (also used in the reconstruction
-                  ! below). Only use the +/-2 stencil when the neighbor is a REGULAR uv point
-                  ! (<= npuv). At a quadtree refinement boundary uv_index_u_nm* points to a
-                  ! COMBINED uv point (index > npuv), for which uv_index_z_* is out of bounds
-                  ! (those arrays are sized npuv); fall back to 1st order there. Note ipw/ipe
-                  ! are never 0 (sfincs_domain sets a missing neighbor to ip), so the old
-                  ! "> 0" test never triggered the fallback.
-                  !
-                  ipw = uv_index_u_nmd(ip)
-                  ipe = uv_index_u_nmu(ip)
-                  !
-                  if (ipw > 0 .and. ipw <= npuv) then
-                     zs2w = zs(uv_index_z_nm(ipw))
-                  else
-                     zs2w = zs(nm)
-                  endif
-                  !
-                  if (ipe > 0 .and. ipe <= npuv) then
-                     zs1e = zs(uv_index_z_nmu(ipe))
-                  else
-                     zs1e = zs(nmu)
-                  endif
-                  !
-                  ! In-line partners: a regular partner lies between this point's cell and the cell
-                  ! one further (for a combined partner the difference below is zero)
-                  !
-                  dzk = (zs(nm) - zs2w) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(min(ipw, npuv)) == 0)
-                  !
-                  if (uu_nmd == 0.0) dzk = 0.0
-                  !
-                  uu_nmd = uu_nmd - gdt * dzk
-                  !
-                  dzk = (zs1e - zs(nmu)) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(min(ipe, npuv)) == 0)
-                  !
-                  if (uu_nmu == 0.0) dzk = 0.0
-                  !
-                  uu_nmu = uu_nmu - gdt * dzk
-                  !
-                  ! Cross partners
-                  !
-                  ipk = uv_index_u_ndm(ip)
-                  ipc = min(ipk, npuv)
-                  dzk = (zs(uv_index_z_nmu(ipc)) - zs(uv_index_z_nm(ipc))) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(ipc) == 0)
-                  !
-                  if (ipk > npuv .or. uu_ndm == 0.0) dzk = 0.0
-                  !
-                  uu_ndm = uu_ndm - gdt * dzk
-                  !
-                  ipk = uv_index_u_num(ip)
-                  ipc = min(ipk, npuv)
-                  dzk = (zs(uv_index_z_nmu(ipc)) - zs(uv_index_z_nm(ipc))) * dxuvinv * fsp * merge(1.0, 1.0 / 1.5, uv_flags_type(ipc) == 0)
-                  !
-                  if (ipk > npuv .or. uu_num == 0.0) dzk = 0.0
-                  !
-                  uu_num = uu_num - gdt * dzk
-                  !
-                  !
-                  ! Momentum-conserved advection (Yamazaki, Kowalik & Cheung 2009,
-                  ! eqs 18/20/22), VELOCITY form. Streamwise advective speeds from the Mader
-                  ! upwind-zeta flux  FLU = mean(U)*(upwind surface zeta + still-depth h), h=-zb;
-                  ! zeta reconstructed 2nd-order (upwind face, +/-2 stencil) when co-directional,
-                  ! else 1st-order. Cross term: flux-based two-sided upwind (eq. 22, see below).
-                  ! 'adv' is a VELOCITY tendency [m/s^2] (added straight into frc).
-                  !
-                  ! One path for regular and subgrid bathymetry: on subgrid models zb
-                  ! is the EFFECTIVE bed zs - z_volume/area maintained every step in
-                  ! continuity (zb_effective; the file zb is not a valid conveyance
-                  ! bed), so D = zs - zb is the subgrid cell-mean depth there. Then
-                  ! zrec - zbnm = D_cell + 0.5*(upwind dzs) -- centered depth when
-                  ! flat, with the upwind-surface boost at a front (subgrid-consistent
-                  ! Mader reconstruction).
-                  !
-                  dnm   = max(zs(nm)  - zb(nm),  0.0)
-                  dnmu  = max(zs(nmu) - zb(nmu), 0.0)
-                  !
-                  zbnm  = zb(nm)
-                  zbnmu = zb(nmu)
-                  !
-                  if (uu_nmd >= 0.0) then
-                     zrec = 0.5 * (zs2w + zs(nm))
-                  else
-                     zrec = zs(nm)
-                  endif
-                  !
-                  qd = 0.5 * (uu_nmd + uu_nm) * max(zrec - zbnm, 0.0)       ! FLU_p (west cell)
-                  !
-                  if (uu_nmu <= 0.0) then
-                     zrec = 0.5 * (zs(nmu) + zs1e)
-                  else
-                     zrec = zs(nmu)
-                  endif
-                  !
-                  qu = 0.5 * (uu_nm + uu_nmu) * max(zrec - zbnmu, 0.0)      ! FLU_n (east cell)
-                  !
-                  dnm    = max(dnm + dnmu, huthresh)    ! D_nm + D_nmu
-                  dnminv = 2.0 / dnm
-                  !
-                  ! Clamp the advective speeds to the local characteristic speed
-                  ! sqrt(g*hu) + |u|, the bound the time-step limiter guarantees to
-                  ! resolve. On subgrid grids the cell-mean depth D used in dnminv can
-                  ! be far smaller than the conveyance depth hu, so q/D can otherwise
-                  ! exceed the advective CFL and blow up (e.g. steep valleys).
-                  ! The bound is scaled by advection_umax_factor (default 3.0): next to
-                  ! a near-dry cell q/D reaches ~2u, so a factor of 1 also cuts the
-                  ! momentum flux into a supercritical run-up tongue (NTHMP BP04
-                  ! breaking run-up 20-25 % low); a factor of 3 leaves such fronts alone.
-                  !
-                  sqgh = sqgh_flux
-                  !
-                  if (w > 0.0) sqgh = sqrt(g * hu)
-                  !
-                  umax = advection_umax_factor * (sqgh + abs(uv0(ip)))
-                  !
-                  up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
-                  un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)
-                  !
-                  ! Weights of the four partner faces (advection_partner_weight, on by default).
-                  ! A dry partner face has u = 0, so the upwind differences below treat every staircase
-                  ! step of a bank as a real 90 degree corner: the water arrives without momentum and the
-                  ! face is slowed down. That drag is independent of the grid size. Each difference is
-                  ! therefore scaled with the larger of the depth ratio and the flux ratio between partner
-                  ! and face (at most 1): a dry partner acts as a closed wall with free slip, a partly wet
-                  ! bank face counts in proportion. 1D flow over a step is not affected, because the flux
-                  ! ratio is 1 there.
-                  !
-                  ! wt = min(1, max(hu_k / hu, |q_k| / |q|)) with the partner depth hu_k = q_k / u_k,
-                  ! written as |q_k| / q_ref with q_ref = min(|u_k| * hu, |q|), so that a division is only
-                  ! needed for the few partners with a weight below 1. A wet partner with exactly zero
-                  ! velocity has q_k = 0 and gets weight 0.
-                  !
-                  wt_nmd = 1.0
-                  wt_nmu = 1.0
-                  wt_ndm = 1.0
-                  wt_num = 1.0
-                  !
-                  if (advection_partner_weight) then
-                     !
-                     q_abs = max(abs(q0(ip)), 1.0e-9)
-                     !
-                     q_k   = abs(q0(uv_index_u_nmd(ip)))
-                     q_ref = min(abs(uu_nmd) * hu, q_abs)
-                     if (q_k < q_ref)  wt_nmd = q_k / q_ref
-                     if (q_k <= 0.0)   wt_nmd = 0.0
-                     !
-                     q_k   = abs(q0(uv_index_u_nmu(ip)))
-                     q_ref = min(abs(uu_nmu) * hu, q_abs)
-                     if (q_k < q_ref)  wt_nmu = q_k / q_ref
-                     if (q_k <= 0.0)   wt_nmu = 0.0
-                     !
-                     q_k   = abs(q0(uv_index_u_ndm(ip)))
-                     q_ref = min(abs(uu_ndm) * hu, q_abs)
-                     if (q_k < q_ref)  wt_ndm = q_k / q_ref
-                     if (q_k <= 0.0)   wt_ndm = 0.0
-                     !
-                     q_k   = abs(q0(uv_index_u_num(ip)))
-                     q_ref = min(abs(uu_num) * hu, q_abs)
-                     if (q_k < q_ref)  wt_num = q_k / q_ref
-                     if (q_k <= 0.0)   wt_num = 0.0
-                     !
-                  endif
-                  !
-                  dqxudx = ( up * wt_nmd * (uu_nm - uu_nmd) + un * wt_nmu * (uu_nmu - uu_nm) ) * dxuvinv
-                  !
-                  ! Cross-advection of u by v -- momentum-conserving two-sided upwind
-                  ! (Yamazaki et al. 2009, eq. 22): advective speeds from the y-FLUXES
-                  ! through the faces below/above the u-point (mean of the two flanking
-                  ! v-point fluxes, previous time step q0), normalized by the same total
-                  ! depth as the streamwise term (dnminv). Transport INTO the point from
-                  ! either side contributes; at a collision line (v converging from both
-                  ! sides) both terms stay active, where the velocity-average form below
-                  ! gave ~zero cross-advection.
-                  !
-                  vp = min(max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 ),  umax)
-                  vn = max(min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 ), -umax)
-                  !
-                  dqyudy = ( vp * wt_ndm * (uu_nm - uu_ndm) + vn * wt_num * (uu_num - uu_nm) ) * dyuvinv
-                  !
-                  adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
-                  !
-                  if (w > 0.0) then
-                     !
-                     ! No inertia in the kinematic (slope-driven) limit
-                     !
-                     adv = (1.0 - w) * adv
-                     !
-                  endif
-                  !
-!                  frc = frc + min(max(adv, -advlim), advlim)   ! add limited advective acceleration
-                  frc = frc + adv   ! advective speeds are already clamped to umax above
+                  q_k   = abs(q0(uv_index_u_num(ip)))
+                  q_ref = min(abs(uu_num) * hu, q_abs)
+                  if (q_k < q_ref)  wt_num = q_k / q_ref
+                  if (q_k <= 0.0)   wt_num = 0.0
                   !
                endif
+               !
+               dqxudx = ( up * wt_nmd * (uu_nm - uu_nmd) + un * wt_nmu * (uu_nmu - uu_nm) ) * dxuvinv
+               !
+               ! Cross-advection of u by v -- momentum-conserving two-sided upwind
+               ! (Yamazaki et al. 2009, eq. 22): advective speeds from the y-FLUXES
+               ! through the faces below/above the u-point (mean of the two flanking
+               ! v-point fluxes, previous time step q0), normalized by the same total
+               ! depth as the streamwise term (dnminv). Transport INTO the point from
+               ! either side contributes; at a collision line (v converging from both
+               ! sides) both terms stay active, where the velocity-average form below
+               ! gave ~zero cross-advection.
+               !
+               vp = min(max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 ),  umax)
+               vn = max(min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 ), -umax)
+               !
+               dqyudy = ( vp * wt_ndm * (uu_nm - uu_ndm) + vn * wt_num * (uu_num - uu_nm) ) * dyuvinv
+               !
+               adv = - phi * (dqxudx + dqyudy)        ! velocity tendency [m/s^2]
+               !
+               if (w > 0.0) then
+                  !
+                  ! No inertia in the kinematic (slope-driven) limit
+                  !
+                  adv = (1.0 - w) * adv
+                  !
+               endif
+               !
+               frc = frc + adv   ! advective speeds are already clamped to umax above
                !
             endif
             !

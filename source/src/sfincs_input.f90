@@ -648,6 +648,16 @@ contains
          !
          call write_log('Info    : momentum scheme : velocity form with operator splitting', 0)
          !
+         ! The split scheme is meant for use with advection (without it, use bates)
+         !
+         if (.not. advection) then
+            !
+            advection = .true.
+            !
+            call write_log('Warning : momentum_scheme = split requires advection! Advection has been turned on.', 1)
+            !
+         endif
+         !
       else
          !
          momentum_scheme = 1
