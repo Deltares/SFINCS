@@ -2,12 +2,24 @@
   "_readme": "Countries where SFINCS has been applied, shown on the map in overview.rst. Add a country with its ISO 3166 alpha-3 code (as used in countries.geojson, e.g. GLP for Guadeloupe). Optional: 'links' (news articles, websites: list of {title, url}), shown first, and 'papers' (list of {year, title, doi}, or url instead of doi), shown below them.",
   "countries": [
     {"iso": "ABW"},
-    {"iso": "AGO"},
+    {"iso": "AFG", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "AGO", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "AIA"},
+    {"iso": "ALB", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "ARG", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "ASM"},
     {"iso": "ATG"},
     {"iso": "AUS", "papers": [
       {"year": 2026, "title": "Hybrid surrogate modeling of compound flood events using SFINCS-LSG", "doi": "10.5194/egusphere-egu26-11062"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Surrogate flood models for compound flood risk assessments and early warning", "doi": "10.5194/egusphere-egu25-5209"},
       {"year": 2022, "title": "Developing a real-time data and modeling framework for operational flood inundation forecasting for Australian coastlines", "doi": "10.5194/ems2022-82"},
       {"year": 2022, "title": "Developing a real-time data and modelling framework for operational flood inundation forecasting in Australia", "url": "https://search.informit.org/doi/abs/10.3316/informit.916755150845355"},
@@ -20,34 +32,67 @@
     {"iso": "BES", "papers": [
       {"year": 2023, "title": "An Integrated Assessment of Climate Change Impacts and Implications on Bonaire", "doi": "10.1007/s41885-023-00127-z"}
     ]},
-    {"iso": "BGD"},
+    {"iso": "BFA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "BGD", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "BGR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "BHR"},
     {"iso": "BHS"},
+    {"iso": "BIH", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "BLM"},
     {"iso": "BLZ"},
     {"iso": "BMU"},
+    {"iso": "BOL", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "BRA", "papers": [
-      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"}
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
     ]},
     {"iso": "BRB"},
-    {"iso": "CAN", "papers": [
-      {"year": 2026, "title": "Probabilistic assessment and seasonal characterization of compound flood hazards in the Fraser River Estuary", "doi": "10.14288/1.0455963"}
+    {"iso": "BWA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
     ]},
-    {"iso": "CHL"},
+    {"iso": "CAN", "papers": [
+      {"year": 2026, "title": "Probabilistic assessment and seasonal characterization of compound flood hazards in the Fraser River Estuary", "doi": "10.14288/1.0455963"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "CHL", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "CHN", "papers": [
       {"year": 2026, "title": "Pronounced Spatiotemporal Differences of Compound Flooding Inundation in China's Coastal Cities Under Climate Change", "doi": "10.1029/2026wr043721"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Integrating climate change and land use change into storm flood impact analysis in coastal cities", "doi": "10.1016/j.ejrh.2025.102745"},
       {"year": 2023, "title": "Simulation and assessment of compound flooding in coastal cities under climate change", "doi": "10.5194/egusphere-egu23-9259"}
     ]},
+    {"iso": "COD", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "COK"},
-    {"iso": "COL"},
+    {"iso": "COL", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "COM"},
     {"iso": "CPV"},
-    {"iso": "CUB"},
+    {"iso": "CRI", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "CUB", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "CUW"},
     {"iso": "CYM"},
     {"iso": "DEU", "papers": [
       {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Comparing the effectiveness of upstream nature-based solutions with building-level adaptation measures: a case study for the Geul river", "doi": "10.5194/egusphere-egu25-11137"}
     ]},
     {"iso": "DMA"},
@@ -57,68 +102,137 @@
     ], "papers": [
       {"year": 2026, "title": "Verification of the SFINCS Model Applying GPS Measured Flood Marks from the Storm Surge, Babet, in Southern Denmark", "doi": "10.1007/978-3-032-15477-4_16"}
     ]},
-    {"iso": "DOM"},
+    {"iso": "DOM", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "DZA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "ECU", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "EGY"},
-    {"iso": "ESP"},
-    {"iso": "ETH"},
-    {"iso": "FJI"},
-    {"iso": "FRA"},
+    {"iso": "ESP", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "ETH", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "FJI", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "FRA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "FSM"},
     {"iso": "GBR", "papers": [
       {"year": 2026, "title": "Climate change attribution of the compound 2013/14 winter storms flooding in Somerset, UK", "doi": "10.5194/ems2026-226"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2024, "title": "Alternative nature-based solutions for flood protection in a macrotidal estuary under a changing climate", "doi": "10.5194/egusphere-egu24-6436"},
       {"year": 2024, "title": "Investigating the efficiency of nature-based solutions against estuarine coastal flooding under present and future conditions", "doi": "10.5194/egusphere-egu24-11438"},
       {"year": 2024, "title": "Transdisciplinary co-design to assess impacts of climate change on coastal schemes", "doi": "10.5194/egusphere-egu24-7495"}
     ]},
-    {"iso": "GHA"},
+    {"iso": "GHA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "GLP"},
+    {"iso": "GMB", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "GNB"},
+    {"iso": "GRC", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "GRD"},
     {"iso": "GUM"},
-    {"iso": "GUY"},
-    {"iso": "HRV"},
-    {"iso": "HTI"},
+    {"iso": "GUY", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "HRV", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "HTI", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "IDN", "papers": [
       {"year": 2026, "title": "A probabilistic tsunami hazard assessment for the southern coast of Java, Indonesia: building an inundation database through a two-stage framework", "doi": "10.1186/s40562-026-00515-9"},
       {"year": 2026, "title": "A two-stage framework for a large-scale probabilistic tsunami inundation hazard assessment: A study case for the southern coast of Java, Indonesia", "doi": "10.5194/egusphere-egu26-10971"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Coastal flood modelling of Jakarta using the SFINCS, a reduced-physics solver with high computational efficiency", "doi": "10.1088/1755-1315/1464/1/012018"}
     ]},
     {"iso": "IND", "papers": [
-      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"}
+      {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
     ]},
     {"iso": "IRL"},
-    {"iso": "ITA"},
+    {"iso": "IRN", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "ISR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "ITA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "JAM"},
     {"iso": "JPN", "papers": [
       {"year": 2026, "title": "Understanding Compound Pluvial–Fluvial Flood Hazards Under Climate Change: A Case Study of the Lower Tone River Basin, Japan", "doi": "10.1002/hyp.70403"},
       {"year": 2021, "title": "Rapid Assessment of Tsunami Offshore Propagation and Inundation with D-FLOW Flexible Mesh and SFINCS for the 2011 Tōhoku Tsunami in Japan", "doi": "10.3390/jmse9050453"}
     ]},
-    {"iso": "KEN"},
+    {"iso": "KEN", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "KHM", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "KIR"},
     {"iso": "KNA"},
+    {"iso": "KOR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "LAO"},
     {"iso": "LBR"},
     {"iso": "LBY"},
     {"iso": "LCA"},
+    {"iso": "LKA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "LSO", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "LTU", "papers": [
       {"year": 2026, "title": "Curonian Lagoon SFINCS model: Storm Xaver 2013 hindcast", "doi": "10.5281/zenodo.22772337"}
     ]},
     {"iso": "MAF"},
-    {"iso": "MAR"},
+    {"iso": "MAR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "MDG", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Tropical cyclone induced compound flooding in Madagascar: a coupled modeling approach", "doi": "10.1007/s11069-025-07209-z"}
     ]},
     {"iso": "MDV"},
-    {"iso": "MEX"},
+    {"iso": "MEX", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "MHL", "papers": [
       {"year": 2021, "title": "Efficient and accurate modeling of wave-driven flooding on coral reef-lined coasts: Case Study of Majuro Atoll, Republic of the Marshall Islands", "doi": "10.5194/egusphere-egu21-5418"}
     ]},
-    {"iso": "MMR"},
+    {"iso": "MLI", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "MMR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "MNG", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "MNP"},
     {"iso": "MOZ", "links": [
       {"title": "Coastal flooding at Beira", "url": "https://www.preventionweb.net/news/dutch-mozambican-consortium-help-protect-beira-against-coastal-flooding"}
     ], "papers": [
       {"year": 2026, "title": "Storyline impact attribution of climate and exposure drivers of compound flood impact from tropical cyclone Idai in Mozambique", "doi": "10.5194/egusphere-egu26-1264"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Comprehensive Flood and Impact Modeling: Advanced Quantitative Tools for Emergency Management and Societal Resilience", "doi": "10.5194/egusphere-egu25-17951"},
       {"year": 2025, "title": "Forecasting hurricane impacts on US coasts", "doi": "10.5194/egusphere-egu25-2869"},
       {"year": 2025, "title": "Storyline climate attribution for compound flooding from tropical cyclone Idai in Mozambique", "doi": "10.5194/egusphere-egu25-2889"},
@@ -127,54 +241,138 @@
       {"year": 2022, "title": "A globally-applicable framework for compound flood risk modeling", "doi": "10.5194/egusphere-egu22-5528"},
       {"year": 2022, "title": "An efficient multi-scale modelling framework for assessment of coastal flood events", "doi": "10.5194/egusphere-egu22-198"}
     ]},
+    {"iso": "MRT", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "MSR"},
     {"iso": "MTQ"},
     {"iso": "MUS"},
+    {"iso": "MYS", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "NAM", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "NCL"},
-    {"iso": "NGA"},
+    {"iso": "NER", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "NGA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "NIC", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "NIU"},
     {"iso": "NLD", "papers": [
       {"year": 2026, "title": "Cross-Scale Evaluation of Nature-Based Solutions for fluvial flood hazard reduction", "doi": "10.5194/egusphere-egu26-18095"},
       {"year": 2026, "title": "Long-term household flood adaptation under government policies: a coupled hydrological, hydrodynamic, and agent-based model", "doi": "10.5194/egusphere-egu26-12778"},
       {"year": 2025, "title": "Comparing the effectiveness of upstream nature-based solutions with building-level adaptation measures: a case study for the Geul river", "doi": "10.5194/egusphere-egu25-11137"}
     ]},
+    {"iso": "NPL", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "NRU"},
+    {"iso": "NZL", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "OMN"},
-    {"iso": "PAK"},
+    {"iso": "PAK", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "PER", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "PHL", "papers": [
       {"year": 2026, "title": "Fast Modelling of Wave-Driven Flooding for Sandy and Coral Reef-Lined Coasts", "doi": "10.1007/978-3-032-15477-4_25"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2022, "title": "An efficient multi-scale modelling framework for assessment of coastal flood events", "doi": "10.5194/egusphere-egu22-198"}
     ]},
     {"iso": "PLW"},
-    {"iso": "PNG"},
+    {"iso": "PNG", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "POL", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "PRI"},
+    {"iso": "PRK", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "PRT"},
+    {"iso": "PRY", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "PYF"},
+    {"iso": "ROU", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "RUS", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "RWA"},
     {"iso": "SAU"},
     {"iso": "SDN"},
+    {"iso": "SEN", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "SGP"},
     {"iso": "SLB"},
-    {"iso": "SSD"},
+    {"iso": "SLV", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "SOM", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "SRB", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "SSD", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "STP", "papers": [
       {"year": 2020, "title": "Uncertainties in coastal flood risk assessments in small island developing states", "doi": "10.5194/nhess-20-2397-2020"}
     ]},
     {"iso": "SUR"},
+    {"iso": "SVN", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "SXM"},
     {"iso": "SYC"},
+    {"iso": "SYR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "TCA"},
+    {"iso": "TCD", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "TGO", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "THA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2024, "title": "Impacts comparison by using different hydraulic models on the 2011 flood in Thailand", "doi": "10.5194/egusphere-egu24-7347"}
     ]},
     {"iso": "TLS"},
     {"iso": "TON"},
     {"iso": "TTO"},
-    {"iso": "TUR"},
+    {"iso": "TUR", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "TUV"},
-    {"iso": "TWN"},
-    {"iso": "TZA"},
-    {"iso": "UGA"},
+    {"iso": "TWN", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "TZA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "UGA", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "UKR"},
+    {"iso": "URY", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "USA", "links": [
       {"title": "Urban flooding and adaptation measures in the USA", "url": "https://specials.deltares.nl/january_2022/a_new_practical_tool_to_help_communities_mitigate_flood_risks"},
       {"title": "Compound flooding along the whole US Southeast coast", "url": "https://www.deltares.nl/en/news/climate-hazards-for-u.s.-atlantic-coast"}
@@ -184,6 +382,7 @@
       {"year": 2026, "title": "Beyond the 100-year flood: probabilistic flood hazard assessment for King and Pierce Counties under future climate scenarios", "doi": "10.5194/nhess-26-3231-2026"},
       {"year": 2026, "title": "Hybrid surrogate modeling of compound flood events using SFINCS-LSG", "doi": "10.5194/egusphere-egu26-11062"},
       {"year": 2026, "title": "Rating Surfaces for Quantifying Compound Flooding at Points of Interest", "doi": "10.5194/egusphere-2026-577"},
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"},
       {"year": 2025, "title": "Accelerating compound flood risk assessments through active learning: A case study of Charleston County (USA)", "doi": "10.5194/nhess-25-1353-2025"},
       {"year": 2025, "title": "Determining the Relative Contributions of Runoff, Coastal, and Compound Processes to Flood Exposure Across the Carolinas During Hurricane Florence", "doi": "10.1029/2023wr036727"},
       {"year": 2025, "title": "Forecasting hurricane impacts on US coasts", "doi": "10.5194/egusphere-egu25-2869"},
@@ -207,10 +406,21 @@
       {"year": 2021, "title": "Modeling compound flooding in coastal systems using a computationally efficient reduced-physics solver: including fluvial, pluvial, tidal, wind- and wave-driven processes", "doi": "10.1016/j.coastaleng.2020.103796"}
     ]},
     {"iso": "VCT"},
+    {"iso": "VEN", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "VGB"},
     {"iso": "VIR"},
+    {"iso": "VNM", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
     {"iso": "VUT"},
     {"iso": "WSM"},
-    {"iso": "ZAF"}
+    {"iso": "ZAF", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]},
+    {"iso": "ZMB", "papers": [
+      {"year": 2026, "title": "Validation of the open-source hydrodynamic model SFINCS on historical river floods at the global scale", "doi": "10.5194/hess-30-5491-2026"}
+    ]}
   ]
 }
