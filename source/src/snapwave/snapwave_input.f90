@@ -165,7 +165,7 @@ contains
       !
       wave_force_radstress = .true.
       !
-      call write_log('Info    : SnapWave wave force computed from radiation-stress gradients (snapwave_wave_force = radstress)', 1)
+      call write_log('Info    : SnapWave wave force computed from radiation-stress gradients', 1)
       !
    endif
    !
