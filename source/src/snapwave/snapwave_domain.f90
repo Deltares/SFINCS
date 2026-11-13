@@ -115,6 +115,7 @@ contains
    real*8,    dimension(:),     allocatable    :: theta360d0 ! wave angles,sine and cosine of wave angles
    real*8,    dimension(:,:),   allocatable    :: ds360d0
    real*8,    dimension(:,:,:), allocatable    :: w360d0
+   real*4,    dimension(:),     allocatable    :: dhdx_dummy, dhdy_dummy
    integer*4                                   :: idummy
    character*2                                 :: ext
    logical                                     :: generate_upw, exists
@@ -374,7 +375,19 @@ contains
       write(145)dhdy
       close(145)
       !
-   endif  
+   elseif (wave_force_radstress) then
+      !
+      ! The upwind file does not store the surrounding points kp, but the
+      ! radiation-stress force needs them for its gradients (snapwave_node_gradient).
+      ! Rebuild kp here; the bed slopes read from the upwind file are kept.
+      !
+      allocate(dhdx_dummy(no_nodes), dhdy_dummy(no_nodes))
+      !
+      call fm_surrounding_points(x, y, zb, no_nodes, sferic, face_nodes, no_faces, kp, np, dhdx_dummy, dhdy_dummy)
+      !
+      deallocate(dhdx_dummy, dhdy_dummy)
+      !
+   endif
    !
    theta360 = theta360*pi/180
    dtheta   = dtheta*pi/180   
