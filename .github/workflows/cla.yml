@@ -1,0 +1,53 @@
+name: CLA
+
+# Checks that every commit author of a pull request has signed the SFINCS CLA.
+# Signatures are stored in a separate private repository (Deltares/sfincs-cla-signatures),
+# so the workflow needs a token with write access to it (secret CLA_SIGNATURES_TOKEN).
+#
+# pull_request_target runs this file from the default branch, so the check only becomes
+# active once this file is on main.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  cla:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CLA Assistant
+        if: >-
+          github.event_name == 'pull_request_target' ||
+          (github.event.issue.pull_request &&
+           (github.event.comment.body == 'recheck' ||
+            github.event.comment.body == 'I have read the SFINCS Individual CLA and I hereby sign it.'))
+        uses: contributor-assistant/github-action@v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.CLA_SIGNATURES_TOKEN }}
+        with:
+          remote-organization-name: 'Deltares'
+          remote-repository-name: 'sfincs-cla-signatures'
+          path-to-signatures: 'signatures/individual_cla_v1.json'
+          branch: 'main'
+          path-to-document: 'https://github.com/Deltares/SFINCS/blob/main/.github/cla/individual_cla.md'
+          # Deltares staff, entity-CLA designated contributors and bots.
+          # Keep in sync with the plan, section 6.
+          allowlist: 'maartenvanormondt,Leynse,keesnederhoff,MarliesA,vanasseltk,willemnoorduin,willem-deltares,FlorisBuwaldaDeltares,roeldegoede,veenstrajelmer,dependabot[bot],github-actions[bot],Copilot,copilot-swe-agent[bot]'
+          custom-notsigned-prcomment: >-
+            Thank you for your contribution! Before we can merge it, every commit author needs to accept the
+            [SFINCS Individual Contributor License Agreement](https://github.com/Deltares/SFINCS/blob/main/.github/cla/individual_cla.md)
+            (once, it covers all future contributions). If your employer owns your work, your organisation signs the
+            [Entity CLA](https://github.com/Deltares/SFINCS/blob/main/.github/cla/entity_cla.md) instead; see
+            [CONTRIBUTING.md](https://github.com/Deltares/SFINCS/blob/main/CONTRIBUTING.md). To sign, reply with the sentence below.
+          custom-pr-sign-comment: 'I have read the SFINCS Individual CLA and I hereby sign it.'
+          custom-allsigned-prcomment: 'All commit authors have signed the SFINCS CLA. Thank you!'
+          lock-pullrequest-aftermerge: false

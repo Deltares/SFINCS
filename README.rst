@@ -70,7 +70,8 @@ Find the user manual and more information on: https://sfincs.readthedocs.io/en/l
 How to contribute?
 -------------------------------------------------------
 If you find any issues in the code or documentation feel free to leave an issue on the `github issue tracker. <https://github.com/Deltares/SFINCS/issues>`_
-You can find information about how to contribute to the SFINCS model at our `contributing page. <https://sfincs.readthedocs.io/en/latest/example.html#contributing>`_
+You can find information about how to contribute to the SFINCS model in `CONTRIBUTING.md <https://github.com/Deltares/SFINCS/blob/main/CONTRIBUTING.md>`_.
+Before your first pull request can be merged, you need to sign the SFINCS Contributor License Agreement (CLA); the CLA bot guides you through this on the pull request.
 
 SFINCS seeks active contribution from the hydro modelling community, so feel free to add something to our docs or model code, or reach out to 'sfincs@deltares.nl'!
 
