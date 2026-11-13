@@ -33,6 +33,10 @@ If this PR adds model functionality:
 ### HydroMT-SFINCS
 - [ ] If a new type of input is needed, a feature request has been opened in the [HydroMT-SFINCS repository](https://github.com/Deltares/hydromt_sfincs/issues) <!-- link the issue here -->
 
+### Contributor License Agreement
+- [ ] External contributors: I have signed the [SFINCS CLA](https://github.com/Deltares/SFINCS/blob/main/CONTRIBUTING.md#contributor-license-agreement-cla) (the CLA bot asks you on your first pull request). Deltares staff: n/a.
+- [ ] This pull request contains no code from other projects, or its origin and licence are stated under Additional Notes.
+
 ### Self Review
 - [ ] I have reviewed my own changes.
 - [ ] Fortran changes follow the [coding style](https://github.com/Deltares/SFINCS/blob/main/source/CODING_STYLE.md).
