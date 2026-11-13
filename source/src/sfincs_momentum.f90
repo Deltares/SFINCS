@@ -10,10 +10,6 @@ module sfincs_momentum
    !     Compute the fluxes q and velocities uv at all uv points (regular and subgrid).
    !     Called from: sfincs_update (sfincs_lib)
    !
-   !   power7over3(hu)
-   !     Compute hu**(7/3), from a lookup table for small hu.
-   !     Called from: compute_fluxes (sfincs_momentum)
-   !
    ! ------------ Copyright notice SFINCS ------------
    !
    ! Copyright (C)  Stichting Deltares, 2016-2026.
@@ -106,6 +102,7 @@ contains
    real*4    :: qvt
    !
    real*4    :: zsu
+   integer   :: iup                             ! upwind cell of the uv point
    real*4    :: dzuv
    real*4    :: facint
    real*4    :: gnavg2
@@ -130,13 +127,16 @@ contains
    real*4    :: hwet
    real*4    :: phi
    !
-   real*4    :: mdrv
+   real*4    :: mdrv                            ! wiggle suppression driver
+   real*4    :: phiz                            ! wet-area fraction of the least wet neighbouring cell
+   real*4    :: fac                             ! under-relaxation factor for wiggle suppression
    real*4    :: hu73
+   real*4    :: y_cbrt                          ! cube-root approximation hu^(1/3)
+   integer*4 :: i_cbrt                          ! bit pattern of hu for the cube-root seed
    !
    real*4    :: min_dt_ip
    !
-   real*4, parameter :: expo = 1.0 / 3.0
-   !integer, parameter :: expo = 1
+   real*4, dimension(:), allocatable :: swap                 ! work array to swap q and q0, uv and uv0
    !
    logical   :: iok
    !
@@ -166,38 +166,33 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   ! Copy flux and velocity from previous time step
+   ! Flux and velocity from the previous time step. The arrays are swapped instead of copied:
+   ! q0 and uv0 now hold the previous time step, q and uv hold older values and are overwritten
+   ! below at every point. Points that are not computed here (open boundaries, structures, wave
+   ! makers) get the previous-step value, as with a copy. The dummy point npuv + ncuv + 1 is 0.0
+   ! in both sets of arrays.
    !
-   !$acc parallel, present( q, q0, uv, uv0 )
-   !$omp parallel &
-   !$omp private ( ip )
-   !$omp do
-   !$acc loop gang vector
-   do ip = 1, npuv + ncuv
-      !
-      q0(ip)  = q(ip)
-      uv0(ip) = uv(ip)
-      !
-   enddo
-   !$acc end parallel
-   !$omp end do
-   !$omp end parallel
+   call move_alloc(q0, swap)
+   call move_alloc(q, q0)
+   call move_alloc(swap, q)
    !
-   ! Copy flux and velocity from previous time step
+   call move_alloc(uv0, swap)
+   call move_alloc(uv, uv0)
+   call move_alloc(swap, uv)
    !
-   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip, &
-   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,phiz,fac,hu73,y_cbrt,i_cbrt,min_dt_ip, &
+   !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num,iup ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -214,7 +209,28 @@ contains
          !
          iok  = .false.
          !
-         zsu = max(zs(nm), zs(nmu)) ! water level at u point
+         ! Water level at the uv point: the higher of the two water levels. With
+         ! bates_upwind_level (default) the level of the upwind cell is used instead, i.e. the
+         ! cell the water comes from according to the sign of the previous-step velocity. The
+         ! two differ where water flows against the surface slope (late uprush, run-down).
+         !
+         zsu = max(zs(nm), zs(nmu))
+         !
+         if (bates_upwind_level) then
+            !
+            if (uv0(ip) > 1.0e-6) then
+               !
+               iup = nm
+               zsu = zs(iup)
+               !
+            elseif (uv0(ip) < -1.0e-6) then
+               !
+               iup = nmu
+               zsu = zs(iup)
+               !
+            endif
+            !
+         endif
          !
          if (subgrid) then
             !
@@ -695,13 +711,23 @@ contains
                !
             endif
             !
+            ! hu**(1/3) for the Manning friction, via a fast cube root: an integer bit-hack seed
+            ! (magic constant 709921077) refined by one Newton iteration
+            ! (y <- y - (y^3 - hu) / (3 y^2)). About 0.1 % accurate over the depth range, no pow,
+            ! no table. y_cbrt gives hu**(7/3) below and hu**(5/3) in the newly-wet estimate.
+            !
+            i_cbrt = transfer(hu, i_cbrt)
+            i_cbrt = i_cbrt / 3 + 709921077
+            y_cbrt = transfer(i_cbrt, y_cbrt)
+            y_cbrt = y_cbrt - (y_cbrt * y_cbrt * y_cbrt - hu) / (3.0 * y_cbrt * y_cbrt)
+            !
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux 
+               ! This uv point just became wet, so estimate equilibrium flux (hu**(5/3) = hu * y_cbrt**2)
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * y_cbrt * y_cbrt
                !
             else   
                !
@@ -748,31 +774,39 @@ contains
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            if (h73table) then
-               !
-               ! Get hu**(7/3) from look-up table
-               !
-               hu73 = power7over3(max(hu, 1.0e-6))
-               !
-            else
-               !
-               ! Compute hu**(7/3)
-               !
-               hu73 = hu**2 * hu**expo
-               !
-            endif
-            ! 
+            hu73 = hu * hu * y_cbrt   ! hu**(7/3)
+            !
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
-            if (subgrid .and. wiggle_suppression) then 
+            if (subgrid .and. wiggle_suppression) then
                !
-               ! If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid.
+               ! Wiggle suppression for cells in which only a few subgrid pixels are wet (large dzs/dV).
+               ! There the local gravity-wave speed is sqrt(g * hu / phiz) with phiz the wet-area
+               ! fraction of the cell, which exceeds the speed sqrt(g * hu) the time step was set for.
+               ! Under-relax the flux increment with fac = phiz / alfa**2 (floored at wiggle_facmin).
+               ! Steady flow (q = q0) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
+               ! With wiggle_detect, only relax when the level accelerations of the two cells diverge
+               ! by more than wiggle_threshold (anti-phase sloshing across this uv point).
                !
-               mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+               phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
                !
-               if (mdrv > 0.0) then
+               fac  = min(max(phiz / alfa**2, wiggle_facmin), 1.0)
+               !
+               if (fac < 1.0) then
                   !
-                  q(ip) = q(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
+                  if (wiggle_detect) then
+                     !
+                     mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+                     !
+                     if (mdrv > 0.0) then
+                        q(ip) = qsm + fac * (q(ip) - qsm)
+                     endif
+                     !
+                  else
+                     !
+                     q(ip) = qsm + fac * (q(ip) - qsm)
+                     !
+                  endif
                   !
                endif
                !
@@ -837,8 +871,16 @@ contains
             !
          endif
          !
+      else
+         !
+         ! Not computed here (open boundary, structure, wave maker or inactive point): keep the
+         ! value of the previous time step
+         !
+         q(ip)  = q0(ip)
+         uv(ip) = uv0(ip)
+         !
       endif
-   enddo   
+   enddo
    !$omp end do
    !$omp end parallel
    !$acc end parallel
@@ -870,49 +912,5 @@ contains
    call timer_stop('momentum')
    !
    end subroutine
-   !
-   !
-   function power7over3(hu) result(hu73)
-   !
-   ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
-   !
-   ! Input:
-   !   hu   : water depth at the uv point [m]
-   !
-   ! Returns:
-   !   hu73 : hu to the power 7/3
-   !
-   ! Called from: compute_fluxes (sfincs_momentum)
-   !
-   real*4, intent(in) :: hu
-   real*4             :: hu73
-   !
-   !!$acc routine(power7over3) seq
-   !
-   if (hu < 0.00001) then
-      hu73 = x73(int(1e8 * hu), 1)
-   elseif (hu < 0.0001) then
-      hu73 = x73(int(1e7 * hu), 2)
-   elseif (hu < 0.001) then
-      hu73 = x73(int(1e6 * hu), 3)
-   elseif (hu < 0.01) then
-      hu73 = x73(int(1e5 * hu), 4)
-   elseif (hu < 0.1) then
-      hu73 = x73(int(1e4 * hu), 5)
-   elseif (hu < 1.0) then
-      hu73 = x73(int(1e3 * hu), 6)
-   elseif (hu < 10.0) then
-      hu73 = x73(int(100 * hu), 7)
-   elseif (hu < 100.0) then
-      hu73 = x73(int(10 * hu), 8)
-   elseif (hu < 1000.0) then
-      hu73 = x73(int(1 * hu), 9)
-   elseif (hu < 10000.0) then
-      hu73 = x73(int(0.1 * hu), 10)
-   else
-      hu73 = 10000.0 ** (7.0/3.0)
-   endif    
-   !
-   end function
    !
 end module

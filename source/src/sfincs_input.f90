@@ -149,6 +149,7 @@ contains
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
       call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on advection term
+      call get_keyword(500, 'bates_upwind_level',              bates_upwind_level,              .true.)            ! bates scheme: water level at a uv point from the upwind cell (sign of the velocity) instead of the higher of the two levels
       call get_keyword(500, 'advection_umax_factor',           advection_umax_factor,           3.0)               ! velocity scheme: scale on the advective-speed bound sqrt(g*hu) + |u| (1 = strict)
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
@@ -210,10 +211,10 @@ contains
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
-      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor
-      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold
-      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! velocity scheme: lower bound of the wiggle under-relaxation factor
-      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! velocity scheme: only under-relax faces where a wiggle is detected
+      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor (no longer used)
+      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! only under-relax faces where a wiggle is detected (see wiggle_threshold)
       call get_keyword(500, 'slope_driven_flow',               slope_driven_flow,               .false.)           ! velocity scheme: slope-driven subgrid flow regime (requires subgrid)
       call get_keyword(500, 'slope_driven_ratio0',             slope_driven_ratio0,             1.0)               ! crossover slope ratio of the level-driven / slope-driven regime weight
       call get_keyword(500, 'slope_driven_hmin',               slope_driven_hmin,               0.01)              ! floor on the wet depth used in the slope ratio (m)
@@ -233,7 +234,6 @@ contains
       call get_keyword(500, 'nonh_brfr',                       nonh_brfr,                       0.5)               ! Froude breaking criterion |U|/sqrt(gD); 0 = no breaking
       call get_keyword(500, 'nonh_treform',                    nonh_treform,                    1.0)               ! breaking reformation time scale (s); 0 = instant recovery
       call get_keyword(500, 'nonh_pade_beta',                  nonh_pade_beta,                  0.04)              ! coefficient beta of the Pade-type dispersion correction
-      call get_keyword(500, 'h73table',                        h73table,                        .false.)           ! tabulate h^(7/3) for friction
       call get_keyword(500, 'rugdepth',                        runup_gauge_depth,               0.05)              ! runup gauge trigger depth (m)
       call get_keyword(500, 'wave_enhanced_roughness',         wave_enhanced_roughness,         .false.)           ! augment bed roughness with wave orbital velocity
       call get_keyword(500, 'use_bcafile',                     use_bcafile,                     .true.)            ! use tidal components from bca file
@@ -711,10 +711,10 @@ contains
          !
       endif
       !
-      ! The cell wet fraction z_wetfrac is only used by the velocity-form momentum scheme
-      ! (wiggle suppression and slope-driven flow regime).
+      ! The cell wet fraction z_wetfrac is used by the wiggle suppression (all momentum schemes)
+      ! and by the slope-driven flow regime.
       !
-      compute_wetfrac = momentum_scheme >= 1 .and. (wiggle_suppression .or. slope_driven_flow)
+      compute_wetfrac = wiggle_suppression .or. slope_driven_flow
       !
       if (advection) then
          !

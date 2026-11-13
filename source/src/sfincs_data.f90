@@ -7,10 +7,6 @@ module sfincs_data
    !
    ! Subroutines / functions:
    !
-   !   fill_h73_tables()
-   !     Fill the lookup tables for the h**(7/3) calculations.
-   !     Called from: initialize_domain (sfincs_domain)
-   !
    !   initialize_parameters()
    !     Legacy initialization of local time-loop parameters.
    !     Called from: not called (currently unused)
@@ -118,6 +114,7 @@ module sfincs_data
       real*4 pavbnd
       real*4 gapres
       real*4 advlim
+      logical :: bates_upwind_level              ! bates scheme: water level at a uv point from the upwind cell (sign of the velocity) instead of the higher of the two levels
       real*4 advection_umax_factor   ! scale on the advective-speed bound sqrt(g*hu) + |u| in the velocity scheme (1 = strict)
       real*4 movingbed_filter        ! depth filter of the moving bed (dzbext): Gaussian std = factor x depth of the moving cells, applied to the surface lift and to the non-hydrostatic moving-bed source; 0 = raw (no filter)
       real*4 slopelim
@@ -302,10 +299,9 @@ module sfincs_data
       logical       :: wiggle_detect
       logical       :: slope_driven_flow
       logical       :: store_slope_regime
-      logical       :: compute_wetfrac    ! cell wet fraction z_wetfrac is needed (velocity-form momentum with wiggle suppression or slope-driven flow)
+      logical       :: compute_wetfrac    ! cell wet fraction z_wetfrac is needed (wiggle suppression or slope-driven flow)
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
-      logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
       logical       :: snapwave_use_nearest
@@ -913,41 +909,9 @@ module sfincs_data
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858 /), shape(cdlgx))
-      !
-      ! h**(7/3) table
-      ! 
-      real*4, dimension(:,:), allocatable :: x73
-      
    contains
 
 
-   subroutine fill_h73_tables()
-   !
-   ! Fill lookup tables for h**(7/3) calculations
-   !
-   ! Called from: initialize_domain (sfincs_domain)
-   !
-   implicit none
-   !
-   integer :: j, k
-   !
-   real*4  :: hh
-   !
-   if (h73table) then
-      !
-      allocate(x73(1000, 10))
-      !
-      do k = 1, 10
-         do j = 1, 1000
-            hh = 0.001 * j * 10.0 ** (k - 6)
-            x73(j, k) = hh**2 * hh**(1.0/3.0)
-         enddo   
-      enddo   
-      !
-   endif
-   !
-   end subroutine
-   
    subroutine initialize_parameters()
       !
       ! Legacy initialization of local time-loop parameters.

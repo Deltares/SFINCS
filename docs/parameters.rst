@@ -78,6 +78,12 @@ Parameters for model input
 	  :default:		bates
 	  :min:			bates
 	  :max:			velocity
+	bates_upwind_level
+	  :description:		Only for 'momentum_scheme = bates'. Water level used for the flow depth at a uv point: with 1 (default) the level of the upwind cell, i.e. the cell the water comes from according to the sign of the velocity of the previous time step; with 0 the higher of the two water levels (the behaviour of earlier versions). The two differ where water flows against the surface slope, e.g. late in the uprush of a wave.
+	  :units:		logical
+	  :default:		1
+	  :min:			0
+	  :max:			1
 	alpha
 	  :description:		Numerical time step reduction for CFL-condition. Decrease for additional numerical stability, minimum value is 0.1 and maximum is 0.75.
 	  :units:		-	
@@ -218,7 +224,7 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			Inf	  
 	wiggle_suppression
-	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
+	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells in which only a few pixels are wet. The flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin (default 0.1) and at most 1 (fully wet cells are not affected). With wiggle_detect = 1 the relaxation is only applied where the water level accelerations of the two cells diverge by more than wiggle_threshold. Applies to all momentum schemes. Only for subgrid mode.
 	  :units:		logical
 	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
@@ -278,12 +284,6 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
-	h73table
-	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
-	  :units:		logical
-	  :default:		0
-	  :min:			0
-	  :max:			1		    
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
