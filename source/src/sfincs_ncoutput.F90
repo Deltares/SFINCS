@@ -231,8 +231,11 @@ contains
    !
    implicit none
    !
-   integer :: nm, nmq, n, m, ntmx, nn, n_nodes, n_faces, iref
+   integer :: nm, nmq, n, m, ntmx, nn, n_nodes, n_faces, iref, itmx
    real*4  :: dxx, dyy
+   !
+   ! Planned end times of the maximum-output windows (written to timemax at init)
+   real*8, dimension(:), allocatable :: timemax_planned
    !
    ! sp_dimids is local scratch; nsd/dims_*/coord_str are module-level in
    ! sfincs_ncoutput_helpers and are set here before any def_* calls.
@@ -869,6 +872,25 @@ contains
       call put_static_veg_float(map_file%ncid, map_file%veg_ah_varid,     vegetation_stems_height,   vegetation_vertical_segments, FILL_VALUE)
       call put_static_veg_float(map_file%ncid, map_file%veg_bstems_varid, vegetation_stems_diameter, vegetation_vertical_segments, FILL_VALUE)
       call put_static_veg_float(map_file%ncid, map_file%veg_Nstems_varid, vegetation_stems_density,  vegetation_vertical_segments, FILL_VALUE)
+   endif
+   !
+   if (store_maximum_waterlevel) then
+      !
+      ! Write the planned end time of every max-output window, so that timemax never holds
+      ! unwritten values (a coordinate variable may not have missing values). Each max output
+      ! overwrites its entry with the time it actually writes; a run that stops early keeps
+      ! the planned times of the windows it did not reach, with fill values in the max variables.
+      !
+      allocate(timemax_planned(ntmx))
+      !
+      do itmx = 1, ntmx
+         !
+         timemax_planned(itmx) = min(1.0d0 * t0out + itmx * 1.0d0 * dtmaxout, 1.0d0 * t1out)
+         !
+      enddo
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%timemax_varid, timemax_planned))
+      !
    endif
    !
    NF90(nf90_sync(map_file%ncid))
