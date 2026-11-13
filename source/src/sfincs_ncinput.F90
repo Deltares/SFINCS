@@ -27,9 +27,19 @@ module sfincs_ncinput
    !
    !   open_netcdf_quadtree_file(ncfile, nrcells)
    !     Open a quadtree-format netCDF input file and return its number of cells.
-   !     Called from: read_netcdf_quadtree_integer (sfincs_ncinput),
-   !       read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
-   !       read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput)
+   !     Called from: open_netcdf_quadtree_variable (sfincs_ncinput),
+   !       read_netcdf_quadtree_integer (sfincs_ncinput)
+   !
+   !   open_netcdf_quadtree_variable(ncfile, varname)
+   !     Open a quadtree-format netCDF input file, check its number of cells and look up a
+   !     variable in it.
+   !     Called from: read_netcdf_quadtree_values (sfincs_ncinput)
+   !
+   !   read_netcdf_quadtree_values(ncfile, varname, nlayers, values)
+   !     Read a real*4 variable (1D, or 2D with layers) on all quadtree cells, without mapping.
+   !     Called from: read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
+   !       read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput),
+   !       read_netcdf_quadtree_to_snapwave (snapwave_ncinput)
    !
    !   read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
    !     Read a real*4 cell variable from a quadtree netCDF file and map it to the active
@@ -443,9 +453,8 @@ module sfincs_ncinput
    ! Output:
    !   nrcells : number of cells in the file (dimension mesh2d_nFaces)
    !
-   ! Called from: read_netcdf_quadtree_integer (sfincs_ncinput),
-   !   read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
-   !   read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput)
+   ! Called from: open_netcdf_quadtree_variable (sfincs_ncinput),
+   !   read_netcdf_quadtree_integer (sfincs_ncinput)
    !
    use netcdf
    use sfincs_error
@@ -476,154 +485,261 @@ module sfincs_ncinput
    end subroutine
 
 
+   subroutine open_netcdf_quadtree_variable(ncfile, varname)
+      !
+      ! Open a quadtree-format netCDF input file and look up a variable in it, into
+      ! net_file_generic. Stops SFINCS with a clear message if the file is not a valid quadtree
+      ! netCDF file, its number of cells differs from the quadtree grid, or the variable is
+      ! missing. The caller reads the variable and closes the file.
+      !
+      ! Input:
+      !   ncfile  : name of the netCDF file
+      !   varname : name of the variable in the file
+      !
+      ! Called from: read_netcdf_quadtree_values (sfincs_ncinput)
+      !
+      use netcdf
+      use sfincs_error
+      use quadtree
+      !
+      implicit none
+      !
+      character*256, intent(in) :: ncfile
+      character*256, intent(in) :: varname
+      !
+      integer                   :: nrcells, status
+      !
+      ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
+      !
+      call open_netcdf_quadtree_file(ncfile, nrcells)
+      !
+      ! Check that number of values matches quadtree_nr_points (all quadtree cells, not just the active ones)
+      !
+      if (nrcells /= quadtree_nr_points) then
+         !
+         write(logstr,*)'Error    : netcdf input file ', trim(ncfile), ' contains: ', nrcells, 'input points, while expected is: ', quadtree_nr_points, ' as in sfincs.nc quadtree grid'
+         call stop_sfincs(trim(logstr), 1)
+         !
+      endif
+      !
+      status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
+      !
+      ! Stop SFINCS if wanted variable was not found
+      !
+      if (status /= nf90_noerr) then
+         !
+         write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ', trim(ncfile), ' does not contain needed variable: ', trim(varname), ' !'
+         call stop_sfincs(trim(logstr), 1)
+         !
+      endif
+      !
+   end subroutine open_netcdf_quadtree_variable
+   !
+   !
+   subroutine read_netcdf_quadtree_values(ncfile, varname, nlayers, values)
+      !
+      ! Read a real*4 variable on all quadtree cells from a quadtree netCDF file, without
+      ! mapping to a model mesh. The variable is either 1D (mesh2d_nFaces, nlayers = 1) or 2D
+      ! with one extra dimension of length nlayers (e.g. nsec), in either dimension order.
+      !
+      ! Input:
+      !   ncfile  : name of the netCDF file
+      !   varname : name of the variable in the file
+      !   nlayers : expected length of the extra dimension (1 for a 1D variable)
+      !
+      ! Output:
+      !   values  : values on all quadtree cells, per layer
+      !
+      ! Called from: read_netcdf_quadtree_to_sfincs (sfincs_ncinput),
+      !   read_netcdf_quadtree_to_sfincs_real8 (sfincs_ncinput),
+      !   read_netcdf_quadtree_to_snapwave (snapwave_ncinput)
+      !
+      use netcdf
+      use sfincs_error
+      use quadtree
+      !
+      implicit none
+      !
+      character*256, intent(in)                                    :: ncfile
+      character*256, intent(in)                                    :: varname
+      integer, intent(in)                                          :: nlayers
+      real*4, dimension(quadtree_nr_points, nlayers), intent(out)  :: values
+      !
+      integer                                                      :: ndims, nlay_file
+      integer, dimension(nf90_max_var_dims)                        :: dimids
+      real*4, dimension(:,:), allocatable                          :: vartmp
+      !
+      call open_netcdf_quadtree_variable(ncfile, varname)
+      !
+      NF90(nf90_inquire_variable(net_file_generic%ncid, net_file_generic%gen_varid, ndims = ndims, dimids = dimids))
+      !
+      if (ndims == 1 .and. nlayers == 1) then
+         !
+         NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, values(:, 1)))
+         !
+      elseif (ndims == 2) then
+         !
+         ! Note: dimids are in Fortran order (fastest varying first)
+         !
+         if (dimids(1) == net_file_generic%np_dimid) then
+            !
+            NF90(nf90_inquire_dimension(net_file_generic%ncid, dimids(2), len = nlay_file))
+            !
+         else
+            !
+            NF90(nf90_inquire_dimension(net_file_generic%ncid, dimids(1), len = nlay_file))
+            !
+         endif
+         !
+         if (nlay_file /= nlayers) then
+            !
+            write(logstr,'(a,a,a,a,a,i0,a,i0)')'Error    : variable ', trim(varname), ' in netcdf input file ', trim(ncfile), ' has ', nlay_file, ' layers, while expected is: ', nlayers
+            call stop_sfincs(trim(logstr), 1)
+            !
+         endif
+         !
+         if (dimids(1) == net_file_generic%np_dimid) then
+            !
+            ! Stored as (nlayers, mesh2d_nFaces) in C order
+            !
+            NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, values))
+            !
+         elseif (dimids(2) == net_file_generic%np_dimid) then
+            !
+            ! Stored as (mesh2d_nFaces, nlayers) in C order
+            !
+            allocate(vartmp(nlayers, quadtree_nr_points))
+            !
+            NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp))
+            !
+            values = transpose(vartmp)
+            !
+            deallocate(vartmp)
+            !
+         else
+            !
+            write(logstr,'(a,a,a,a,a)')'Error    : variable ', trim(varname), ' in netcdf input file ', trim(ncfile), ' does not have dimension mesh2d_nFaces !'
+            call stop_sfincs(trim(logstr), 1)
+            !
+         endif
+         !
+      else
+         !
+         write(logstr,'(a,a,a,a,a,i0,a)')'Error    : variable ', trim(varname), ' in netcdf input file ', trim(ncfile), ' has an unexpected shape (', ndims, ' dimensions) !'
+         call stop_sfincs(trim(logstr), 1)
+         !
+      endif
+      !
+      NF90(nf90_close(net_file_generic%ncid))
+      !
+   end subroutine read_netcdf_quadtree_values
+   !
+   !
    subroutine read_netcdf_quadtree_to_sfincs(ncfile, varname, var)
-   !
-   ! Read a real*4 cell variable from a quadtree netCDF file and map it to the active SFINCS
-   ! cells.
-   !
-   ! Input:
-   !   ncfile  : name of the netCDF file
-   !   varname : name of the variable in the file
-   !
-   ! Input/output:
-   !   var     : values in the active SFINCS cells
-   !
-   ! Called from: initialize_roughness (sfincs_domain),
-   !   initialize_storage_volume (sfincs_domain),
-   !   initialize_bucket_model (sfincs_infiltration),
-   !   initialize_infiltration_r2d (sfincs_infiltration),
-   !   read_infiltration_field (sfincs_infiltration),
-   !   initialize_vegetation (sfincs_vegetation)
-   !
-   ! For instance: storage_volume.nc, vol, storage_volume
-   !
-   use netcdf
-   use sfincs_data
-   use quadtree
-   !
-   implicit none   
-   !
-   integer :: nm, ip, nrcells, status
-   !
-   character*256 :: ncfile   
-   character*256 :: varname  
-   !
-   real*4, dimension(np), intent(inout)       :: var ! variable that we are mapping to
-   !
-   real*4, dimension(:), allocatable :: vartmp
-   !
-   ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
-   !
-   call open_netcdf_quadtree_file(ncfile, nrcells)
-   !
-   ! Check that number of values in the cell matches quadtree_nr_points 
-   ! (=all quadtree cells, not just the active ones)
-   !
-   if (nrcells /=quadtree_nr_points) then
-      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, 'input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'    
-      call stop_sfincs(trim(logstr), 1)
-   endif   
-   !
-   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
-   !
-   ! Stop SFINCS if wanted variable was not found
-   if (status /= nf90_noerr) then
-       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
-       call stop_sfincs(trim(logstr), 1)
-   endif
-   !
-   allocate(vartmp(nrcells))
-   !
-   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
-   !
-   ! Map quadtree to sfincs variable
-   !
-   do ip = 1, quadtree_nr_points
       !
-      nm = index_sfincs_in_quadtree(ip)
+      ! Read a real*4 cell variable from a quadtree netCDF file and map it to the active SFINCS
+      ! cells.
       !
-      if (nm>0) then      
-         var(nm) = vartmp(ip)
-      endif      
+      ! Input:
+      !   ncfile  : name of the netCDF file
+      !   varname : name of the variable in the file
       !
-   enddo   
-   !   
-   NF90(nf90_close(net_file_generic%ncid))       
-   ! 
-   end subroutine   
-   
+      ! Input/output:
+      !   var     : values in the active SFINCS cells
+      !
+      ! Called from: initialize_roughness (sfincs_domain),
+      !   initialize_storage_volume (sfincs_domain),
+      !   initialize_bucket_model (sfincs_infiltration),
+      !   initialize_infiltration_r2d (sfincs_infiltration),
+      !   read_infiltration_field (sfincs_infiltration),
+      !   initialize_vegetation (sfincs_vegetation)
+      !
+      ! For instance: storage_volume.nc, vol, storage_volume
+      !
+      use sfincs_data
+      use quadtree
+      !
+      implicit none
+      !
+      character*256, intent(in)            :: ncfile
+      character*256, intent(in)            :: varname
+      real*4, dimension(np), intent(inout) :: var
+      !
+      integer                              :: nm, ip
+      real*4, dimension(:,:), allocatable  :: vartmp
+      !
+      allocate(vartmp(quadtree_nr_points, 1))
+      !
+      call read_netcdf_quadtree_values(ncfile, varname, 1, vartmp)
+      !
+      ! Map quadtree to sfincs variable
+      !
+      do ip = 1, quadtree_nr_points
+         !
+         nm = index_sfincs_in_quadtree(ip)
+         !
+         if (nm > 0) then
+            !
+            var(nm) = vartmp(ip, 1)
+            !
+         endif
+         !
+      enddo
+      !
+      deallocate(vartmp)
+      !
+   end subroutine read_netcdf_quadtree_to_sfincs
+   !
+   !
    subroutine read_netcdf_quadtree_to_sfincs_real8(ncfile, varname, var)
-   !
-   ! Read a real*8 cell variable from a quadtree netCDF file and map it to the active SFINCS
-   ! cells.
-   !
-   ! Input:
-   !   ncfile  : name of the netCDF file
-   !   varname : name of the variable in the file
-   !
-   ! Input/output:
-   !   var     : values in the active SFINCS cells
-   !
-   ! Called from: set_initial_conditions (sfincs_initial_conditions)
-   !
-   ! For instance: storage_volume.nc, vol, storage_volume
-   !
-   use netcdf
-   use sfincs_data
-   use quadtree
-   !
-   implicit none   
-   !
-   integer :: nm, ip, nrcells, status
-   !
-   character*256 :: ncfile   
-   character*256 :: varname  
-   !
-   real*8, dimension(np), intent(inout)       :: var ! variable that we are mapping to
-   !
-   real*4, dimension(:), allocatable :: vartmp
-   !
-   ! Open netcdf file and get nr of cells (stops with a clear message if not a valid quadtree netcdf file)
-   !
-   call open_netcdf_quadtree_file(ncfile, nrcells)
-   !
-   ! Check that number of values in the cell matches quadtree_nr_points 
-   ! (=all quadtree cells, not just the active ones)
-   !
-   if (nrcells /=quadtree_nr_points) then
-      write(logstr,*)'Error    : netcdf input file ',trim(ncfile),' contains: ',nrcells, 'input points, while expected is: ',quadtree_nr_points,' as in sfincs.nc quadtree grid'    
-      call stop_sfincs(trim(logstr), 1)
-   endif   
-   !
-   status = nf90_inq_varid(net_file_generic%ncid, varname, net_file_generic%gen_varid)
-   !
-   ! Stop SFINCS if wanted variable was not found
-   if (status /= nf90_noerr) then
-       write(logstr,'(a,a,a,a,a)')'Error    : netcdf input file ',trim(ncfile),' does not contain needed variable: ',trim(varname),' !'       
-       call stop_sfincs(trim(logstr), 1)
-   endif
-   !
-   allocate(vartmp(nrcells))
-   !
-   NF90(nf90_get_var(net_file_generic%ncid, net_file_generic%gen_varid, vartmp(:)))
-   !
-   ! Map quadtree to sfincs variable
-   !
-   do ip = 1, quadtree_nr_points
       !
-      nm = index_sfincs_in_quadtree(ip)
+      ! Read a real*8 cell variable from a quadtree netCDF file and map it to the active SFINCS
+      ! cells (values are read as real*4).
       !
-      if (nm>0) then      
-         var(nm) = vartmp(ip)
-      endif      
+      ! Input:
+      !   ncfile  : name of the netCDF file
+      !   varname : name of the variable in the file
       !
-   enddo   
-   !   
-   NF90(nf90_close(net_file_generic%ncid))
+      ! Input/output:
+      !   var     : values in the active SFINCS cells
+      !
+      ! Called from: set_initial_conditions (sfincs_initial_conditions)
+      !
+      use sfincs_data
+      use quadtree
+      !
+      implicit none
+      !
+      character*256, intent(in)            :: ncfile
+      character*256, intent(in)            :: varname
+      real*8, dimension(np), intent(inout) :: var
+      !
+      integer                              :: nm, ip
+      real*4, dimension(:,:), allocatable  :: vartmp
+      !
+      allocate(vartmp(quadtree_nr_points, 1))
+      !
+      call read_netcdf_quadtree_values(ncfile, varname, 1, vartmp)
+      !
+      ! Map quadtree to sfincs variable
+      !
+      do ip = 1, quadtree_nr_points
+         !
+         nm = index_sfincs_in_quadtree(ip)
+         !
+         if (nm > 0) then
+            !
+            var(nm) = vartmp(ip, 1)
+            !
+         endif
+         !
+      enddo
+      !
+      deallocate(vartmp)
+      !
+   end subroutine read_netcdf_quadtree_to_sfincs_real8
    !
-   end subroutine
-
-
+   !
    subroutine read_netcdf_quadtree_integer(ncfile, varname, var)
    ! Read a 1D integer variable from a quadtree NetCDF file and map to SFINCS active cells
    !

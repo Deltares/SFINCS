@@ -216,6 +216,7 @@ module snapwave_data
    integer                                   :: niter           ! maximum number of iterations   
    character*232                             :: depfile         ! name of bathymetry file (Delft3D .dep format)
    character*232                             :: fwfile          ! name of bed friction factor file (Delft3D .dep format)
+   character*256                             :: snapwave_fwfile ! name of netCDF quadtree file with spatially varying friction (snapwave_fw, snapwave_fwig)
    character*232                             :: upwfile         ! name of upwind neighbors file
    character*232                             :: mskfile         ! name of mask file
    character*232                             :: indfile         ! name of index file
