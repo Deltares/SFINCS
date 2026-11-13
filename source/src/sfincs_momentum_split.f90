@@ -658,6 +658,15 @@ contains
                up  = min(max(qd * dnminv, 0.0),  umax)   ! U_p  (advective speed, from west)
                un  = max(min(qu * dnminv, 0.0), -umax)   ! U_n  (advective speed, from east)
                !
+               if (subgrid) then
+                  !
+                  ! TEMPTEST: advective speeds from the fluxes through the faces and the conveyance depth of this face
+                  !
+                  up  = min(max(0.5 * (q0(ipw) + q0(ip)) / max(hu_flux, 1.0e-3), 0.0),  umax)
+                  un  = max(min(0.5 * (q0(ip) + q0(ipe)) / max(hu_flux, 1.0e-3), 0.0), -umax)
+                  !
+               endif
+               !
                ! Weights of the four partner faces (advection_partner_weight, on by default).
                ! A dry partner face has u = 0, so the upwind differences below treat every staircase
                ! step of a bank as a real 90 degree corner: the water arrives without momentum and the
@@ -716,6 +725,15 @@ contains
                !
                vp = min(max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) * dnminv, 0.0 ),  umax)
                vn = max(min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  * dnminv, 0.0 ), -umax)
+               !
+               if (subgrid) then
+                  !
+                  ! TEMPTEST: normalise with the conveyance depth of this face
+                  !
+                  vp = min(max( 0.5 * (q0(uv_index_v_ndm(ip)) + q0(uv_index_v_ndmu(ip))) / max(hu_flux, 1.0e-3), 0.0 ),  umax)
+                  vn = max(min( 0.5 * (q0(uv_index_v_nm(ip))  + q0(uv_index_v_nmu(ip)))  / max(hu_flux, 1.0e-3), 0.0 ), -umax)
+                  !
+               endif
                !
                dqyudy = ( vp * wt_ndm * (uu_nm - uu_ndm) + vn * wt_num * (uu_num - uu_nm) ) * dyuvinv
                !

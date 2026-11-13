@@ -206,7 +206,7 @@ contains
       ! Numerical parameters
       !
       call get_keyword(500, 'advection_scheme',                advstr,                          'upw1')            ! advection scheme label ('upw1' = 1st-order upwind, 'original' = legacy)
-      call get_keyword(500, 'momentum_scheme',                 momstr,                          'bates')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form, 'split' = velocity form with operator splitting)
+      call get_keyword(500, 'momentum_scheme',                 momstr,                          'split')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form, 'split' = velocity form with operator splitting)
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
