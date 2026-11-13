@@ -22,7 +22,7 @@ Before we can merge your first pull request, you need to accept the SFINCS Contr
 **Which agreement?**
 
 - You contribute in your own time, or your employer has no rights in your work: the [Individual CLA](.github/cla/individual_cla.md).
-- Your employer or client owns or may claim rights in what you write (this is common for staff at universities, companies and government agencies): your organisation signs the [Entity CLA](.github/cla/entity_cla.md) first. Ask your manager or legal department, then send the signed agreement to sfincs@deltares.nl. Your GitHub account is then added to the agreement.
+- Your employer or client owns or may claim rights in what you write (this is common for staff at universities, companies and government agencies): your organisation signs the [Entity CLA](.github/cla/entity_cla.md) first. Ask your manager or legal department, then send the signed agreement to sfincs@deltares.nl. Unless Deltares tells you otherwise, you then do not sign the individual CLA; your GitHub account is added to the exemption list instead (see below).
 
 **How to sign.** When you open a pull request, the CLA bot posts a comment. Read the agreement it links to and reply on the pull request with exactly:
 
@@ -32,7 +32,15 @@ I have read the SFINCS Individual CLA and I hereby sign it.
 
 The check turns green and the pull request can be reviewed and merged. Every commit author must have signed, so make sure the e-mail address in your commits is [linked to your GitHub account](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/adding-an-email-address-to-your-github-account).
 
-Deltares employees do not need to sign.
+### Exemptions
+
+The CLA bot does not ask the following GitHub accounts to sign. They are listed in the `allowlist` of [.github/workflows/cla.yml](.github/workflows/cla.yml):
+
+- **Deltares employees.** Work you do for Deltares already belongs to Deltares, so you do not sign the CLA. If the bot asks you to sign, do not sign; ask a maintainer to add your GitHub user name to the list.
+- **Designated contributors of an organisation that signed the entity CLA.** When Deltares receives a signed entity CLA, a maintainer adds the GitHub accounts in its Schedule A to the list. When the organisation reports that someone has left, the maintainer removes the account.
+- **Automation accounts** such as Dependabot and Copilot.
+
+Changes to the list go through a normal pull request reviewed by a Deltares maintainer. People who leave Deltares are removed from the list; their later contributions need a CLA like anyone else's.
 
 ## Code from elsewhere
 

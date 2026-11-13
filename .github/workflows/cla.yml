@@ -29,7 +29,8 @@ jobs:
           (github.event.issue.pull_request &&
            (github.event.comment.body == 'recheck' ||
             github.event.comment.body == 'I have read the SFINCS Individual CLA and I hereby sign it.'))
-        uses: contributor-assistant/github-action@v2.6.1
+        # Pinned to a commit SHA: this job runs with write permissions and the signatures token.
+        uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.CLA_SIGNATURES_TOKEN }}
@@ -39,8 +40,8 @@ jobs:
           path-to-signatures: 'signatures/individual_cla_v1.json'
           branch: 'main'
           path-to-document: 'https://github.com/Deltares/SFINCS/blob/main/.github/cla/individual_cla.md'
-          # Deltares staff, entity-CLA designated contributors and bots.
-          # Keep in sync with the plan, section 6.
+          # Exempt accounts: Deltares staff, designated contributors of a signed entity CLA (Schedule A) and bots.
+          # Maintained by hand, see "Exemptions" in CONTRIBUTING.md. Comma-separated, no spaces.
           allowlist: 'maartenvanormondt,Leynse,keesnederhoff,MarliesA,vanasseltk,willemnoorduin,willem-deltares,FlorisBuwaldaDeltares,roeldegoede,veenstrajelmer,dependabot[bot],github-actions[bot],Copilot,copilot-swe-agent[bot]'
           custom-notsigned-prcomment: >-
             Thank you for your contribution! Before we can merge it, every commit author needs to accept the
