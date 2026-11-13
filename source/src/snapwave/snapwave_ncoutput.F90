@@ -92,6 +92,7 @@ module snapwave_ncoutput
       NF90(nf90_put_att(ncid,nf90_global, "Producer", "SFINCS model: Super-Fast INundation of CoastS"))
       NF90(nf90_put_att(ncid,nf90_global, "Build-Revision", trim(build_revision))) 
       NF90(nf90_put_att(ncid,nf90_global, "Build-Date", trim(build_date)))
+      NF90(nf90_put_att(ncid,nf90_global, "Source-Revision", trim(source_revision)))
       NF90(nf90_put_att(ncid,nf90_global, "title", "Snapwave grid"))
       !
       ! mesh topology

@@ -35,7 +35,7 @@ module snapwave_data
    !
    !!! Revision data
    !
-   character*256 :: build_revision, build_date
+   character*256 :: build_revision, build_date, source_revision
    !
    real*8,  dimension(:),       allocatable    :: x, y                    ! x,y coordinates of grid (double precision)
    real*4,  dimension(:),       allocatable    :: xs, ys                  ! x,y coordinates of grid (single precision)
