@@ -499,6 +499,8 @@ contains
    real*4                                     :: rhog8
    real*4                                     :: Dfk
    real*4                                     :: Dwk
+   real*4                                     :: dtot                   ! sum of the dissipation terms at a node before scaling
+   real*4                                     :: dfac                   ! factor that makes the dissipation terms consistent with the solved energy
    real*4                                     :: Ek
    real*4                                     :: Hk
    real*4                                     :: percok
@@ -1262,7 +1264,7 @@ contains
    endif   
    !
    ! Update wave forces - depends on vegetation
-   !$omp parallel do schedule(static)
+   !$omp parallel do private(dtot, dfac) schedule(static)
    do k = 1, no_nodes
       !
       ! Compute some directionally integrated parameters for output
@@ -1275,6 +1277,28 @@ contains
          !else
          !   call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
          !endif
+         !
+         ! Make the dissipation consistent with the solved energy balance. Dw(k), Df(k) and
+         ! Dveg(k) were computed in the sweep from the wave height before the solve, whereas
+         ! the solve removes DoverE(k) * E(k) from the balance (the dissipation is implicit
+         ! in the energy). Where the solution has not converged these differ: at nodes with
+         ! very small depth the pre-solve wave height can be many times Hmx while the solved
+         ! wave height is a few cm, and with the factor (H / Hmx)**baldock_exponent the
+         ! pre-solve breaking dissipation is then orders of magnitude larger than the energy
+         ! flux that arrives at the node. The wave force D * k / sig followed that value.
+         ! The three terms are therefore scaled to add up to what the solve removed, which
+         ! cannot exceed the incoming energy flux. At converged nodes nothing changes.
+         !
+         dtot = Dw(k) + Df(k) + Dveg(k)
+         !
+         if (dtot > 0.0) then
+            !
+            dfac    = min(DoverE(k) * E(k) / dtot, 1.0)
+            Dw(k)   = Dw(k) * dfac
+            Df(k)   = Df(k) * dfac
+            Dveg(k) = Dveg(k) * dfac
+            !
+         endif
          !
          ! Update wave forces
          F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)
