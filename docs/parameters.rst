@@ -61,9 +61,9 @@ Parameters for model input
 	  :min:			upw1	
 	  :max:			original	  
 	advlim
-	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim. The default of 9999.9 m/s2 means the limiter has no effect; set a lower value (e.g. 1.0, the default of earlier versions) to switch it on.
 	  :units:		m/s2
-	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
+	  :default:		9999.9 (no limit) - was 1.0 from SFINCS v2.2.0 onwards
 	  :min:			0
 	  :max:			9999
 	advection_umax_factor
@@ -79,9 +79,9 @@ Parameters for model input
 	  :min:			bates
 	  :max:			velocity
 	bates_upwind_level
-	  :description:		Only for 'momentum_scheme = bates'. Water level used for the flow depth at a uv point: with 1 (default) the level of the upwind cell, i.e. the cell the water comes from according to the sign of the velocity of the previous time step; with 0 the higher of the two water levels (the behaviour of earlier versions). The two differ where water flows against the surface slope, e.g. late in the uprush of a wave.
+	  :description:		Only for 'momentum_scheme = bates'. Water level used for the flow depth at a uv point: with 1 the level of the upwind cell, i.e. the cell the water comes from according to the sign of the velocity of the previous time step; with 0 (default) the higher of the two water levels. The two differ where water flows against the surface slope, e.g. late in the uprush of a wave.
 	  :units:		logical
-	  :default:		1
+	  :default:		0
 	  :min:			0
 	  :max:			1
 	alpha

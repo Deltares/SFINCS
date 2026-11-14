@@ -553,7 +553,7 @@ module sfincs_lib
          !
          if (nrstructures>0) then
             !
-            call compute_fluxes_over_structures()
+            call compute_fluxes_over_structures(dt)
             !
          endif
          !      

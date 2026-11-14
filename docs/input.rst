@@ -898,7 +898,7 @@ Recommended is to turn the advection term always on.
 
 'advection_scheme' selects the advection scheme option. It is possible to select the new (2024.01 release) advection scheme using 'advection_scheme = upw1' = default, or the original implementation from Leijnse et al. (2021) can be selected as 'advection_scheme = original' for backwards compatability.  NOTE - from SFINCS 2024.01 release onwards.
 
-'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability, default is set to 1 (2025.01 release onwards).
+'advlim' sets the possibility to limit the advection term in the momentum equation for increased stability. The default is 9999.9, which means no limit; set it to 1 for the behaviour of the 2025.01 release.
 
 'advection_umax_factor' (only for momentum_scheme = velocity) scales the cap on the advective speeds, umax = advection_umax_factor * (sqrt(g*hu) + abs(u)), default 3.0. The cap keeps the advection term stable where the cell-mean depth is much smaller than the face depth, e.g. in steep subgrid valleys. Do not set it much lower: a value of 1 also clips the momentum flux into supercritical run-up fronts and reduced the breaking run-up in the NTHMP BP04 benchmark by 20-25 %.
 

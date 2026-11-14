@@ -209,8 +209,8 @@ contains
          !
          iok  = .false.
          !
-         ! Water level at the uv point: the higher of the two water levels. With
-         ! bates_upwind_level (default) the level of the upwind cell is used instead, i.e. the
+         ! Water level at the uv point: the higher of the two water levels (default). With
+         ! bates_upwind_level the level of the upwind cell is used instead, i.e. the
          ! cell the water comes from according to the sign of the previous-step velocity. The
          ! two differ where water flows against the surface slope (late uprush, run-down).
          !
@@ -603,8 +603,8 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)
                   !
-                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2)
-                  ! Default advlim is 1.0 m/s2
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim
+                  ! (default 9999.9 m/s2, i.e. no limit)
                   !
                   adv = min(max(adv, - advlim * hu), advlim * hu) 
                   !

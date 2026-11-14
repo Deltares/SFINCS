@@ -134,6 +134,8 @@ module sfincs_data
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
+      integer weir_type                          ! weir formulation: 1 = flux set from the water levels (default), 2 = inertial (momentum equation at the weir)
+      real*4 weir_modular_limit                  ! weir type 2: ratio of downstream to upstream head above which the flow is submerged
       real*4 wiggle_factor
       real*4 wiggle_threshold
       real*4 wiggle_facmin

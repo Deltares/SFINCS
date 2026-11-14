@@ -85,12 +85,12 @@
    !
    if (weirfile(1:4) /= 'none') then
       !
-      ! Weir (type = 1), 2 parameters
+      ! Weir (type = 1, or type = 2 with weir_type = 2), 2 parameters
       !
       ! Parameter 1 : Weir level (w.r.t. ref datum)
       ! Parameter 2 : Cd
       !
-      call read_structure_file(weirfile, 1, 2)
+      call read_structure_file(weirfile, max(min(weir_type, 2), 1), 2)
       !
    endif
    !
@@ -674,9 +674,35 @@
    end subroutine
 
    
-   subroutine compute_fluxes_over_structures()
+   subroutine compute_fluxes_over_structures(dt)
    !
    ! Computes fluxes over structures (THIS HAS TO BE SERIOUSLY IMPROVED!!!)
+   !
+   ! Structure type 1 (weir): the flux is set directly from the two water levels with the
+   ! broad-crested weir formula (free flow, or submerged when h2 > 2/3 h1).
+   !
+   ! Structure type 2 (inertial weir): the flux over the weir follows its own momentum equation,
+   !
+   !    dq/dt = g * h1 * dh / dx - r * |q| * q ,
+   !
+   ! with h1 the upstream head above the crest, dh = h1 - max(h2, 0) the driving head difference
+   ! and dx the grid spacing across the weir. The resistance r is chosen such that the steady
+   ! state is the weir formula
+   !
+   !    q = Cd * 1.7049 * h1**1.5 * min(1, sqrt((1 - h2/h1) / (1 - ml))) ,
+   !
+   ! i.e. free flow up to the modular limit ml = weir_modular_limit and a square-root reduction
+   ! to zero above it (with ml = 2/3 this is Cd * 2.953 * h1 * sqrt(h1 - h2) when submerged).
+   ! That gives r = g * max(dh, (1 - ml) * h1) / (dx * (Cd * 1.7049 * h1)**2), which stays
+   ! finite when the two levels approach each other. The flux is updated as the fluxes at
+   ! regular uv points, with the resistance implicit:
+   !
+   !    q_new = (q_old + g * h1 * dh / dx * dt) / (1 + r * dt * |q_old|) .
+   !
+   ! The flux cannot change faster than gravity allows, so no relaxation is needed.
+   !
+   ! Input:
+   !   dt : time step [s]
    !
    ! Called from: sfincs_update (sfincs_lib)
    !
@@ -701,14 +727,28 @@
    real*4                       :: h1
    real*4                       :: h2
    real*4                       :: qstruc
+   real*4                       :: dt
+   real*4                       :: qprev        ! flux per unit width of the previous time step (type 2)
+   real*4                       :: dh           ! driving head difference (type 2)
+   real*4                       :: frc          ! pressure forcing (type 2)
+   real*4                       :: res          ! resistance coefficient (type 2)
+   real*4                       :: dxsinv        ! inverse grid spacing across the structure (type 2)
+   integer                      :: iref
+   integer                      :: itype
+   integer                      :: isp
    !
    call timer_start('structures')
    !
-   !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length)
+   !$acc parallel, present(zs, q, uv, structure_uv_index, uv_index_z_nm, uv_index_z_nmu, structure_parameters, structure_type, structure_length, &
+   !$acc                   uv_flags_iref, uv_flags_type, uv_flags_dir, uv_spacing_inv, dxminv, dyrinv)
    !$acc loop independent gang vector
    do istruc = 1, nrstructures
       !
       ip     = structure_uv_index(istruc)
+      !
+      ! Flux of the previous time step (the momentum routines leave it at structure points)
+      !
+      qprev  = q(ip)
       !
       q(ip)  = 0.0
       uv(ip) = 0.0
@@ -752,23 +792,94 @@
                !
                ! fully submerged
                !
-               qstruc = Cd*h2*sqrt(2.0 * 9.81 * (h1 - h2)/(1.0 - m))
+               qstruc = Cd * h2 * sqrt(2.0 * 9.81 * (h1 - h2) / (1.0 - m))
                !
             else
                !
                ! free flow
                !
-               qstruc = Cd*cweir*h1**1.5
+               qstruc = Cd * cweir * h1**1.5
                !
             endif 
             !
          case(2)
+            !
+            ! Inertial weir (see the header of this routine)
+            !
+            cweir = 1.7049
+            Cd    = structure_parameters(2, istruc)
+            !
+            if  (zsnm>zsnmu) then
+               idir = 1
+               h1 = zsnm  - structure_parameters(1, istruc)
+               h2 = zsnmu - structure_parameters(1, istruc)
+            else
+               idir = -1
+               h1 = zsnmu - structure_parameters(1, istruc)
+               h2 = zsnm  - structure_parameters(1, istruc)
+            endif
+            !
+            ! Inverse grid spacing across the structure
+            !
+            if (use_quadtree) then
+               iref  = uv_flags_iref(ip)
+               itype = uv_flags_type(ip)
+            else
+               iref  = 1
+               itype = 0
+            endif
+            !
+            if (crsgeo) then
+               if (uv_flags_dir(ip) == 0) then
+                  dxsinv = dxminv(ip)
+               else
+                  dxsinv = dyrinv(iref)
+               endif
+            else
+               isp = 4 * iref - 3 + uv_flags_dir(ip)
+               if (itype /= 0) isp = isp + 2
+               dxsinv = uv_spacing_inv(1, isp)
+            endif
+            !
+            ! Previous flux per unit width over the structure
+            !
+            if (structure_length(istruc) > 1.0e-6) then
+               qprev = qprev / structure_length(istruc)
+            else
+               qprev = 0.0
+            endif
+            !
+            if (h1 > 1.0e-4) then
+               !
+               dh  = h1 - max(h2, 0.0)
+               frc = 9.81 * h1 * dh * dxsinv * idir
+               res = 9.81 * max(dh, (1.0 - weir_modular_limit) * h1) * dxsinv / (Cd * cweir * h1)**2
+               !
+               qstruc = (qprev + frc * dt) / (1.0 + res * dt * abs(qprev))
+               !
+            else
+               !
+               qstruc = 0.0
+               !
+            endif
+            !
+            ! The flux is signed for this type
+            !
+            idir = 1
+            !
          case(3)
       end select
-      !         
+      !
       qstruc = qstruc * structure_length(istruc)
       !
       q(ip)  = qstruc*idir ! Add relaxation here !!!
+      !
+      ! Velocity over the crest for the inertial weir (flux over the upstream head above the crest),
+      ! so that neighbouring uv points can use it. Type 1 keeps uv = 0.
+      !
+      if (structure_type(istruc) == 2) then
+         if (h1 > 1.0e-4) uv(ip) = q(ip) / max(h1, 0.01)
+      endif
       !
    enddo
    !$acc end parallel

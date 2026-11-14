@@ -148,8 +148,8 @@ contains
       call get_keyword(500, 'utmzone',                         utmzone,                         'nil')             ! UTM zone string (e.g. '17N')
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
-      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on advection term
-      call get_keyword(500, 'bates_upwind_level',              bates_upwind_level,              .true.)            ! bates scheme: water level at a uv point from the upwind cell (sign of the velocity) instead of the higher of the two levels
+      call get_keyword(500, 'advlim',                          advlim,                          9999.9)            ! cap on the acceleration by the advection term (m/s2); the default is so high that it has no effect
+      call get_keyword(500, 'bates_upwind_level',              bates_upwind_level,              .false.)           ! bates scheme: water level at a uv point from the upwind cell (sign of the velocity) instead of the higher of the two levels
       call get_keyword(500, 'advection_umax_factor',           advection_umax_factor,           3.0)               ! velocity scheme: scale on the advective-speed bound sqrt(g*hu) + |u| (1 = strict)
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
@@ -207,10 +207,12 @@ contains
       ! Numerical parameters
       !
       call get_keyword(500, 'advection_scheme',                advstr,                          'upw1')            ! advection scheme label ('upw1' = 1st-order upwind, 'original' = legacy)
-      call get_keyword(500, 'momentum_scheme',                 momstr,                          'split')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form, 'split' = velocity form with operator splitting)
+      call get_keyword(500, 'momentum_scheme',                 momstr,                          'bates')           ! momentum scheme ('bates' = flux form, 'velocity' = velocity form, 'split' = velocity form with operator splitting)
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
+      call get_keyword(500, 'weir_type',                       weir_type,                       1)                 ! weir formulation: 1 = flux set from the water levels, 2 = inertial
+      call get_keyword(500, 'weir_modular_limit',              weir_modular_limit,              0.8)               ! weir type 2: head ratio h2/h1 above which the flow is submerged
       call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor (no longer used)
       call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold (used with wiggle_detect)
       call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor
