@@ -85,6 +85,7 @@ contains
       integer*8          :: dtsec
       character(len=256) :: wmsigstr
       character(len=256) :: advstr
+      character(len=256) :: cbrtstr
       !
       iok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
       !
@@ -204,6 +205,7 @@ contains
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
       call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor
       call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold
+      call get_keyword(500, 'cbrt',                            cbrtstr,                         'exact')           ! cube root hu**(1/3) in the friction term ('exact', or 'fast' = approximation, about 0.1 % accurate)
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
@@ -214,7 +216,6 @@ contains
       call get_keyword(500, 'nh_tstop',                        nh_tstop,                        -999.0)            ! non-hydrostatic stop time (s rel. tref); -999 = t1+999
       call get_keyword(500, 'nh_tol',                          nh_tol,                          0.001)             ! non-hydrostatic solver tolerance
       call get_keyword(500, 'nh_itermax',                      nh_itermax,                      100)               ! non-hydrostatic solver max iterations
-      call get_keyword(500, 'h73table',                        h73table,                        .false.)           ! tabulate h^(7/3) for friction
       call get_keyword(500, 'rugdepth',                        runup_gauge_depth,               0.05)              ! runup gauge trigger depth (m)
       call get_keyword(500, 'wave_enhanced_roughness',         wave_enhanced_roughness,         .false.)           ! augment bed roughness with wave orbital velocity
       call get_keyword(500, 'use_bcafile',                     use_bcafile,                     .true.)            ! use tidal components from bca file
@@ -615,6 +616,22 @@ contains
          endif
       else
          store_storagevolume = .false.
+      endif
+      !
+      ! Cube root in the friction term: exact (default) or fast approximation
+      !
+      cbrt_fast = .false.
+      !
+      if (trim(cbrtstr) == 'fast') then
+         !
+         cbrt_fast = .true.
+         call write_log('Info    : cube root in friction term : fast approximation', 0)
+         !
+      elseif (trim(cbrtstr) /= 'exact') then
+         !
+         write(logstr, *) 'Warning : cbrt option ', trim(cbrtstr), ' not recognized! Using default exact instead!'
+         call write_log(logstr, 1)
+         !
       endif
       !
       if (advection) then

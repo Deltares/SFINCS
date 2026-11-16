@@ -10,10 +10,6 @@ module sfincs_momentum
    !     Compute the fluxes q and velocities uv at all uv points (regular and subgrid).
    !     Called from: sfincs_update (sfincs_lib)
    !
-   !   power7over3(hu)
-   !     Compute hu**(7/3), from a lookup table for small hu.
-   !     Called from: compute_fluxes (sfincs_momentum)
-   !
    ! ------------ Copyright notice SFINCS ------------
    !
    ! Copyright (C)  Stichting Deltares, 2016-2026.
@@ -128,11 +124,10 @@ contains
    !
    real*4    :: mdrv
    real*4    :: hu73
+   real*4    :: hu13                            ! hu**(1/3), fast approximation or exact (keyword cbrt)
+   integer*4 :: i_cbrt                          ! bit pattern of hu for the cube-root seed
    !
    real*4    :: min_dt_ip
-   !
-   real*4, parameter :: expo = 1.0 / 3.0
-   !integer, parameter :: expo = 1
    !
    logical   :: iok
    !
@@ -188,11 +183,11 @@ contains
    !$acc                    uv_index_z_nm, uv_index_z_nmu, uv_index_u_nmd, uv_index_u_nmu, uv_index_u_ndm, uv_index_u_num, &
    !$acc                    uv_index_v_ndm, uv_index_v_ndmu, uv_index_v_nm, uv_index_v_nmu, cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
    !$acc                    zb, zbuv, zbuvmx, tauwu, tauwv, patm, fwuv, gn2uv, dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, &
-   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, x73, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
+   !$acc                    dxrinvc, dyrinvc, fcorio2d, nuvisc, z_volume, gnapp2, timestep_analysis_required_timestep ) num_gangs( 1024 ) vector_length( 128 )
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,min_dt_ip ) &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,hu73,hu13,i_cbrt,min_dt_ip ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
@@ -649,13 +644,46 @@ contains
                !
             endif
             !
+            ! hu**(1/3) for the Manning friction. hu13 gives hu**(7/3) below and, with cbrt = fast,
+            ! hu**(5/3) in the newly-wet estimate.
+            !
+            if (cbrt_fast) then
+               !
+               ! Fast cube root (cbrt = fast): an integer bit-hack seed (magic constant
+               ! 709921077) refined by one Newton iteration (y <- y - (y^3 - hu) / (3 y^2)).
+               ! About 0.1 % accurate over the depth range, no pow, no table.
+               !
+               i_cbrt = transfer(hu, i_cbrt)
+               i_cbrt = i_cbrt / 3 + 709921077
+               hu13   = transfer(i_cbrt, hu13)
+               hu13   = hu13 - (hu13 * hu13 * hu13 - hu) / (3.0 * hu13 * hu13)
+               !
+            else
+               !
+               ! Exact cube root (cbrt = exact, default)
+               !
+               hu13 = hu**(1.0 / 3.0)
+               !
+            endif
+            !
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux 
+               ! This uv point just became wet, so estimate equilibrium flux
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+               if (cbrt_fast) then
+                  !
+                  qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * hu13 * hu13   ! hu**(5/3)
+                  !
+               else
+                  !
+                  ! Kept as hu ** (5.0 / 3.0) for now, so that the output is identical to earlier versions.
+                  ! To be changed later on to hu * hu13 * hu13, as in the fast branch (the if block can then go).
+                  !
+                  qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+                  !
+               endif
                !
             else   
                !
@@ -702,20 +730,8 @@ contains
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            if (h73table) then
-               !
-               ! Get hu**(7/3) from look-up table
-               !
-               hu73 = power7over3(max(hu, 1.0e-6))
-               !
-            else
-               !
-               ! Compute hu**(7/3)
-               !
-               hu73 = hu**2 * hu**expo
-               !
-            endif
-            ! 
+            hu73 = hu * hu * hu13   ! hu**(7/3)
+            !
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !
             if (subgrid .and. wiggle_suppression) then 
@@ -824,49 +840,5 @@ contains
    call timer_stop('momentum')
    !
    end subroutine
-   !
-   !
-   function power7over3(hu) result(hu73)
-   !
-   ! Computes hu^(7/3) using a table for hu < 10^4 and hu^(7/3) for hu >= 10^4
-   !
-   ! Input:
-   !   hu   : water depth at the uv point [m]
-   !
-   ! Returns:
-   !   hu73 : hu to the power 7/3
-   !
-   ! Called from: compute_fluxes (sfincs_momentum)
-   !
-   real*4, intent(in) :: hu
-   real*4             :: hu73
-   !
-   !!$acc routine(power7over3) seq
-   !
-   if (hu < 0.00001) then
-      hu73 = x73(int(1e8 * hu), 1)
-   elseif (hu < 0.0001) then
-      hu73 = x73(int(1e7 * hu), 2)
-   elseif (hu < 0.001) then
-      hu73 = x73(int(1e6 * hu), 3)
-   elseif (hu < 0.01) then
-      hu73 = x73(int(1e5 * hu), 4)
-   elseif (hu < 0.1) then
-      hu73 = x73(int(1e4 * hu), 5)
-   elseif (hu < 1.0) then
-      hu73 = x73(int(1e3 * hu), 6)
-   elseif (hu < 10.0) then
-      hu73 = x73(int(100 * hu), 7)
-   elseif (hu < 100.0) then
-      hu73 = x73(int(10 * hu), 8)
-   elseif (hu < 1000.0) then
-      hu73 = x73(int(1 * hu), 9)
-   elseif (hu < 10000.0) then
-      hu73 = x73(int(0.1 * hu), 10)
-   else
-      hu73 = 10000.0 ** (7.0/3.0)
-   endif    
-   !
-   end function
    !
 end module

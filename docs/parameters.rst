@@ -224,6 +224,12 @@ More parameters for model input (only for advanced users)
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	cbrt
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function.
+	  :units:		-
+	  :default:		exact
+	  :min:			exact
+	  :max:			fast
 	wiggle_threshold
 	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression limiter is applied (when wiggle_suppression = 1).
 	  :units:		m/s2
@@ -287,12 +293,6 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
-	h73table
-	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
-	  :units:		logical
-	  :default:		0
-	  :min:			0
-	  :max:			1		    
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
