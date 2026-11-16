@@ -580,7 +580,7 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)
                   !
-                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 9999.9 m/s2, so no effect)
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2; 9999.9 = no limit)
                   !
                   adv = min(max(adv, - advlim * hu), advlim * hu) 
                   !
@@ -687,12 +687,12 @@ contains
                !
             endif
             !
-            ! hu**(1/3) for the Manning friction. hu13 gives hu**(7/3) below and hu**(5/3) in the
-            ! newly-wet estimate.
+            ! hu**(1/3) for the Manning friction. hu13 gives hu**(7/3) below and, with cbrt = fast,
+            ! hu**(5/3) in the newly-wet estimate.
             !
             if (cbrt_fast) then
                !
-               ! Fast cube root (cbrt = fast, default): an integer bit-hack seed (magic constant
+               ! Fast cube root (cbrt = fast): an integer bit-hack seed (magic constant
                ! 709921077) refined by one Newton iteration (y <- y - (y^3 - hu) / (3 y^2)).
                ! About 0.1 % accurate over the depth range, no pow, no table.
                !
@@ -703,7 +703,7 @@ contains
                !
             else
                !
-               ! Exact cube root (cbrt = exact)
+               ! Exact cube root (cbrt = exact, default)
                !
                hu13 = hu**(1.0 / 3.0)
                !
@@ -713,9 +713,20 @@ contains
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux (hu**(5/3) = hu * hu13**2)
+               ! This uv point just became wet, so estimate equilibrium flux
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * hu13 * hu13
+               if (cbrt_fast) then
+                  !
+                  qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * hu13 * hu13   ! hu**(5/3)
+                  !
+               else
+                  !
+                  ! Kept as hu ** (5.0 / 3.0) for now, so that the output is identical to earlier versions.
+                  ! To be changed later on to hu * hu13 * hu13, as in the fast branch (the if block can then go).
+                  !
+                  qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu ** (5.0 / 3.0)
+                  !
+               endif
                !
             else   
                !
@@ -770,7 +781,7 @@ contains
                !
                if (wiggle_detect) then
                   !
-                  ! Original limiter (wiggle_detect = 1). If the acceleration of water level in cell nm is large and positive
+                  ! Original limiter (wiggle_detect = 1, default). If the acceleration of water level in cell nm is large and positive
                   ! and in nmu large and negative, or vice versa, apply limiter to the flux.
                   !
                   mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold

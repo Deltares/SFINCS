@@ -144,7 +144,7 @@ contains
       call get_keyword(500, 'utmzone',                         utmzone,                         'nil')             ! UTM zone string (e.g. '17N')
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
-      call get_keyword(500, 'advlim',                          advlim,                          9999.9)            ! cap on the acceleration by the advection term (m/s2); the default is so high that it has no effect
+      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on the acceleration by the advection term (m/s2); 9999.9 = no cap
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
       call get_keyword(500, 'btfilter',                        btfilter,                        60.0)              ! bathtub filter time scale (s)
@@ -206,8 +206,8 @@ contains
       call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! amplitude factor of the original limiter (used with wiggle_detect)
       call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! trigger threshold of the original limiter (used with wiggle_detect)
       call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor (not used with wiggle_detect)
-      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! use the original limiter based on water level acceleration (wiggle_factor, wiggle_threshold)
-      call get_keyword(500, 'cbrt',                            cbrtstr,                         'fast')            ! cube root hu**(1/3) in the friction term ('fast' = approximation, about 0.1 % accurate, 'exact')
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .true.)            ! use the original limiter based on water level acceleration (wiggle_factor, wiggle_threshold); false = under-relaxation with the wet fraction
+      call get_keyword(500, 'cbrt',                            cbrtstr,                         'exact')           ! cube root hu**(1/3) in the friction term ('exact', or 'fast' = approximation, about 0.1 % accurate)
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
@@ -621,18 +621,18 @@ contains
          store_storagevolume = .false.
       endif
       !
-      ! Cube root in the friction term: fast approximation (default) or exact
+      ! Cube root in the friction term: exact (default) or fast approximation
       !
-      cbrt_fast = .true.
+      cbrt_fast = .false.
       !
-      if (trim(cbrtstr) == 'exact') then
+      if (trim(cbrtstr) == 'fast') then
          !
-         cbrt_fast = .false.
-         call write_log('Info    : cube root in friction term : exact', 0)
+         cbrt_fast = .true.
+         call write_log('Info    : cube root in friction term : fast approximation', 0)
          !
-      elseif (trim(cbrtstr) /= 'fast') then
+      elseif (trim(cbrtstr) /= 'exact') then
          !
-         write(logstr, *) 'Warning : cbrt option ', trim(cbrtstr), ' not recognized! Using default fast instead!'
+         write(logstr, *) 'Warning : cbrt option ', trim(cbrtstr), ' not recognized! Using default exact instead!'
          call write_log(logstr, 1)
          !
       endif

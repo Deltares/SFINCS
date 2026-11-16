@@ -65,9 +65,9 @@ Parameters for model input
 	  :min:			upw1	
 	  :max:			original	  
 	advlim
-	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim. The default of 9999.9 m/s2 means the limiter has no effect; set a lower value (e.g. 1.0, the default of earlier versions) to switch it on.
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
 	  :units:		m/s2
-	  :default:		9999.9 (no limit) - was 1.0 from SFINCS v2.2.0 onwards
+	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
 	  :max:			9999  
 	alpha	
@@ -218,7 +218,7 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			Inf	  
 	wiggle_suppression
-	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells in which only a few pixels are wet. The flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). With wiggle_detect = 1 the limiter of earlier versions is used instead. Only for subgrid mode.
+	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells. With wiggle_detect = 1 (default): if the acceleration of the water level in cell nm is large and positive and in nmu large and negative, or vice versa, a limiter is applied to the flux. With wiggle_detect = 0: the flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). Only for subgrid mode.
 	  :units:		logical
 	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
@@ -231,15 +231,15 @@ More parameters for model input (only for advanced users)
 	  :min:			0.0
 	  :max:			1.0
 	cbrt
-	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function; 'exact' uses the power function.
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function.
 	  :units:		-
-	  :default:		fast
-	  :min:			fast
-	  :max:			exact
+	  :default:		exact
+	  :min:			exact
+	  :max:			fast
 	wiggle_detect
-	  :description:		Use the wiggle suppression of earlier versions (when wiggle_suppression = 1): at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor.
+	  :description:		Method of the wiggle suppression (when wiggle_suppression = 1). True: at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor. False: under-relaxation of the flux increment with the wet-area fraction (see wiggle_suppression and wiggle_facmin).
 	  :units:		logical
-	  :default:		False
+	  :default:		True
 	  :min:			False
 	  :max:			True
 	wiggle_threshold
@@ -249,7 +249,7 @@ More parameters for model input (only for advanced users)
 	  :min:			0.0
 	  :max:			Inf
 	wiggle_factor
-	  :description:		Strength of the flux reduction of the wiggle suppression of earlier versions (only when wiggle_detect = 1).
+	  :description:		Strength of the flux reduction of the wiggle suppression (only when wiggle_detect = 1).
 	  :units:		-
 	  :default:		0.1
 	  :min:			0.0
