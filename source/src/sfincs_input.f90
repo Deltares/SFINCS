@@ -210,7 +210,7 @@ contains
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
       call get_keyword(500, 'advection_mask',                  advection_mask,                  .true.)            ! mask advection near dry cells
-      call get_keyword(500, 'advection_partner_weight',        advection_partner_weight,        .false.)           ! weight the partner faces in the advection stencil with their depth/flux ratio
+      call get_keyword(500, 'advection_bank_correction',        advection_bank_correction,        .false.)           ! weight the partner faces in the advection stencil with their depth/flux ratio
       call get_keyword(500, 'nuviscfac',                       nuviscfac,                       100.0)             ! multiplier on nuvisc near "difficult" points
       call get_keyword(500, 'nonh',                            nonhydrostatic,                  .false.)           ! enable non-hydrostatic pressure corrector
       call get_keyword(500, 'nh_fnudge',                       nh_fnudge,                       0.9)               ! non-hydrostatic nudging factor

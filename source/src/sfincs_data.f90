@@ -294,7 +294,7 @@ module sfincs_data
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wiggle_detect
-      logical       :: advection_partner_weight ! weight the partner faces in the advection stencil with their depth/flux ratio (free slip at dry or shallow partners)
+      logical       :: advection_bank_correction ! weight the partner faces in the advection stencil with their depth/flux ratio (free slip at dry or shallow partners)
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: wave_enhanced_roughness

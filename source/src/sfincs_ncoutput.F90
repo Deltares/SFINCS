@@ -2038,7 +2038,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'uvlim',uvlim))  
         NF90(nf90_put_att(ncid, varid, 'uvmax',uvmax))  
         NF90(nf90_put_att(ncid, varid, 'advection_mask',logical2int(advection_mask)))
-        NF90(nf90_put_att(ncid, varid, 'advection_partner_weight',logical2int(advection_partner_weight)))
+        NF90(nf90_put_att(ncid, varid, 'advection_bank_correction',logical2int(advection_bank_correction)))
         NF90(nf90_put_att(ncid, varid, 'friction2d',logical2int(friction2d)))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_suppression',logical2int(wiggle_suppression)))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_factor',wiggle_factor))  

@@ -493,7 +493,7 @@ contains
                      ! d qu u / dx = qu du / dx + u d qu / dx
                      ! d qv u / dy = qv du / dy + u d qv / dy
                      !
-                     ! Weights of the four partner faces (advection_partner_weight, off by default). A dry partner face has u = 0, so the velocity differences below treat
+                     ! Weights of the four partner faces (advection_bank_correction, off by default). A dry partner face has u = 0, so the velocity differences below treat
                      ! every staircase step of a bank as a real 90 degree corner and slow the face down.
                      ! Each difference is therefore scaled with the larger of the depth ratio and the flux
                      ! ratio between partner and face (at most 1):
@@ -507,7 +507,7 @@ contains
                      wt_ndm = 1.0
                      wt_num = 1.0
                      !
-                     if (advection_partner_weight) then
+                     if (advection_bank_correction) then
                         !
                         q_abs = max(abs(qx_nm), 1.0e-9)
                         !
