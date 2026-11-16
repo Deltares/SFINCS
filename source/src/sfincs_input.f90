@@ -143,7 +143,7 @@ contains
       call get_keyword(500, 'utmzone',                         utmzone,                         'nil')             ! UTM zone string (e.g. '17N')
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
-      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on advection term
+      call get_keyword(500, 'advlim',                          advlim,                          9999.9)            ! cap on the acceleration by the advection term (m/s2); the default is so high that it has no effect
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
       call get_keyword(500, 'btfilter',                        btfilter,                        60.0)              ! bathtub filter time scale (s)
@@ -202,19 +202,21 @@ contains
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
-      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor
-      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold
+      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor (no longer used)
+      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! only under-relax faces where a wiggle is detected (see wiggle_threshold)
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
       call get_keyword(500, 'advection_mask',                  advection_mask,                  .true.)            ! mask advection near dry cells
+      call get_keyword(500, 'advection_partner_weight',        advection_partner_weight,        .false.)           ! weight the partner faces in the advection stencil with their depth/flux ratio
       call get_keyword(500, 'nuviscfac',                       nuviscfac,                       100.0)             ! multiplier on nuvisc near "difficult" points
       call get_keyword(500, 'nonh',                            nonhydrostatic,                  .false.)           ! enable non-hydrostatic pressure corrector
       call get_keyword(500, 'nh_fnudge',                       nh_fnudge,                       0.9)               ! non-hydrostatic nudging factor
       call get_keyword(500, 'nh_tstop',                        nh_tstop,                        -999.0)            ! non-hydrostatic stop time (s rel. tref); -999 = t1+999
       call get_keyword(500, 'nh_tol',                          nh_tol,                          0.001)             ! non-hydrostatic solver tolerance
       call get_keyword(500, 'nh_itermax',                      nh_itermax,                      100)               ! non-hydrostatic solver max iterations
-      call get_keyword(500, 'h73table',                        h73table,                        .false.)           ! tabulate h^(7/3) for friction
       call get_keyword(500, 'rugdepth',                        runup_gauge_depth,               0.05)              ! runup gauge trigger depth (m)
       call get_keyword(500, 'wave_enhanced_roughness',         wave_enhanced_roughness,         .false.)           ! augment bed roughness with wave orbital velocity
       call get_keyword(500, 'use_bcafile',                     use_bcafile,                     .true.)            ! use tidal components from bca file

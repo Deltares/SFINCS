@@ -493,7 +493,7 @@ contains
       !$omp private ( dvol, nmd, nmu, ndm, num, a, iuv, facint, dzvol, iwm, &
       !$omp           qnmd, qnmu, qndm, qnum, dv, zs00, zs11 )
       !$omp do schedule ( dynamic, 256 )
-      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, t_zsmax, zvolmax, zsm, maxzsm, zsderv, &
+      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, t_zsmax, zvolmax, zsm, maxzsm, zsderv, z_wetfrac, &
       !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
       !$acc                   q, qext, z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
@@ -724,6 +724,23 @@ contains
             if (wiggle_suppression) then
                !
                zsderv(nm) = zs(nm) - 2 * zs11 + zs00
+               !
+               ! Wet-area fraction of the cell (dV/dzs)/A from the subgrid volume table, used by the
+               ! wiggle suppression in the momentum update
+               !
+               if (z_volume(nm) >= subgrid_z_volmax(nm) * 0.999) then
+                  !
+                  z_wetfrac(nm) = 1.0
+                  !
+               elseif (z_volume(nm) <= 1.0e-6) then
+                  !
+                  z_wetfrac(nm) = 0.0
+                  !
+               else
+                  !
+                  z_wetfrac(nm) = min(dzvol / (max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6) * a), 1.0)
+                  !
+               endif
                !
             endif
             !
