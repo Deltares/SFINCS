@@ -130,7 +130,7 @@ contains
    real*4    :: phiz                            ! wet-area fraction of the least wet neighbouring cell
    real*4    :: fac                             ! under-relaxation factor for wiggle suppression
    real*4    :: hu73
-   real*4    :: y_cbrt                          ! cube-root approximation hu^(1/3)
+   real*4    :: hu13                            ! hu**(1/3), fast approximation or exact (keyword cbrt)
    integer*4 :: i_cbrt                          ! bit pattern of hu for the cube-root seed
    !
    real*4    :: min_dt_ip
@@ -190,7 +190,7 @@ contains
    !$omp parallel &
    !$omp private ( ip,hu,qfr,qsm,qx_nm,nm,nmu,dzdx,frc,idir,itype,iref,dxuvinv,dxuv2inv,dyuvinv,dyuv2inv, &
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
-   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,phiz,fac,hu73,y_cbrt,i_cbrt,min_dt_ip, &
+   !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,phiz,fac,hu73,hu13,i_cbrt,min_dt_ip, &
    !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num ) &
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
@@ -687,23 +687,35 @@ contains
                !
             endif
             !
-            ! hu**(1/3) for the Manning friction, via a fast cube root: an integer bit-hack seed
-            ! (magic constant 709921077) refined by one Newton iteration
-            ! (y <- y - (y^3 - hu) / (3 y^2)). About 0.1 % accurate over the depth range, no pow,
-            ! no table. y_cbrt gives hu**(7/3) below and hu**(5/3) in the newly-wet estimate.
+            ! hu**(1/3) for the Manning friction. hu13 gives hu**(7/3) below and hu**(5/3) in the
+            ! newly-wet estimate.
             !
-            i_cbrt = transfer(hu, i_cbrt)
-            i_cbrt = i_cbrt / 3 + 709921077
-            y_cbrt = transfer(i_cbrt, y_cbrt)
-            y_cbrt = y_cbrt - (y_cbrt * y_cbrt * y_cbrt - hu) / (3.0 * y_cbrt * y_cbrt)
+            if (cbrt_fast) then
+               !
+               ! Fast cube root (cbrt = fast, default): an integer bit-hack seed (magic constant
+               ! 709921077) refined by one Newton iteration (y <- y - (y^3 - hu) / (3 y^2)).
+               ! About 0.1 % accurate over the depth range, no pow, no table.
+               !
+               i_cbrt = transfer(hu, i_cbrt)
+               i_cbrt = i_cbrt / 3 + 709921077
+               hu13   = transfer(i_cbrt, hu13)
+               hu13   = hu13 - (hu13 * hu13 * hu13 - hu) / (3.0 * hu13 * hu13)
+               !
+            else
+               !
+               ! Exact cube root (cbrt = exact)
+               !
+               hu13 = hu**(1.0 / 3.0)
+               !
+            endif
             !
             ! Compute flux qfr used for friction term
             !
             if (kfuv(ip) == 0) then
                !
-               ! This uv point just became wet, so estimate equilibrium flux (hu**(5/3) = hu * y_cbrt**2)
+               ! This uv point just became wet, so estimate equilibrium flux (hu**(5/3) = hu * hu13**2)
                !
-               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * y_cbrt * y_cbrt
+               qfr = sqrt(abs(dzdx) / (max(gnavg2, 1.0e-5) / 10)) * hu * hu13 * hu13
                !
             else   
                !
@@ -750,7 +762,7 @@ contains
             !
             ! Compute new flux for this uv point (Bates et al., 2010)
             ! 
-            hu73 = hu * hu * y_cbrt   ! hu**(7/3)
+            hu73 = hu * hu * hu13   ! hu**(7/3)
             !
             q(ip) = (qsm + frc * dt) / (1.0 + gnavg2 * dt * qfr / hu73)
             !

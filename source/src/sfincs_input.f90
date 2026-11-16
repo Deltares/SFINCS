@@ -85,6 +85,7 @@ contains
       integer*8          :: dtsec
       character(len=256) :: wmsigstr
       character(len=256) :: advstr
+      character(len=256) :: cbrtstr
       !
       iok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
       !
@@ -206,6 +207,7 @@ contains
       call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! trigger threshold of the original limiter (used with wiggle_detect)
       call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor (not used with wiggle_detect)
       call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! use the original limiter based on water level acceleration (wiggle_factor, wiggle_threshold)
+      call get_keyword(500, 'cbrt',                            cbrtstr,                         'fast')            ! cube root hu**(1/3) in the friction term ('fast' = approximation, about 0.1 % accurate, 'exact')
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
@@ -617,6 +619,22 @@ contains
          endif
       else
          store_storagevolume = .false.
+      endif
+      !
+      ! Cube root in the friction term: fast approximation (default) or exact
+      !
+      cbrt_fast = .true.
+      !
+      if (trim(cbrtstr) == 'exact') then
+         !
+         cbrt_fast = .false.
+         call write_log('Info    : cube root in friction term : exact', 0)
+         !
+      elseif (trim(cbrtstr) /= 'fast') then
+         !
+         write(logstr, *) 'Warning : cbrt option ', trim(cbrtstr), ' not recognized! Using default fast instead!'
+         call write_log(logstr, 1)
+         !
       endif
       !
       if (advection) then

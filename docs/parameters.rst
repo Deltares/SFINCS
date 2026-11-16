@@ -230,6 +230,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			1.0
+	cbrt
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function; 'exact' uses the power function.
+	  :units:		-
+	  :default:		fast
+	  :min:			fast
+	  :max:			exact
 	wiggle_detect
 	  :description:		Use the wiggle suppression of earlier versions (when wiggle_suppression = 1): at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor.
 	  :units:		logical

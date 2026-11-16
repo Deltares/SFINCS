@@ -294,6 +294,7 @@ module sfincs_data
       logical       :: advection_mask
       logical       :: wiggle_suppression
       logical       :: wiggle_detect
+      logical       :: cbrt_fast                 ! fast approximation of hu**(1/3) in the friction term (keyword cbrt = fast), otherwise exact
       logical       :: advection_bank_correction ! weight the partner faces in the advection stencil with their depth/flux ratio (free slip at dry or shallow partners)
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
