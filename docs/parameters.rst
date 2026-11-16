@@ -218,20 +218,32 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			Inf	  
 	wiggle_suppression
-	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
+	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells. With wiggle_detect = 1 (default): if the acceleration of the water level in cell nm is large and positive and in nmu large and negative, or vice versa, a limiter is applied to the flux. With wiggle_detect = 0: the flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). Only for subgrid mode.
 	  :units:		logical
 	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	wiggle_facmin
+	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1 and wiggle_detect = 0).
+	  :units:		-
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			1.0
+	wiggle_detect
+	  :description:		Method of the wiggle suppression (when wiggle_suppression = 1). True: at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor. False: under-relaxation of the flux increment with the wet-area fraction (see wiggle_suppression and wiggle_facmin).
+	  :units:		logical
+	  :default:		True
+	  :min:			False
+	  :max:			True
 	wiggle_threshold
-	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression limiter is applied (when wiggle_suppression = 1).
+	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression is applied (only when wiggle_detect = 1).
 	  :units:		m/s2
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
 	wiggle_factor
-	  :description:		Strength of the wiggle suppression limiter (when wiggle_suppression = 1). The flux is multiplied with wiggle_threshold / (wiggle_factor * (difference - wiggle_threshold) + wiggle_threshold), so a larger value damps more strongly.
+	  :description:		Strength of the flux reduction of the wiggle suppression (only when wiggle_detect = 1).
 	  :units:		-
 	  :default:		0.1
 	  :min:			0.0

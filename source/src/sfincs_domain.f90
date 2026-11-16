@@ -2332,13 +2332,22 @@ contains
    !
    kfuv = 0 
    !
-   if (wiggle_suppression) then 
-      ! 
+   if (wiggle_suppression .and. wiggle_detect) then
+      !
+      ! Original limiter: previous water level and second time difference of the water level
+      !
       allocate(zs0(np))
       allocate(zsderv(np))
       zs0 = 0.0
       zsderv = 0.0
-      ! 
+      !
+   elseif (wiggle_suppression) then
+      !
+      ! Wet-area fraction of the cells
+      !
+      allocate(z_wetfrac(np))
+      z_wetfrac = 1.0
+      !
    endif
    !
    if (snapwave) then
@@ -2393,7 +2402,7 @@ contains
    !
    call set_initial_conditions()
    !
-   if (wiggle_suppression) then 
+   if (wiggle_suppression .and. wiggle_detect) then
       zs0 = zs
    endif
    !
