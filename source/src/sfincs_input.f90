@@ -143,7 +143,7 @@ contains
       call get_keyword(500, 'utmzone',                         utmzone,                         'nil')             ! UTM zone string (e.g. '17N')
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
-      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on advection term
+      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on the acceleration by the advection term (m/s2); 9999.9 = no cap
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
       call get_keyword(500, 'btfilter',                        btfilter,                        60.0)              ! bathtub filter time scale (s)
@@ -208,6 +208,7 @@ contains
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
       call get_keyword(500, 'advection_mask',                  advection_mask,                  .true.)            ! mask advection near dry cells
+      call get_keyword(500, 'advection_bank_correction',        advection_bank_correction,        .false.)           ! weight the partner faces in the advection stencil with their depth/flux ratio
       call get_keyword(500, 'nuviscfac',                       nuviscfac,                       100.0)             ! multiplier on nuvisc near "difficult" points
       call get_keyword(500, 'nonh',                            nonhydrostatic,                  .false.)           ! enable non-hydrostatic pressure corrector
       call get_keyword(500, 'nh_fnudge',                       nh_fnudge,                       0.9)               ! non-hydrostatic nudging factor

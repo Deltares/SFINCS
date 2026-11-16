@@ -236,6 +236,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
+	advection_bank_correction
+	  :description:		Weights the velocity differences with the four neighbouring uv points in the advection term (advection_scheme = upw1) with the larger of the depth ratio and the flux ratio between neighbour and uv point (at most 1). A dry or shallow neighbour then no longer slows down the flow along a bank that follows the grid in steps.
+	  :units:		logical
+	  :default:		False
+	  :min:			False
+	  :max:			True
 	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
