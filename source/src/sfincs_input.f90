@@ -202,10 +202,10 @@ contains
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
-      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor (no longer used)
-      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold (used with wiggle_detect)
-      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor
-      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! only under-relax faces where a wiggle is detected (see wiggle_threshold)
+      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! amplitude factor of the original limiter (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! trigger threshold of the original limiter (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the wiggle under-relaxation factor (not used with wiggle_detect)
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .false.)           ! use the original limiter based on water level acceleration (wiggle_factor, wiggle_threshold)
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)

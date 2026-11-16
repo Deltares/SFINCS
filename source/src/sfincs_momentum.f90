@@ -756,29 +756,32 @@ contains
             !
             if (subgrid .and. wiggle_suppression) then
                !
-               ! Wiggle suppression for cells in which only a few subgrid pixels are wet (large dzs/dV).
-               ! There the local gravity-wave speed is sqrt(g * hu / phiz) with phiz the wet-area
-               ! fraction of the cell, which exceeds the speed sqrt(g * hu) the time step was set for.
-               ! Under-relax the flux increment with fac = phiz / alfa**2 (floored at wiggle_facmin).
-               ! Steady flow (q = q0) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
-               ! With wiggle_detect, only relax when the level accelerations of the two cells diverge
-               ! by more than wiggle_threshold (anti-phase sloshing across this uv point).
-               !
-               phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
-               !
-               fac  = min(max(phiz / alfa**2, wiggle_facmin), 1.0)
-               !
-               if (fac < 1.0) then
+               if (wiggle_detect) then
                   !
-                  if (wiggle_detect) then
+                  ! Original limiter (wiggle_detect = 1). If the acceleration of water level in cell nm is large and positive
+                  ! and in nmu large and negative, or vice versa, apply limiter to the flux.
+                  !
+                  mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+                  !
+                  if (mdrv > 0.0) then
                      !
-                     mdrv = abs(zsderv(nm) - zsderv(nmu)) - wiggle_threshold
+                     q(ip) = q(ip) * wiggle_threshold / (wiggle_factor * mdrv + wiggle_threshold)
                      !
-                     if (mdrv > 0.0) then
-                        q(ip) = qsm + fac * (q(ip) - qsm)
-                     endif
-                     !
-                  else
+                  endif
+                  !
+               else
+                  !
+                  ! Wiggle suppression for cells in which only a few subgrid pixels are wet (large dzs/dV).
+                  ! There the local gravity-wave speed is sqrt(g * hu / phiz) with phiz the wet-area
+                  ! fraction of the cell, which exceeds the speed sqrt(g * hu) the time step was set for.
+                  ! Under-relax the flux increment with fac = phiz / alfa**2 (floored at wiggle_facmin).
+                  ! Steady flow (q = q0) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
+                  !
+                  phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
+                  !
+                  fac  = min(max(phiz / alfa**2, wiggle_facmin), 1.0)
+                  !
+                  if (fac < 1.0) then
                      !
                      q(ip) = qsm + fac * (q(ip) - qsm)
                      !
@@ -836,8 +839,7 @@ contains
                 !
                 timestep_analysis_required_timestep(ip) = min_dt_ip
                 !
-                
-            endif            
+            endif
             !
          else
             !

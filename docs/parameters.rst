@@ -218,20 +218,20 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			Inf	  
 	wiggle_suppression
-	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells in which only a few pixels are wet. The flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). Only for subgrid mode.
+	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells in which only a few pixels are wet. The flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). With wiggle_detect = 1 the limiter of earlier versions is used instead. Only for subgrid mode.
 	  :units:		logical
 	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
 	wiggle_facmin
-	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1).
+	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1 and wiggle_detect = 0).
 	  :units:		-
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			1.0
 	wiggle_detect
-	  :description:		Apply the wiggle suppression only at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold (when wiggle_suppression = 1).
+	  :description:		Use the wiggle suppression of earlier versions (when wiggle_suppression = 1): at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor.
 	  :units:		logical
 	  :default:		False
 	  :min:			False
@@ -239,6 +239,12 @@ More parameters for model input (only for advanced users)
 	wiggle_threshold
 	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression is applied (only when wiggle_detect = 1).
 	  :units:		m/s2
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			Inf
+	wiggle_factor
+	  :description:		Strength of the flux reduction of the wiggle suppression of earlier versions (only when wiggle_detect = 1).
+	  :units:		-
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf

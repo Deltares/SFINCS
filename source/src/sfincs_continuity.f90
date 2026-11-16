@@ -685,9 +685,9 @@ contains
             !
             z_volume(nm) = z_volume(nm) + dvol
             !
-            if (wiggle_suppression) then
+            if (wiggle_suppression .and. wiggle_detect) then
                !
-               ! Store previous water level to determine gradient
+               ! Store previous water level to determine gradient (original limiter, wiggle_detect = 1)
                !
                zs00    = zs0(nm) ! previous time step
                zs11    = zs(nm)  ! current time step before updating
@@ -721,9 +721,11 @@ contains
             endif
             !
             !
-            if (wiggle_suppression) then
+            if (wiggle_suppression .and. wiggle_detect) then
                !
                zsderv(nm) = zs(nm) - 2 * zs11 + zs00
+               !
+            elseif (wiggle_suppression) then
                !
                ! Wet-area fraction of the cell (dV/dzs)/A from the subgrid volume table, used by the
                ! wiggle suppression in the momentum update
