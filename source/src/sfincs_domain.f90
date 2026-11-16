@@ -2332,18 +2332,20 @@ contains
    !
    kfuv = 0 
    !
-   if (wiggle_suppression .and. wiggle_detect) then
+   if (wiggle_suppression) then
       !
-      ! Original limiter: previous water level and second time difference of the water level
+      ! Arrays of both wiggle suppression methods. All three are allocated for either method,
+      ! because they are all in the OpenACC data lists. Only the arrays of the selected method
+      ! are updated during the simulation.
+      !
+      ! Original limiter (wiggle_detect = 1): previous water level and second time difference of the water level
       !
       allocate(zs0(np))
       allocate(zsderv(np))
       zs0 = 0.0
       zsderv = 0.0
       !
-   elseif (wiggle_suppression) then
-      !
-      ! Wet-area fraction of the cells
+      ! Under-relaxation (wiggle_detect = 0): wet-area fraction of the cells
       !
       allocate(z_wetfrac(np))
       z_wetfrac = 1.0
