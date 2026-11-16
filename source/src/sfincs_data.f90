@@ -7,9 +7,6 @@ module sfincs_data
    !
    ! Subroutines / functions:
    !
-   !     Fill the lookup tables for the h**(7/3) calculations.
-   !     Called from: initialize_domain (sfincs_domain)
-   !
    !   initialize_parameters()
    !     Legacy initialization of local time-loop parameters.
    !     Called from: not called (currently unused)
