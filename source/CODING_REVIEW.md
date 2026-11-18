@@ -73,13 +73,14 @@ Not every item applies to every PR. Go through the sections that the diff touche
 ## 7. Integration
 
 - A new process gets its own module `sfincs_<feature>.f90` with `initialize_<feature>` and `update_<feature>` routines (see e.g. `sfincs_infiltration.f90`), rather than being added to an unrelated module.
-- New processes are initialised and wired through `sfincs_domain.f90` and the time loop in `sfincs_lib.f90`, not directly in `sfincs.f90`.
+- New processes are initialised from `sfincs_initialize` (or `initialize_domain` for domain fields) and updated from the time loop in `sfincs_lib.f90` or from `update_continuity` for sources and sinks, not directly in `sfincs.f90`. See [CODING_DEVELOP.md](CODING_DEVELOP.md) for the order.
 - Changes to the public interface of `sfincs_bmi.f90` are flagged as breaking changes.
 - Effects on SnapWave coupling (`sfincs_snapwave.f90`) are considered.
 - New timers are added to `sfincs_timers.f90` and reported in the log.
 - Errors stop the model through `stop_sfincs` (`sfincs_error.f90`), never with a bare `stop`: when SFINCS runs as a library through BMI, `stop` kills the host process.
 - Messages to the user go through `write_log` (`sfincs_log.f90`), not `print` or `write(*,*)`, so they also end up in the log file.
 - Headers list the correct callers (`Called from:`), including for routines whose callers changed.
+- [CODING_DEVELOP.md](CODING_DEVELOP.md) is still correct after the change: a new module is listed in the code map, and changes to the initialisation order or the time loop (new, moved or removed calls) are reflected in sections 2 and 3.
 
 ## 8. Performance and housekeeping
 
