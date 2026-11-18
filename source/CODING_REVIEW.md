@@ -40,6 +40,7 @@ Not every item applies to every PR. Go through the sections that the diff touche
 ## 4. Input
 
 - New keywords are read in `sfincs_input.f90` with `get_keyword` and a sensible default, so that existing models run unchanged when the keyword is absent.
+- Each `get_keyword` call has a trailing comment with the meaning, unit and (where relevant) valid range, like the existing lines (e.g. `! wet/dry depth threshold (m)`).
 - New SnapWave keywords are read in `sfincs_snapwave.f90`, with defaults.
 - Keyword names are lowercase and consistent with existing names (e.g. `*file` for file names).
 - New input files (forcing, infiltration and other spatial or time-varying input) are NetCDF only, using the readers in `sfincs_ncinput.F90` where they fit (e.g. the quadtree readers for spatial input). Existing ASCII and binary formats stay supported for backward compatibility, but no new ASCII or binary formats or readers are added.
@@ -71,6 +72,7 @@ Not every item applies to every PR. Go through the sections that the diff touche
 
 ## 7. Integration
 
+- A new process gets its own module `sfincs_<feature>.f90` with `initialize_<feature>` and `update_<feature>` routines (see e.g. `sfincs_infiltration.f90`), rather than being added to an unrelated module.
 - New processes are initialised and wired through `sfincs_domain.f90` and the time loop in `sfincs_lib.f90`, not directly in `sfincs.f90`.
 - Changes to the public interface of `sfincs_bmi.f90` are flagged as breaking changes.
 - Effects on SnapWave coupling (`sfincs_snapwave.f90`) are considered.
@@ -84,6 +86,7 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - No allocation, file I/O or work that could be done once at initialisation inside the time loop (`sfincs_update`).
 - Inactive processes cost nothing: the call is skipped as a whole with an `if` on the process switch, not checked per cell.
 - No debug output, hard-coded paths or large commented-out blocks left behind.
+- Files in `source/third_party_open/` are not modified: they are copies of external code. Any change there is flagged and needs a reason in the PR description.
 - Third-party code copied into the repository has a licence compatible with GPL-3 (LGPL for `snapwave/`), and its origin is stated in the file header.
 
 ## 9. Testing and regressions
@@ -91,4 +94,5 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - List the modules affected by the change and the testbed cases that cover them.
 - The testbed has been run; differences in reference results are expected and explained.
 - New functionality comes with a conceptual test and a real-world test case in the testbed.
+- Bug fixes remove the root cause rather than masking the symptom (e.g. a clip or an `if` around the failing line), and the same pattern is checked elsewhere, such as the regular-grid and quadtree versions of the same routine.
 - Bug fixes come with a case that reproduces the bug, where practical.
