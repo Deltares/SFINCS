@@ -6,6 +6,13 @@ AI agents using this checklist: in case of doubt (whether a rule applies, which 
 
 Not every item applies to every PR. Go through the sections that the diff touches, and report findings as **blocking** (wrong results, crashes, broken builds, missing GPU data) or **non-blocking** (clean-up, documentation, style).
 
+## How to review
+
+- **Compare against the latest `main`.** Run `git fetch` first and diff against `origin/main` (`git diff origin/main...HEAD`), not a local `main` that may be out of date. For a pull request, use `gh pr diff <number>`.
+- **Review the whole diff**, not only the Fortran: `Makefile.am`, `sfincs_lib.vfproj`, `docs/`, testbed files and [CODING_DEVELOP.md](CODING_DEVELOP.md) are part of the same change.
+- **Check the pull request description against the diff.** Read it (`gh pr view <number>`) and verify that the ticked template items are true: e.g. "documentation updated" ticked but nothing in `docs/` changed is an issue.
+- **Large diffs**: first list the touched files and the checklist sections that apply, then go through them one at a time, so that the end of the diff gets the same attention as the start.
+
 ## 1. Declarations and data
 
 - Every new variable is declared, with the right kind (`real*4` vs `real*8`, `integer` vs `integer*8` for large counts). No reliance on implicit typing: `implicit none` is present in every new subroutine and function.
