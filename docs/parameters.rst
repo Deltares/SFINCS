@@ -243,7 +243,7 @@ More parameters for model input (only for advanced users)
 	  :min:			0.0
 	  :max:			Inf
 	wiggle_factor
-	  :description:		Strength of the flux reduction of the wiggle suppression (only when wiggle_detect = 1).
+	  :description:		Strength of the flux reduction of the wiggle suppression (only when wiggle_detect = 1). The flux is multiplied with wiggle_threshold / (wiggle_factor * (difference - wiggle_threshold) + wiggle_threshold), so a larger value damps more strongly.
 	  :units:		-
 	  :default:		0.1
 	  :min:			0.0

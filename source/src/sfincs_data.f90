@@ -1069,6 +1069,9 @@ module sfincs_data
     if(allocated(vmax)) deallocate(vmax)
     if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
+    if(allocated(zs0)) deallocate(zs0)
+    if(allocated(zsderv)) deallocate(zsderv)
+    if(allocated(z_wetfrac)) deallocate(z_wetfrac)
     !if(allocated(z_volume)) deallocate(z_volume) > this one seems to cause an error, not sure why
     if(allocated(q)) deallocate(q)
     if(allocated(q0)) deallocate(q0)

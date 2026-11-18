@@ -695,7 +695,9 @@ contains
                !
             endif
             !
-            ! Obtain new water level from subgrid tables
+            ! Obtain new water level from subgrid tables. With the under-relaxation method of the wiggle
+            ! suppression (wiggle_detect = 0), the wet-area fraction of the cell z_wetfrac is set as well.
+            ! It is used in the momentum update.
             !
             if (z_volume(nm) >= subgrid_z_volmax(nm) * 0.999) then
                !
@@ -703,11 +705,23 @@ contains
                !
                zs(nm) = max(subgrid_z_zmax(nm), -20.0) + (z_volume(nm) - subgrid_z_volmax(nm)) / a
                !
+               if (wiggle_suppression .and. .not. wiggle_detect) then
+                  !
+                  z_wetfrac(nm) = 1.0
+                  !
+               endif
+               !
             elseif (z_volume(nm) <= 1.0e-6) then
                !
                ! No water in this cell. Set zs to z_zmin.
                !
                zs(nm) = max(subgrid_z_zmin(nm), -20.0)
+               !
+               if (wiggle_suppression .and. .not. wiggle_detect) then
+                  !
+                  z_wetfrac(nm) = 0.0
+                  !
+               endif
                !
             else
                !
@@ -718,31 +732,19 @@ contains
                facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
                zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
                !
-            endif
-            !
-            !
-            if (wiggle_suppression .and. wiggle_detect) then
-               !
-               zsderv(nm) = zs(nm) - 2 * zs11 + zs00
-               !
-            elseif (wiggle_suppression) then
-               !
-               ! Wet-area fraction of the cell (dV/dzs)/A from the subgrid volume table, used by the
-               ! wiggle suppression in the momentum update
-               !
-               if (z_volume(nm) >= subgrid_z_volmax(nm) * 0.999) then
+               if (wiggle_suppression .and. .not. wiggle_detect) then
                   !
-                  z_wetfrac(nm) = 1.0
-                  !
-               elseif (z_volume(nm) <= 1.0e-6) then
-                  !
-                  z_wetfrac(nm) = 0.0
-                  !
-               else
+                  ! Wet-area fraction (dV/dzs) / A from the same segment of the volume table
                   !
                   z_wetfrac(nm) = min(dzvol / (max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6) * a), 1.0)
                   !
                endif
+               !
+            endif
+            !
+            if (wiggle_suppression .and. wiggle_detect) then
+               !
+               zsderv(nm) = zs(nm) - 2 * zs11 + zs00
                !
             endif
             !
