@@ -2,6 +2,8 @@
 
 Use this when reviewing a pull request with Fortran changes under `source/`. [CODING_STYLE.md](CODING_STYLE.md) covers how the code should look; this checklist covers whether a change is correct, complete and wired in everywhere it needs to be.
 
+AI agents using this checklist: in case of doubt (whether a rule applies, which input format or grid type a new option should support, whether a difference is a regression), ask the user explicitly instead of guessing or picking a default.
+
 Not every item applies to every PR. Go through the sections that the diff touches, and report findings as **blocking** (wrong results, crashes, broken builds, missing GPU data) or **non-blocking** (clean-up, documentation, style).
 
 ## 1. Declarations and data
@@ -40,6 +42,11 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - New keywords are read in `sfincs_input.f90` with `get_keyword` and a sensible default, so that existing models run unchanged when the keyword is absent.
 - New SnapWave keywords are read in `sfincs_snapwave.f90`, with defaults.
 - Keyword names are lowercase and consistent with existing names (e.g. `*file` for file names).
+- New input files (forcing, infiltration and other spatial or time-varying input) are NetCDF only, using the readers in `sfincs_ncinput.F90` where they fit (e.g. the quadtree readers for spatial input). Existing ASCII and binary formats stay supported for backward compatibility, but no new ASCII or binary formats or readers are added.
+- The same applies to the grid: new functionality only has to be available for models with quadtree netCDF grid input (`qtrfile`, typically `sfincs.nc`). Regular-grid input (`depfile`, `mskfile`, `indexfile`) stays supported for backward compatibility, but new options do not need to support it and no new regular-grid input files are added.
+- Exception: parameter and lookup-table input that is not a grid or time series uses the TOML format. New options in these areas are added to the existing TOML file, not to a new file or a NetCDF file:
+  - Drainage structures (`drnfile`: pumps, culverts, gates, dike breaches and their control rules) and dike-breach parameters (`dkbfile`), read in `sfincs_src_structures.f90`. Legacy fixed-column `.drn` files are converted to TOML on reading, so new options do not need to be added to the legacy format. Document new keys in `docs/input_structures.rst`.
+  - Vegetation types (`vegtype`): the lookup table with the characteristics per vegetation type, read in `sfincs_vegetation.f90`. The vegetation type per cell itself is spatial input (`vegfile`).
 - New input files are checked for existence, and missing or malformed files produce a clear error through `sfincs_error`/`sfincs_log`, not a crash.
 - Renamed or removed keywords keep the old name working as an alias, with a deprecation warning in the log.
 - Changed defaults are deliberate and mentioned in the PR description, since existing models will give different results.
@@ -57,7 +64,8 @@ Not every item applies to every PR. Go through the sections that the diff touche
 
 - Divisions are protected against zero (water depth, area, distance, wave period). Check dry cells and cells at the wet/dry threshold `huthresh`.
 - Array indices are correct (1-based) and stay in bounds at domain edges, boundary cells and quadtree refinement-level transitions.
-- The change works on regular grids, quadtree grids and with subgrid tables, or is explicitly limited to one of them (with an error when used otherwise).
+- The change works on quadtree grids, with and without subgrid tables, including at refinement-level transitions. Support for regular-grid input is not required (see section 4), but a new option that does not support it stops with a clear error (via `stop_sfincs`) when used with a regular-grid model, rather than giving wrong results.
+- Changes to existing functionality keep working for regular-grid models.
 - Explicit time stepping and the CFL condition are respected; new terms do not make the scheme unstable for large time steps.
 - Mass is conserved: new sources and sinks are included in the continuity update and in volume bookkeeping.
 
