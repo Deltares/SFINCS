@@ -6,6 +6,12 @@ The module headers in `source/src` describe each routine and its callers. This g
 
 AI agents: in case of doubt (where a call belongs, which input format to use, whether to support regular grids), ask the user explicitly instead of guessing.
 
+## Principles
+
+- **Keep it simple.** Choose the simplest solution that does the job. No extra options, abstraction layers, generic frameworks or "for later" code that the feature does not need now. A simpler solution is easier to review, to run on the GPU and to maintain, and is almost always better.
+- **Performance always matters.** SFINCS is used for large domains, ensembles and real-time forecasting, on CPU and GPU. Code in the time loop runs millions of times: avoid work that can be done once at initialisation, avoid allocation and file I/O in the loop, skip inactive processes as a whole, and keep loops GPU-friendly. Measure the run time before and after a change to the time loop (CPU, and GPU where possible). Extra complexity for speed is only worth it when the gain is measured.
+- **Reuse what exists.** Before writing a new routine, look for one that already does it: the keyword readers in `sfincs_input.f90` and `sfincs_read.f90`, the netCDF and quadtree readers in `sfincs_ncinput.F90`, the polygon helpers in `utils/`, the date utilities in `sfincs_date.f90`, `write_log` and `stop_sfincs`, the timers. Extend an existing routine where that is natural rather than writing a near-copy.
+
 ## 1. Code map
 
 Driver and data:

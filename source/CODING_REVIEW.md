@@ -89,8 +89,12 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - Headers list the correct callers (`Called from:`), including for routines whose callers changed.
 - [CODING_DEVELOP.md](CODING_DEVELOP.md) is still correct after the change: a new module is listed in the code map, and changes to the initialisation order or the time loop (new, moved or removed calls) are reflected in sections 2 and 3.
 
-## 8. Performance and housekeeping
+## 8. Simplicity, performance and housekeeping
 
+- The solution is not over-engineered: no options, abstraction layers or generic code beyond what the feature needs now. When a simpler solution would do the same job, it is preferred; say so in the review.
+- Existing routines are reused instead of rewritten: keyword, netCDF and quadtree readers, polygon and date utilities, `write_log`, `stop_sfincs`, timers. New code that duplicates an existing routine (or is a near-copy of one) is flagged. See [CODING_DEVELOP.md](CODING_DEVELOP.md) section "Principles".
+
+- Performance is always considered. A change to the time loop states its effect on run time (CPU, and GPU where possible); a slowdown is explained and justified. Conversely, added complexity for the sake of speed comes with a measured gain.
 - No allocation, file I/O or work that could be done once at initialisation inside the time loop (`sfincs_update`).
 - Inactive processes cost nothing: the call is skipped as a whole with an `if` on the process switch, not checked per cell.
 - No debug output, hard-coded paths or large commented-out blocks left behind.
