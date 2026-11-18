@@ -2,7 +2,10 @@
 
 Before editing any Fortran source under `source/`, read [source/CODING_STYLE.md](source/CODING_STYLE.md) and follow it for every edit: bug fixes, new features and reformatting alike.
 
-When asked to review Fortran changes (a diff, branch or pull request), read [source/CODING_REVIEW.md](source/CODING_REVIEW.md) and work through every section the changes touch, in addition to checking the style rules. Before finishing a Fortran change of your own, check it against the same list (new variables declared, GPU data, `Makefile.am` order, input defaults, documentation).
+[source/CODING_REVIEW.md](source/CODING_REVIEW.md) defines when a Fortran change is complete. Use it in two situations, without waiting to be asked:
+
+- **Before committing or opening a pull request** that touches `source/`: check your changes against every section of the checklist they touch (new variables declared, GPU data, `Makefile.am` order, input formats and defaults, documentation, testing). Fix what you find, and report anything you could not verify or fix.
+- **When reviewing** Fortran changes (a diff, branch or pull request): work through every section the changes touch, in addition to checking the style rules.
 
 ## Commits
 

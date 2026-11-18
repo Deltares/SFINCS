@@ -1,6 +1,6 @@
 # SFINCS code review checklist
 
-Use this when reviewing a pull request with Fortran changes under `source/`. [CODING_STYLE.md](CODING_STYLE.md) covers how the code should look; this checklist covers whether a change is correct, complete and wired in everywhere it needs to be.
+Use this before committing or opening a pull request with Fortran changes under `source/`, and when reviewing one. [CODING_STYLE.md](CODING_STYLE.md) covers how the code should look; this checklist covers whether a change is correct, complete and wired in everywhere it needs to be.
 
 AI agents using this checklist: in case of doubt (whether a rule applies, which input format or grid type a new option should support, whether a difference is a regression), ask the user explicitly instead of guessing or picking a default.
 
