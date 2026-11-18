@@ -14,6 +14,7 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - Before re-allocating, arrays are guarded with `if (allocated(x)) deallocate(x)` when the routine can run more than once (e.g. a model re-initialised through BMI).
 - New allocatable arrays are added to `finalize_parameters` in `sfincs_data.f90`, so that the deallocation list stays complete.
 - Counters, flags and accumulated values (maxima, cumulative volumes, timers) are reset at initialisation, not only at declaration.
+- New state variables that evolve in time (e.g. storage volumes, infiltration state, structure status) are written to the restart file in `sfincs_ncoutput.F90` and read back in `sfincs_initial_conditions.F90`. Otherwise a restarted run silently starts that process from zero.
 
 ## 2. GPU (OpenACC) and OpenMP
 
@@ -24,6 +25,7 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - Loop-local scalars are `private`; sums, maxima and minima use a `reduction` clause. No two iterations write the same element (race conditions, e.g. when looping over velocity points and updating cell values).
 - No subroutine calls, `write` statements or allocation inside device kernels, unless the routine is declared `!$acc routine`.
 - The same behaviour on CPU and GPU: if the testbed is run on only one of them, ask which.
+- Reductions (sums, maxima over cells) can differ slightly between CPU and GPU, and between GPU runs, because the summation order is not fixed. Differences at that level are not regressions; larger differences are.
 
 ## 3. Build files
 
@@ -39,6 +41,8 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - New SnapWave keywords are read in `sfincs_snapwave.f90`, with defaults.
 - Keyword names are lowercase and consistent with existing names (e.g. `*file` for file names).
 - New input files are checked for existence, and missing or malformed files produce a clear error through `sfincs_error`/`sfincs_log`, not a crash.
+- Renamed or removed keywords keep the old name working as an alias, with a deprecation warning in the log.
+- Changed defaults are deliberate and mentioned in the PR description, since existing models will give different results.
 - New keywords are documented in `docs/parameters.rst` (and the relevant `docs/input*.rst` page).
 - When a new type of input is needed, an issue is opened in HydroMT-SFINCS.
 
@@ -63,9 +67,18 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - Changes to the public interface of `sfincs_bmi.f90` are flagged as breaking changes.
 - Effects on SnapWave coupling (`sfincs_snapwave.f90`) are considered.
 - New timers are added to `sfincs_timers.f90` and reported in the log.
+- Errors stop the model through `stop_sfincs` (`sfincs_error.f90`), never with a bare `stop`: when SFINCS runs as a library through BMI, `stop` kills the host process.
+- Messages to the user go through `write_log` (`sfincs_log.f90`), not `print` or `write(*,*)`, so they also end up in the log file.
 - Headers list the correct callers (`Called from:`), including for routines whose callers changed.
 
-## 8. Testing and regressions
+## 8. Performance and housekeeping
+
+- No allocation, file I/O or work that could be done once at initialisation inside the time loop (`sfincs_update`).
+- Inactive processes cost nothing: the call is skipped as a whole with an `if` on the process switch, not checked per cell.
+- No debug output, hard-coded paths or large commented-out blocks left behind.
+- Third-party code copied into the repository has a licence compatible with GPL-3 (LGPL for `snapwave/`), and its origin is stated in the file header.
+
+## 9. Testing and regressions
 
 - List the modules affected by the change and the testbed cases that cover them.
 - The testbed has been run; differences in reference results are expected and explained.
