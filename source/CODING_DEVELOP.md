@@ -138,3 +138,15 @@ Then check the whole change against [CODING_REVIEW.md](CODING_REVIEW.md) before 
 - Read the module and its callers before changing anything; the `Called from:` lines in the headers help.
 - Fix the root cause, not the symptom, and look for the same pattern elsewhere, in particular in the regular-grid and quadtree versions and the regular and subgrid versions of a routine.
 - Check CPU and GPU behaviour: a fix in a loop may need a matching change in its `!$acc` directive or in `sfincs_openacc.f90`.
+
+## 6. Opening a pull request
+
+Fill in [.github/pull_request_template.md](../.github/pull_request_template.md) completely: the description (what changes and why, which keywords and defaults, the effect on results and run time) and every checklist item. The `pr-checklist` workflow fails as long as an item is unticked.
+
+Tick an item only when it is true:
+
+- **Done:** tick it, only when it was actually done. Compilation boxes only for builds that were really run on that platform (Windows, Linux CPU, Linux GPU). Testbed and test boxes only when the testbed was run or the tests were added.
+- **Not relevant:** tick it and add "n/a" behind it, e.g. the documentation items when no documentation or user-facing behaviour changed, the test items when no model functionality was added or changed, the HydroMT-SFINCS item when no new type of input is needed.
+- **Relevant but not done:** leave it unticked and say in the description what is missing (e.g. "not compiled on Linux GPU"). Never tick it to make the check pass.
+
+AI agents: never tick **"I have reviewed my own changes."** That box is for the human developer, after reading the diff. Leave it unticked, so the pull request cannot pass the checklist check before a person has reviewed it.
