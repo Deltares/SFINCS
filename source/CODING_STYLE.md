@@ -2,6 +2,8 @@
 
 Complete formatting conventions for all SFINCS and HurryWave Fortran edits — apply to every edit, not just reformatting tasks.
 
+For what to check beyond formatting when reviewing a pull request (declarations, GPU data, build files, input/output, testing), see [CODING_REVIEW.md](CODING_REVIEW.md).
+
 ## Indentation
 
 - Module-level declarations and `contains` keyword: 3-space indent

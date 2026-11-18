@@ -2,6 +2,8 @@
 
 Before editing any Fortran source under `source/`, read [source/CODING_STYLE.md](source/CODING_STYLE.md) and follow it for every edit: bug fixes, new features and reformatting alike.
 
+When asked to review Fortran changes (a diff, branch or pull request), read [source/CODING_REVIEW.md](source/CODING_REVIEW.md) and work through every section the changes touch, in addition to checking the style rules. Before finishing a Fortran change of your own, check it against the same list (new variables declared, GPU data, `Makefile.am` order, input defaults, documentation).
+
 ## Commits
 
 When an AI coding agent (Claude Code, GitHub Copilot, Codex, etc.) creates a commit, end the commit message with exactly this trailer, after a blank line:
