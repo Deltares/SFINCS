@@ -163,13 +163,11 @@ contains
        !
    endif   
    !
-   ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
-   !
    ! Flux and velocity from the previous time step. The arrays are swapped instead of copied:
    ! q0 and uv0 now hold the previous time step, q and uv hold older values and are overwritten
    ! below at every point. Points that are not computed here (open boundaries, structures, wave
-   ! makers) get the previous-step value, as with a copy. The dummy point npuv + ncuv + 1 is 0.0
-   ! in both sets of arrays.
+   ! makers, inactive points) get the previous-step value, as with a copy. The dummy point
+   ! npuv + ncuv + 1 is 0.0 in both sets of arrays.
    !
    call move_alloc(q0, swap)
    call move_alloc(q, q0)
@@ -178,6 +176,8 @@ contains
    call move_alloc(uv0, swap)
    call move_alloc(uv, uv0)
    call move_alloc(swap, uv)
+   !
+   ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
@@ -580,7 +580,8 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)
                   !
-                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2; a value like 9999.9 is so high that the limiter has no effect)
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed
+                  ! advlim (default 1.0 m/s2; a value like 9999.9 is so high that the limiter has no effect)
                   !
                   adv = min(max(adv, - advlim * hu), advlim * hu) 
                   !
@@ -694,9 +695,11 @@ contains
                !
                ! Fast cube root (cbrt = fast): an integer bit-hack seed (magic constant
                ! 709921077) refined by one Newton iteration (y <- y - (y^3 - hu) / (3 y^2)).
-               ! About 0.1 % accurate over the depth range, no pow, no table.
+               ! At most 0.13 % off over the depth range, always slightly too high
+               ! (overestimates hu**(1/3)), no pow, no table. max(hu, tiny(hu)) avoids a NaN
+               ! seed for negative hu (including -0.0).
                !
-               i_cbrt = transfer(hu, i_cbrt)
+               i_cbrt = transfer(max(hu, tiny(hu)), i_cbrt)
                i_cbrt = i_cbrt / 3 + 709921077
                hu13   = transfer(i_cbrt, hu13)
                hu13   = hu13 - (hu13 * hu13 * hu13 - hu) / (3.0 * hu13 * hu13)
@@ -798,7 +801,7 @@ contains
                   ! There the local gravity-wave speed is sqrt(g * hu / phiz) with phiz the wet-area
                   ! fraction of the cell, which exceeds the speed sqrt(g * hu) the time step was set for.
                   ! Under-relax the flux increment with fac = phiz / alfa**2 (floored at wiggle_facmin).
-                  ! Steady flow (q = q0) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
+                  ! A flux that does not change (q = qsm) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
                   !
                   phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
                   !
@@ -881,6 +884,7 @@ contains
          uv(ip) = uv0(ip)
          !
       endif
+      !
    enddo
    !$omp end do
    !$omp end parallel

@@ -218,30 +218,30 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			Inf	  
 	wiggle_suppression
-	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells. With wiggle_detect = 1 (default): if the acceleration of the water level in cell nm is large and positive and in nmu large and negative, or vice versa, a limiter is applied to the flux. With wiggle_detect = 0: the flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). Only for subgrid mode.
+	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells. With wiggle_detect = 1 (default): if the acceleration of the water level in cell nm is large and positive and in nmu large and negative, or vice versa, a limiter is applied to the flux. With wiggle_detect = 0: the flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where alpha is the CFL number (keyword alpha) and phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). Only for subgrid mode.
 	  :units:		logical
 	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
 	cbrt
-	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function.
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation without the power function that overestimates h^(1/3) by at most 0.13 %.
 	  :units:		-
 	  :default:		exact
 	  :min:			exact
 	  :max:			fast
-	wiggle_facmin
-	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1 and wiggle_detect = 0).
-	  :units:		-
-	  :default:		0.1
-	  :min:			0.0
-	  :max:			1.0
 	wiggle_detect
 	  :description:		Method of the wiggle suppression (when wiggle_suppression = 1). True: at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor. False: under-relaxation of the flux increment with the wet-area fraction (see wiggle_suppression and wiggle_facmin).
 	  :units:		logical
 	  :default:		True
 	  :min:			False
 	  :max:			True
+	wiggle_facmin
+	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1 and wiggle_detect = 0).
+	  :units:		-
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			1.0
 	wiggle_threshold
 	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression is applied (only when wiggle_detect = 1).
 	  :units:		m/s2
@@ -254,7 +254,7 @@ More parameters for model input (only for advanced users)
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
-	advection_bank_correction
+	advection_bank_correction - added from SFINCS v2.5.1 onwards
 	  :description:		Weights the velocity differences with the four neighbouring uv points in the advection term (advection_scheme = upw1) with the larger of the depth ratio and the flux ratio between neighbour and uv point (at most 1). A dry or shallow neighbour then no longer slows down the flow along a bank that follows the grid in steps.
 	  :units:		logical
 	  :default:		False
@@ -311,6 +311,12 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
+	h73table - deprecated after SFINCS v2.5.0, the keyword is ignored, replaced by 'cbrt'
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation. The lookup table has been removed; a model that sets h73table gives a warning, and the keyword has no effect. Use cbrt = fast for a fast approximation instead.
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s

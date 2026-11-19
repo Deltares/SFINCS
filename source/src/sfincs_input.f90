@@ -86,6 +86,7 @@ contains
       character(len=256) :: wmsigstr
       character(len=256) :: advstr
       character(len=256) :: cbrtstr
+      logical            :: h73table                  ! removed keyword, only read to give a deprecation warning
       !
       iok = check_file_exists('sfincs.inp', 'SFINCS input file', .true.)
       !
@@ -203,7 +204,7 @@ contains
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
-      call get_keyword(500, 'cbrt',                            cbrtstr,                         'exact')           ! cube root hu**(1/3) in the friction term ('exact', or 'fast' = approximation, about 0.1 % accurate)
+      call get_keyword(500, 'cbrt',                            cbrtstr,                         'exact')           ! cube root hu**(1/3) in the friction term ('exact', or 'fast' = approximation, at most 0.13 % too high)
       call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! amplitude factor of the original limiter (used with wiggle_detect)
       call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! trigger threshold of the original limiter (used with wiggle_detect)
       call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the under-relaxation factor (-), 0 to 1 (only with wiggle_detect = 0)
@@ -219,6 +220,7 @@ contains
       call get_keyword(500, 'nh_tstop',                        nh_tstop,                        -999.0)            ! non-hydrostatic stop time (s rel. tref); -999 = t1+999
       call get_keyword(500, 'nh_tol',                          nh_tol,                          0.001)             ! non-hydrostatic solver tolerance
       call get_keyword(500, 'nh_itermax',                      nh_itermax,                      100)               ! non-hydrostatic solver max iterations
+      call get_keyword(500, 'h73table',                        h73table,                        .false.)           ! deprecated (look-up table for h^(7/3) removed), see cbrt
       call get_keyword(500, 'rugdepth',                        runup_gauge_depth,               0.05)              ! runup gauge trigger depth (m)
       call get_keyword(500, 'wave_enhanced_roughness',         wave_enhanced_roughness,         .false.)           ! augment bed roughness with wave orbital velocity
       call get_keyword(500, 'use_bcafile',                     use_bcafile,                     .true.)            ! use tidal components from bca file
@@ -634,6 +636,15 @@ contains
          !
          write(logstr, *) 'Warning : cbrt option ', trim(cbrtstr), ' not recognized! Using default exact instead!'
          call write_log(logstr, 1)
+         !
+      endif
+      !
+      ! The look-up table for hu**(7/3) (keyword h73table) has been removed
+      !
+      if (h73table) then
+         !
+         call write_log('Warning : keyword h73table is deprecated and ignored ! The look-up table for h^(7/3) has been removed. ' // &
+                        'Use cbrt = fast for a fast approximation instead. The simulation will continue.', 1)
          !
       endif
       !

@@ -137,7 +137,6 @@ contains
    !
    call set_advection_mask()
    !
-   !
    end subroutine
 
 
@@ -2254,7 +2253,8 @@ contains
    endif
    !
    ! And now set the mask
-   ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
+   ! The advection term at uv points that have neighbors that are 1) boundary points or
+   ! 2) wave maker points will be set to 0.0
    ! A missing neighbor (dummy index npuv + ncuv + 1, next to an inactive cell) does not switch off advection:
    ! the edge of the active domain is a closed wall, not an open boundary.
    !
@@ -2343,7 +2343,7 @@ contains
       !
       allocate(zs0(np))
       allocate(zsderv(np))
-      zs0 = 0.0
+      zs0    = 0.0
       zsderv = 0.0
       !
       ! Under-relaxation (wiggle_detect = 0): wet-area fraction of the cells
@@ -2406,7 +2406,9 @@ contains
    call set_initial_conditions()
    !
    if (wiggle_suppression .and. wiggle_detect) then
+      !
       zs0 = zs
+      !
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
