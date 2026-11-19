@@ -2255,7 +2255,10 @@ contains
    endif
    !
    ! And now set the mask
-   ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
+   ! The advection term at uv points that have neighbors that are 1) boundary points or
+   ! 2) wave maker points will be set to 0.0
+   ! A missing neighbor (dummy index npuv + ncuv + 1, next to an inactive cell) does not switch off advection:
+   ! the edge of the active domain is a closed wall, not an open boundary.
    !
    if (advection) then
       !
@@ -2270,14 +2273,14 @@ contains
             !
             do ip = 1, npuv
                !
-               if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_nm(ip)) /= 1  .or. &
-                    kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_num(ip)) /= 1 ) then
+               if ( (kcuv(uv_index_u_nmu(ip))  /= 1 .and. uv_index_u_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_nmd(ip))  /= 1 .and. uv_index_u_nmd(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nm(ip))   /= 1 .and. uv_index_v_nm(ip)   <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nmu(ip))  /= 1 .and. uv_index_v_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndm(ip))  /= 1 .and. uv_index_v_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndmu(ip)) /= 1 .and. uv_index_v_ndmu(ip) <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_ndm(ip))  /= 1 .and. uv_index_u_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_num(ip))  /= 1 .and. uv_index_u_num(ip)  <= npuv + ncuv) ) then
                   !
                   mask_adv(ip) = 0
                   !

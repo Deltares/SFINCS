@@ -65,7 +65,7 @@ Parameters for model input
 	  :min:			upw1	
 	  :max:			original	  
 	advlim
-	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default). A high value like 9999.9 switches the limiter off.
 	  :units:		m/s2
 	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
@@ -236,6 +236,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
+	advection_bank_correction - added from SFINCS v2.5.1 onwards
+	  :description:		Weights the velocity differences with the four neighbouring uv points in the advection term (advection_scheme = upw1) with the larger of the depth ratio and the flux ratio between neighbour and uv point (at most 1). A dry or shallow neighbour then no longer slows down the flow along a bank that follows the grid in steps.
+	  :units:		logical
+	  :default:		False
+	  :min:			False
+	  :max:			True
 	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s

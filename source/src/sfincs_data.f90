@@ -293,6 +293,7 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_mask
       logical       :: wiggle_suppression
+      logical       :: advection_bank_correction ! weight the partner faces in the advection stencil with their depth/flux ratio (free slip at dry or shallow partners)
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
