@@ -207,12 +207,16 @@ Mask file
 ^^^^^
 
 To distinguish active from inactive areas and cells where boundary conditions need to be forced, a mask file needs to be supplied.
-This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), boundary cell (msk=2) or outflow boundary cell msk=3).
+This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2), outflow boundary cell (msk=3), downstream river boundary cell (msk=5) or Neumann boundary cell (msk=6).
 Setting the value per cell allows great flexibility in optimising the model domain and thereby reducing the computational runtime as much as possible.
 Cells with a value of 0 are inactive and no fluxes from/to these cells are calculated.
 If boundary water levels are supplied, these are only forced to the cells with a value of 2. 
 At outflow cells (msk=3), the water level is not forced, but water depth at that cell is artificially kept at zero (no water).
 Cells with a value of 1 are normal active cells, where the water level is calculated and fluxes are calculated to/from these cells.
+At downstream river boundary cells (msk=5), the water level is taken from an internal point in the model, corrected for the river slope; these cells require a 'bdrfile'.
+At Neumann boundary cells (msk=6), a zero water level gradient is imposed: the water level is taken from the neighbouring active cell (msk=1), and no input file is needed.
+A Neumann cell without an open face to an active cell (msk=1) is made inactive, with a warning.
+Any other positive mask value (including 4, which SFINCS uses internally for wave maker cells) stops the model with an error.
 The file can be made with the HydroMT-SFINCS function 'mask.create_active' to define what cells should be active.
 And afterwards with the function 'mask.create_boundary' to define of the active cells which ones are boundary or outflow cells.
 
