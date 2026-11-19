@@ -1292,7 +1292,7 @@ contains
    !$omp end parallel
    !$acc end parallel
    !
-   ! Also set the water level in kcs=2 cells without a kcuv=2 link to an interior
+   ! Also set the water level in kcs=2/3/5 cells without a kcuv=2 link to an interior
    ! cell (e.g. corner cells), which the loop above does not reach.
    !
    !$acc parallel loop present( kcs, zs, zsb, nmindbnd ) private( nmb )
@@ -1301,7 +1301,7 @@ contains
       !
       nmb = nmindbnd(ib)
       !
-      if (kcs(nmb) == 2) then
+      if (kcs(nmb) == 2 .or. kcs(nmb) == 3 .or. kcs(nmb) == 5) then
          !
          zs(nmb) = zsb(ib)
          !
