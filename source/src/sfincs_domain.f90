@@ -137,7 +137,6 @@ contains
    !
    call set_advection_mask()
    !
-   !
    end subroutine
 
 

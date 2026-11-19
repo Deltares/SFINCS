@@ -651,9 +651,11 @@ contains
                !
                ! Fast cube root (cbrt = fast): an integer bit-hack seed (magic constant
                ! 709921077) refined by one Newton iteration (y <- y - (y^3 - hu) / (3 y^2)).
-               ! About 0.1 % accurate over the depth range, no pow, no table.
+               ! At most 0.13 % off over the depth range, always slightly too high
+               ! (overestimates hu**(1/3)), no pow, no table. max(hu, tiny(hu)) avoids a NaN
+               ! seed for negative hu (including -0.0).
                !
-               i_cbrt = transfer(hu, i_cbrt)
+               i_cbrt = transfer(max(hu, tiny(hu)), i_cbrt)
                i_cbrt = i_cbrt / 3 + 709921077
                hu13   = transfer(i_cbrt, hu13)
                hu13   = hu13 - (hu13 * hu13 * hu13 - hu) / (3.0 * hu13 * hu13)

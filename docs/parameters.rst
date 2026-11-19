@@ -225,7 +225,7 @@ More parameters for model input (only for advanced users)
 	  :max:			True
 	  :limitation:	Only for subgrid mode
 	cbrt
-	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function.
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation without the power function that overestimates h^(1/3) by at most 0.13 %.
 	  :units:		-
 	  :default:		exact
 	  :min:			exact
@@ -293,6 +293,12 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
+	h73table - deprecated after SFINCS v2.5.0, the keyword is ignored, replaced by 'cbrt'
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation. The lookup table has been removed; a model that sets h73table gives a warning, and the keyword has no effect. Use cbrt = fast for a fast approximation instead.
+	  :units:		logical
+	  :default:		0
+	  :min:			0
+	  :max:			1
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
