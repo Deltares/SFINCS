@@ -65,7 +65,7 @@ Parameters for model input
 	  :min:			upw1	
 	  :max:			original	  
 	advlim
-	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default). A high value like 9999.9 switches the limiter off.
 	  :units:		m/s2
 	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
@@ -218,24 +218,48 @@ More parameters for model input (only for advanced users)
 	  :min:			0
 	  :max:			Inf	  
 	wiggle_suppression
-	  :description:		If the acceleration of water level in cell nm is large and positive and in nmu large and negative, or vice versa, apply limiter to the flux. Only for subgrid mode.
+	  :description:		Suppresses 2*dt oscillations of the water level in subgrid cells. With wiggle_detect = 1 (default): if the acceleration of the water level in cell nm is large and positive and in nmu large and negative, or vice versa, a limiter is applied to the flux. With wiggle_detect = 0: the flux increment at a uv point is under-relaxed with the factor phi / alpha^2, where phi is the wet-area fraction of the least wet of the two neighbouring cells; the factor is at least wiggle_facmin and at most 1 (fully wet cells are not affected). Only for subgrid mode.
 	  :units:		logical
 	  :default:		True - updated from SFINCS v2.2.0 onwards
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	cbrt
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation that is accurate to about 0.1 % and faster than the power function.
+	  :units:		-
+	  :default:		exact
+	  :min:			exact
+	  :max:			fast
+	wiggle_facmin
+	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1 and wiggle_detect = 0).
+	  :units:		-
+	  :default:		0.1
+	  :min:			0.0
+	  :max:			1.0
+	wiggle_detect
+	  :description:		Method of the wiggle suppression (when wiggle_suppression = 1). True: at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor. False: under-relaxation of the flux increment with the wet-area fraction (see wiggle_suppression and wiggle_facmin).
+	  :units:		logical
+	  :default:		True
+	  :min:			False
+	  :max:			True
 	wiggle_threshold
-	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression limiter is applied (when wiggle_suppression = 1).
+	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression is applied (only when wiggle_detect = 1).
 	  :units:		m/s2
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
 	wiggle_factor
-	  :description:		Strength of the wiggle suppression limiter (when wiggle_suppression = 1). The flux is multiplied with wiggle_threshold / (wiggle_factor * (difference - wiggle_threshold) + wiggle_threshold), so a larger value damps more strongly.
+	  :description:		Strength of the flux reduction of the wiggle suppression (only when wiggle_detect = 1). The flux is multiplied with wiggle_threshold / (wiggle_factor * (difference - wiggle_threshold) + wiggle_threshold), so a larger value damps more strongly.
 	  :units:		-
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
+	advection_bank_correction
+	  :description:		Weights the velocity differences with the four neighbouring uv points in the advection term (advection_scheme = upw1) with the larger of the depth ratio and the flux ratio between neighbour and uv point (at most 1). A dry or shallow neighbour then no longer slows down the flow along a bank that follows the grid in steps.
+	  :units:		logical
+	  :default:		False
+	  :min:			False
+	  :max:			True
 	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
@@ -287,12 +311,6 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
-	h73table
-	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
-	  :units:		logical
-	  :default:		0
-	  :min:			0
-	  :max:			1		    
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s

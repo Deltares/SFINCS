@@ -70,7 +70,7 @@ contains
    !
    ! Copy arrays to GPU memory
    ! 
-   !$acc enter data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, t_zsmax, zsm, z_volume, &
+   !$acc enter data, copyin( kcs, kfuv, kcuv, zs, zs0, zsderv, z_wetfrac, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, t_zsmax, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
@@ -110,7 +110,6 @@ contains
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc               x73, &
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
@@ -130,7 +129,7 @@ contains
    !
    ! Called from: sfincs_finalize (sfincs_lib)
    !
-   !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, t_zsmax, zsm, z_volume, &
+   !$acc exit data delete( kcs, kfuv, kcuv, zs, zs0, zsderv, z_wetfrac, q, q0, uv, uv0, zb, zbuv, zbuvmx, zsmax, zvolmax, maxzsm, qmax, vmax, twet, t_zsmax, zsm, z_volume, &
    !$acc               z_flags_iref, uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc               index_kcuv2, nmikcuv2, nmbkcuv2, ibkcuv2, zsb, zsb0, ibuvdir, uvmean, &
    !$acc               subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
@@ -170,7 +169,6 @@ contains
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc               x73, &
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
