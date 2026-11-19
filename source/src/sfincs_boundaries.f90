@@ -575,34 +575,7 @@ contains
       !
    endif   
    !
-   if (nbnd == 0 .and. nbdr == 0) then
-      !
-      !write(logstr,'(a)')'Warning : no open boundary points found in mask!'
-      !call write_log(logstr, 1)
-      !
-      return
-      !
-   endif
-   !   
-   ! Allocate boundary arrays
-   !
-   allocate(ind1_bnd_gbp(ngbnd))
-   allocate(ind2_bnd_gbp(ngbnd))
-   allocate(fac_bnd_gbp(ngbnd))
-   !
-   ind1_bnd_gbp = 0
-   ind2_bnd_gbp = 0
-   fac_bnd_gbp  = 0.0
-   !
-   if (downstream_river_boundaries_in_mask) then
-      !
-      ! There are downstream river boundaries
-      !
-      allocate(index_bdr_gbp(ngbnd))
-      !
-      index_bdr_gbp = 0
-      !
-   endif
+   ! Neumann boundaries need no bnd or bdr file, so set them up before the early return below.
    !
    if (neumann_boundaries_in_mask) then
       !
@@ -656,7 +629,55 @@ contains
          !
       enddo
       !
+      ! A Neumann cell without an open (kcuv=6) face to a regular cell does not interact
+      ! with the model. Make it inactive.
+      !
+      do ib = 1, ngbnd
+         !
+         nm = nmindbnd(ib)
+         !
+         if (kcs(nm) == 6 .and. nmi_gbp(ib) == 0) then
+            !
+            kcs(nm) = 0
+            !
+            write(logstr,'(a,i0,a)')'Warning : Neumann cell (msk=6) nm = ', nm, &
+               ' has no open face to a regular cell (msk=1) and is set to inactive'
+            call write_log(logstr, 0)
+            !
+         endif
+         !
+      enddo
+      !
       deallocate(ib_of_nm)
+      !
+   endif
+   !
+   if (nbnd == 0 .and. nbdr == 0) then
+      !
+      !write(logstr,'(a)')'Warning : no open boundary points found in mask!'
+      !call write_log(logstr, 1)
+      !
+      return
+      !
+   endif
+   !   
+   ! Allocate boundary arrays
+   !
+   allocate(ind1_bnd_gbp(ngbnd))
+   allocate(ind2_bnd_gbp(ngbnd))
+   allocate(fac_bnd_gbp(ngbnd))
+   !
+   ind1_bnd_gbp = 0
+   ind2_bnd_gbp = 0
+   fac_bnd_gbp  = 0.0
+   !
+   if (downstream_river_boundaries_in_mask) then
+      !
+      ! There are downstream river boundaries
+      !
+      allocate(index_bdr_gbp(ngbnd))
+      !
+      index_bdr_gbp = 0
       !
    endif
    !
@@ -750,23 +771,6 @@ contains
          enddo
          !
          index_bdr_gbp(ib) = ib1
-         !
-      elseif (kcs(nm) == 6) then  ! This cell is a Neumann boundary point
-         !
-         ! nmi_gbp was set above from the kcuv=6 faces of this cell
-         !
-         if (nmi_gbp(ib) == 0) then
-            !
-            ! No open (kcuv=6) face to a regular cell, so this cell does not interact
-            ! with the model. Make it inactive.
-            !
-            kcs(nm) = 0
-            !
-            write(logstr,'(a,i0,a)')'Warning : Neumann cell (msk=6) nm = ', nm, &
-               ' has no open face to a regular cell (msk=1) and is set to inactive'
-            call write_log(logstr, 0)
-            !
-         endif
          !
       endif
       !
