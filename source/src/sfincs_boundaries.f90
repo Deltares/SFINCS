@@ -1405,35 +1405,44 @@ contains
 
    
    function find_sfincs_cell(n, m, iref) result (nm)
-   !
-   ! Find nm index for cell n, m, iref
-   !
-   ! Input:
-   !   n    : row index of the cell at its refinement level
-   !   m    : column index of the cell at its refinement level
-   !   iref : refinement level
-   !
-   ! Returns:
-   !   nm   : SFINCS cell index (0 if the cell is not active)
-   !
-   ! Called from: find_boundary_indices (sfincs_boundaries)
-   !
-   use sfincs_data
-   use quadtree
-   !
-   implicit none
-   !
-   integer, intent(in)  :: n
-   integer, intent(in)  :: m
-   integer, intent(in)  :: iref
-   integer              :: nm
-   !
-   integer :: nmq
-   !
-   nmq = find_quadtree_cell_by_index(n, m, iref)
-   nm = index_sfincs_in_quadtree(nmq) 
-   !
-   end function
+      !
+      ! Find nm index for cell n, m, iref
+      !
+      ! Input:
+      !   n    : row index of the cell at its refinement level
+      !   m    : column index of the cell at its refinement level
+      !   iref : refinement level
+      !
+      ! Returns:
+      !   nm   : SFINCS cell index (0 if the cell is outside the grid, does not exist at this level, or is not active)
+      !
+      ! Called from: find_boundary_indices (sfincs_boundaries)
+      !
+      use sfincs_data
+      use quadtree
+      !
+      implicit none
+      !
+      integer, intent(in)  :: n
+      integer, intent(in)  :: m
+      integer, intent(in)  :: iref
+      integer              :: nm
+      !
+      integer :: nmq
+      !
+      nm  = 0
+      !
+      nmq = find_quadtree_cell_by_index(n, m, iref)
+      !
+      ! nmq is 0 for (n, m) outside the grid; index_sfincs_in_quadtree(0) is out of bounds
+      !
+      if (nmq > 0) then
+         !
+         nm = index_sfincs_in_quadtree(nmq)
+         !
+      endif
+      !
+   end function find_sfincs_cell
    
    function clean_line(s) result(out)
    !
