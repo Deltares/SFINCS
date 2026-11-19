@@ -1292,6 +1292,24 @@ contains
    !$omp end parallel
    !$acc end parallel
    !
+   ! Also set the water level in kcs=2 cells without a kcuv=2 link to an interior
+   ! cell (e.g. corner cells), which the loop above does not reach.
+   !
+   !$acc parallel loop present( kcs, zs, zsb, nmindbnd ) private( nmb )
+   !$omp parallel do private ( nmb ) if(ngbnd > 10000)
+   do ib = 1, ngbnd
+      !
+      nmb = nmindbnd(ib)
+      !
+      if (kcs(nmb) == 2) then
+         !
+         zs(nmb) = zsb(ib)
+         !
+      endif
+      !
+   enddo
+   !$omp end parallel do
+   !
    end subroutine
 
    
