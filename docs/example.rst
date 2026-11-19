@@ -197,3 +197,7 @@ The SFINCS code is open source as of 16-11-2022, see: https://github.com/Deltare
 
 Get in touch if you would like to join us in developing the SFINCS code, or put in a pull request on Github with improvements yourself: https://github.com/Deltares/SFINCS/pulls
 
+Before a pull request from an external contributor can be merged, every commit author needs to sign the SFINCS Contributor License Agreement (CLA), once.
+If your employer owns your work, your organisation signs the entity version of the agreement.
+See https://github.com/Deltares/SFINCS/blob/main/CONTRIBUTING.md for details.
+
