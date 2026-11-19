@@ -2255,7 +2255,8 @@ contains
    endif
    !
    ! And now set the mask
-   ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
+   ! The advection term at uv points that have neighbors that are 1) boundary points or
+   ! 2) wave maker points will be set to 0.0
    ! A missing neighbor (dummy index npuv + ncuv + 1, next to an inactive cell) does not switch off advection:
    ! the edge of the active domain is a closed wall, not an open boundary.
    !

@@ -28,6 +28,7 @@ Known issues/warnings of the current SFINCS main version and last release are li
 * Issue in SFINCS v2.3.0 mt Faber Release AND v2.4.0 Galibier Release regarding Curve Number infiltration if storecumprcp = 0 (default), then infiltration is not processed correctly and can result to unrealistic results! Simple solution for now: put storecumprcp = 1 when using this infiltration option. This issue is fixed in the 2026.02 Release!
 * Issue in SFINCS v2.4.0 and older when running coupled SnapWave model with combination of wave boundary conditions AND wind. This issue is fixed in the 2026.02 Release!
 * Issue in SFINCS v2.5.0 Hautacam Release: a srcfile with more than 3 columns per line (e.g. a quoted name with a space, like "Point 001") stops SFINCS with an error. Fixed in the main version: names are now read between quotes, as in the obsfile, and further columns are ignored. Quick fix using Hautacam release: ensure names are within quotes, and without spaces.
+* Change in the main version after SFINCS v2.5.0 Hautacam Release: advection is no longer switched off at uv points next to inactive cells, because the edge of the active domain is a closed wall, not an open boundary. Next to open boundaries and wave makers advection is still switched off. Models with advection = 1 on a quadtree grid or a regular grid with more than one row can therefore give slightly different results near the edge of the active domain.
 
 Releases Changelog
 -----
