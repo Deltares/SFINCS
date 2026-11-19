@@ -741,7 +741,7 @@ contains
                   ! There the local gravity-wave speed is sqrt(g * hu / phiz) with phiz the wet-area
                   ! fraction of the cell, which exceeds the speed sqrt(g * hu) the time step was set for.
                   ! Under-relax the flux increment with fac = phiz / alfa**2 (floored at wiggle_facmin).
-                  ! Steady flow (q = q0) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
+                  ! A flux that does not change (q = qsm) is not affected, 2*dt modes are damped. Fully wet cells give fac = 1.
                   !
                   phiz = min(z_wetfrac(nm), z_wetfrac(nmu))
                   !

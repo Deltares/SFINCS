@@ -2342,7 +2342,7 @@ contains
       !
       allocate(zs0(np))
       allocate(zsderv(np))
-      zs0 = 0.0
+      zs0    = 0.0
       zsderv = 0.0
       !
       ! Under-relaxation (wiggle_detect = 0): wet-area fraction of the cells
@@ -2405,7 +2405,9 @@ contains
    call set_initial_conditions()
    !
    if (wiggle_suppression .and. wiggle_detect) then
+      !
       zs0 = zs
+      !
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
