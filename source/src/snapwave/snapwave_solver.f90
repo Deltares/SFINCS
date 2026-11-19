@@ -752,8 +752,13 @@ contains
                !
             endif
             !
-            Df(k) = Df(kn)
-            Dw(k) = Dw(kn)
+            ! Neumann nodes are not inner nodes and are skipped in the sweep, so DoverE and
+            ! Dveg are copied as well. The wave force scales Dw with DoverE after the solve.
+            !
+            Df(k)     = Df(kn)
+            Dw(k)     = Dw(kn)
+            Dveg(k)   = Dveg(kn)
+            DoverE(k) = DoverE(kn)
             !
          endif
          !
@@ -1287,9 +1292,11 @@ contains
          ! breaking dissipation is then orders of magnitude larger than the energy flux that
          ! arrives at the node, and the wave force Dw * k / sig below followed that value.
          !
-         ! Dw(k) is therefore scaled to its share of what the solve removed, which cannot
-         ! exceed the incoming energy flux. The share is taken from the pre-solve terms. At
-         ! converged nodes nothing changes.
+         ! Dw(k) is therefore capped at its share of what the solve removed, which cannot
+         ! exceed the incoming energy flux. The share is taken from the pre-solve terms. The
+         ! cap only reduces Dw(k): where the solve removed more than the pre-solve terms
+         ! (e.g. because DoverE is under-relaxed), Dw(k) is left as it is. At converged
+         ! nodes nothing changes.
          !
          ! Only Dw(k) is scaled:
          ! - Df(k) is not used after the solve (output only) and is left as it is, so at a
