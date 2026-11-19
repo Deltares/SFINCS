@@ -586,7 +586,8 @@ contains
                   !
                   adv = - phi * (dqxudx + dqyudy)
                   !
-                  ! Limit advection term such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2; a value like 9999.9 is so high that the limiter has no effect)
+                  ! Limit advection term such that horizontal acceleration due to advection does not exceed
+                  ! advlim (default 1.0 m/s2; a value like 9999.9 is so high that the limiter has no effect)
                   !
                   adv = min(max(adv, - advlim * hu), advlim * hu) 
                   !
