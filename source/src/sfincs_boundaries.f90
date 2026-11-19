@@ -37,10 +37,6 @@ module sfincs_boundaries
    !     radians.
    !     Called from: update_boundary_conditions (sfincs_boundaries)
    !
-   !   find_sfincs_cell(n, m, iref)
-   !     Find the SFINCS cell index nm for quadtree cell (n, m, iref).
-   !     Called from: find_boundary_indices (sfincs_boundaries)
-   !
    !   clean_line(s)
    !     Trim a line read from file and remove a trailing carriage return.
    !     Called from: read_boundary_data (sfincs_boundaries)
@@ -557,8 +553,10 @@ contains
    ! Determine indices and weights of boundary points
    ! For tide and surge, these are the indices and weights of the points in the bnd file
    !
-   integer nm, m, n, nb, ib1, ib2, ib, ic, ibnd, ibdr, iref
-   integer nmi
+   integer nm, nb, ib1, ib2, ib, ic, ibnd, ibdr
+   integer nmi, nmb, ip
+   !
+   integer, dimension(:), allocatable :: ib_of_nm
    !
    real x, y, dst1, dst2, dst
    !
@@ -612,6 +610,53 @@ contains
       !
       allocate(nmi_gbp(ngbnd))
       nmi_gbp = 0
+      !
+      ! Temporary map from cell index to grid boundary index
+      !
+      allocate(ib_of_nm(np))
+      ib_of_nm = 0
+      !
+      do ib = 1, ngbnd
+         !
+         ib_of_nm(nmindbnd(ib)) = ib
+         !
+      enddo
+      !
+      ! The internal point of a Neumann cell is the regular cell across its first kcuv=6 face.
+      ! Using the faces (rather than neighbours at the same refinement level) also finds
+      ! internal points across refinement transitions. Faces closed by thin dams (kcuv=0) do not count.
+      ! The water level gradient at kcuv=6 faces is set to zero in sfincs_momentum, so when
+      ! a cell has more than one kcuv=6 face, the choice only affects the output water level.
+      !
+      do ip = 1, npuv
+         !
+         if (kcuv(ip) == 6) then
+            !
+            if (kcs(uv_index_z_nm(ip)) == 6) then
+               !
+               nmb = uv_index_z_nm(ip)
+               nmi = uv_index_z_nmu(ip)
+               !
+            else
+               !
+               nmb = uv_index_z_nmu(ip)
+               nmi = uv_index_z_nm(ip)
+               !
+            endif
+            !
+            ib = ib_of_nm(nmb)
+            !
+            if (nmi_gbp(ib) == 0) then
+               !
+               nmi_gbp(ib) = nmi
+               !
+            endif
+            !
+         endif
+         !
+      enddo
+      !
+      deallocate(ib_of_nm)
       !
    endif
    !
@@ -708,63 +753,20 @@ contains
          !
       elseif (kcs(nm) == 6) then  ! This cell is a Neumann boundary point
          !
-         ! Indices of boundary cell
+         ! nmi_gbp was set above from the kcuv=6 faces of this cell
          !
-         n = z_index_z_n(nm) 
-         m = z_index_z_m(nm)
-         iref = z_flags_iref(nm)
-         !
-         ! Get index of internal point
-         !
-         nmi = find_sfincs_cell(n, m + 1, iref)
-         if (nmi > 0) then
-            if (kcs(nmi) == 1) then
-                nmi_gbp(ib) = nmi
-            else
-                nmi = 0
-            endif            
-         endif
-         !
-         nmi = find_sfincs_cell(n + 1, m, iref)
-         if (nmi > 0) then 
-            if (kcs(nmi) == 1) then
-                nmi_gbp(ib) = nmi
-            else
-                nmi = 0
-            endif                    
-         endif
-         !
-         nmi = find_sfincs_cell(n, m - 1, iref)
-         if (nmi > 0) then 
-            if (kcs(nmi) == 1) then
-                nmi_gbp(ib) = nmi
-            else
-                nmi = 0
-            endif                        
-         endif
-         !
-         nmi = find_sfincs_cell(n - 1, m, iref)
-         if (nmi > 0) then 
-            if (kcs(nmi) == 1) then
-                nmi_gbp(ib) = nmi
-            else
-                nmi = 0
-            endif                        
-         endif
-         !         
-         if (nmi_gbp(ib) == 0) then              
+         if (nmi_gbp(ib) == 0) then
             !
-            ! No active msk=1 point found in any of the neighbours, reset cell to inactive
+            ! No open (kcuv=6) face to a regular cell, so this cell does not interact
+            ! with the model. Make it inactive.
             !
             kcs(nm) = 0
             !
-            write(logstr,*)'Warning : Found a Neumann cell (msk=6) that does not have any valid neighbouring regular cell (msk=1)!'
+            write(logstr,'(a,i0,a)')'Warning : Neumann cell (msk=6) nm = ', nm, &
+               ' has no open face to a regular cell (msk=1) and is set to inactive'
             call write_log(logstr, 0)
-            write(logstr,*)'Therefore cell set back to inactive (msk=0) for nm= ', nm
-            call write_log(logstr, 0)
-            ! 
+            !
          endif
-         
          !
       endif
       !
@@ -1403,46 +1405,6 @@ contains
    !
    end subroutine
 
-   
-   function find_sfincs_cell(n, m, iref) result (nm)
-      !
-      ! Find nm index for cell n, m, iref
-      !
-      ! Input:
-      !   n    : row index of the cell at its refinement level
-      !   m    : column index of the cell at its refinement level
-      !   iref : refinement level
-      !
-      ! Returns:
-      !   nm   : SFINCS cell index (0 if the cell is outside the grid, does not exist at this level, or is not active)
-      !
-      ! Called from: find_boundary_indices (sfincs_boundaries)
-      !
-      use sfincs_data
-      use quadtree
-      !
-      implicit none
-      !
-      integer, intent(in)  :: n
-      integer, intent(in)  :: m
-      integer, intent(in)  :: iref
-      integer              :: nm
-      !
-      integer :: nmq
-      !
-      nm  = 0
-      !
-      nmq = find_quadtree_cell_by_index(n, m, iref)
-      !
-      ! nmq is 0 for (n, m) outside the grid; index_sfincs_in_quadtree(0) is out of bounds
-      !
-      if (nmq > 0) then
-         !
-         nm = index_sfincs_in_quadtree(nmq)
-         !
-      endif
-      !
-   end function find_sfincs_cell
    
    function clean_line(s) result(out)
    !
