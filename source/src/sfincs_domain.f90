@@ -1926,6 +1926,20 @@ contains
          ngbnd = ngbnd + 1
          nmindbnd(ngbnd) = nm
          !
+         if (kcs(nm) == 3) then
+            !
+            ! Outflow boundary: set water levels for this point (this only happens here, so these do not change throughout the simulation)
+            !
+            if (subgrid) then
+               zsb0(ngbnd) = subgrid_z_zmin(nm)
+            else
+               zsb0(ngbnd) = zb(nm)
+            endif
+            !
+            zsb(ngbnd) = zsb0(ngbnd)
+            !
+         endif
+         !
       endif
    enddo
    !
@@ -2035,21 +2049,6 @@ contains
             if (nmindbnd(ib) == nmbkcuv2(ikcuv2)) then
                !
                ibkcuv2(ikcuv2) = ib ! index in grid boundary array of this uv boundary point
-               !
-               ! Check if this is an outflow boundary (kcs=3)
-               !
-               if (kcs(nmindbnd(ib)) == 3) then
-                  !
-                  ! Set water levels for this point (this only happens here, so these do not change throughout the simulation)
-                  !
-                  if (subgrid) then
-                     zsb0(ib) = subgrid_z_zmin(nmindbnd(ib))
-                     zsb(ib)  = zsb0(ib)
-                  else    
-                     zsb0(ib) = zb(nmindbnd(ib))
-                     zsb(ib)  = zsb0(ib)
-                  endif
-               endif   
                !
                exit
                !
