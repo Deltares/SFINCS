@@ -162,13 +162,11 @@ contains
        !
    endif   
    !
-   ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
-   !
    ! Flux and velocity from the previous time step. The arrays are swapped instead of copied:
    ! q0 and uv0 now hold the previous time step, q and uv hold older values and are overwritten
    ! below at every point. Points that are not computed here (open boundaries, structures, wave
-   ! makers) get the previous-step value, as with a copy. The dummy point npuv + ncuv + 1 is 0.0
-   ! in both sets of arrays.
+   ! makers, inactive points) get the previous-step value, as with a copy. The dummy point
+   ! npuv + ncuv + 1 is 0.0 in both sets of arrays.
    !
    call move_alloc(q0, swap)
    call move_alloc(q, q0)
@@ -177,6 +175,8 @@ contains
    call move_alloc(uv0, swap)
    call move_alloc(uv, uv0)
    call move_alloc(swap, uv)
+   !
+   ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
@@ -796,6 +796,7 @@ contains
          uv(ip) = uv0(ip)
          !
       endif
+      !
    enddo
    !$omp end do
    !$omp end parallel
