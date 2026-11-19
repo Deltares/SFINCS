@@ -473,6 +473,9 @@ contains
    integer, dimension(:), allocatable         :: neu_list               ! Neumann nodes, grouped per inner node they are connected to
    integer, dimension(:), allocatable         :: neu_next               ! next free entry in neu_list per inner node (only used to fill neu_list)
    integer                                    :: ineu                   ! counter over neu_list
+   logical                                    :: selfnode               ! node has Neumann nodes connected to it
+   real*4, dimension(ntheta)                  :: wself                  ! upwind weight of the node's own Neumann nodes per direction
+   real*4, dimension(ntheta)                  :: eeself, eeself_ig      ! upwind energy from the node's own Neumann nodes per direction
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:,:), allocatable        :: eeold_ig            ! IG wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
@@ -898,6 +901,47 @@ contains
             !
          enddo
          !
+         ! Upwind points that are Neumann nodes connected to this node itself. They hold a copy
+         ! of ee(:, k), so treating them explicitly turns the update into a slow fixed-point
+         ! iteration of the node on itself (about 150 iterations for waves entering through a
+         ! Neumann edge). Their weights (wself) and energy (eeself, eeself_ig) are split off
+         ! here, and treated implicitly in steps 4 and 7.
+         !
+         selfnode = neu_start(k + 1) > neu_start(k)
+         !
+         if (selfnode) then
+            !
+            do itheta = 1, ntheta
+               !
+               k1 = prev(1, itheta, k)
+               k2 = prev(2, itheta, k)
+               !
+               wself(itheta)     = 0.0
+               eeself(itheta)    = 0.0
+               eeself_ig(itheta) = 0.0
+               !
+               if (neumannconnected(k1) == k) then
+                  !
+                  wself(itheta)  = wself(itheta) + w(1, itheta, k)
+                  eeself(itheta) = eeself(itheta) + w(1, itheta, k) * ee(itheta, k1)
+                  !
+                  if (igwaves) eeself_ig(itheta) = eeself_ig(itheta) + w(1, itheta, k) * ee_ig(itheta, k1)
+                  !
+               endif
+               !
+               if (neumannconnected(k2) == k) then
+                  !
+                  wself(itheta)  = wself(itheta) + w(2, itheta, k)
+                  eeself(itheta) = eeself(itheta) + w(2, itheta, k) * ee(itheta, k2)
+                  !
+                  if (igwaves) eeself_ig(itheta) = eeself_ig(itheta) + w(2, itheta, k) * ee_ig(itheta, k2)
+                  !
+               endif
+               !
+            enddo
+            !
+         endif
+         !
          ! --- Step 2: Pre-solve sig and celerities from upwind Ek/Ak (wind only) ----
          !
          ! The upwind Ek/Ak provides the best pre-solve estimate of local sig, so that
@@ -1027,6 +1071,19 @@ contains
          !
          if (wind) R(:) = R(:) + WsorE(:, k)
          !
+         ! Implicit treatment of upwind points that are this node's own Neumann nodes
+         !
+         if (selfnode) then
+            !
+            do itheta = 1, ntheta
+               !
+               R(itheta) = R(itheta) - cgprev(itheta) * eeself(itheta) / ds(itheta, k)
+               B(itheta) = B(itheta) - cgprev(itheta) * wself(itheta) / ds(itheta, k)
+               !
+            enddo
+            !
+         endif
+         !
          call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
          ee(:, k) = max(ee(:, k), waveps)
          !
@@ -1143,6 +1200,19 @@ contains
                A_ig(ntheta) = 0.0
                B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
                C_ig(ntheta) = 0.0
+            endif
+            !
+            ! Implicit treatment of upwind points that are this node's own Neumann nodes
+            !
+            if (selfnode) then
+               !
+               do itheta = 1, ntheta
+                  !
+                  R_ig(itheta) = R_ig(itheta) - cgprev_ig(itheta) * eeself_ig(itheta) / ds(itheta, k)
+                  B_ig(itheta) = B_ig(itheta) - cgprev_ig(itheta) * wself(itheta) / ds(itheta, k)
+                  !
+               enddo
+               !
             endif
             !
             call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
