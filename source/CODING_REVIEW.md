@@ -58,7 +58,7 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - New input files are checked for existence, and missing or malformed files produce a clear error through `sfincs_error`/`sfincs_log`, not a crash.
 - Renamed or removed keywords keep the old name working as an alias, with a deprecation warning in the log.
 - Changed defaults are deliberate and mentioned in the PR description, since existing models will give different results.
-- New keywords are documented in `docs/parameters.rst` (and the relevant `docs/input*.rst` page).
+- New keywords are documented in `docs/parameters.rst` (and the relevant `docs/input*.rst` page), with the version from which they are available after the keyword name, like the existing entries (e.g. `uvlim - added from SFINCS v2.2.0 onwards`). A changed default is marked the same way in the `:default:` line (e.g. `1.0 - updated from SFINCS v2.2.0 onwards`).
 - When a new type of input is needed, an issue is opened in HydroMT-SFINCS.
 
 ## 5. Output
