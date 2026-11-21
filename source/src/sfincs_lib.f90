@@ -77,6 +77,7 @@ module sfincs_lib
    use sfincs_log
    use sfincs_timers
    use sfincs_timestep_analysis
+   use sfincs_source_revision, only: build_source_revision
    !
    implicit none
    !
@@ -143,6 +144,8 @@ module sfincs_lib
    !
    build_revision = "$Rev: v2.5.0 Hautacam Release 2026.02"
    build_date     = "$Date: 2026-10-30"
+   !
+   source_revision = build_source_revision
    !
    call write_startup_log()
    !

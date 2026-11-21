@@ -166,6 +166,7 @@
 			<File RelativePath="..\src\sfincs_runup_gauges.f90"/>
 			<File RelativePath="..\src\sfincs_snapwave.f90">
 			</File>
+			<File RelativePath="..\src\sfincs_source_revision.F90"/>
 			<File RelativePath="..\src\sfincs_spiderweb.f90"/>
 			<File RelativePath="..\src\sfincs_structures.f90"/>
 			<File RelativePath="..\src\sfincs_subgrid.F90">

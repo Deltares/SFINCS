@@ -252,6 +252,7 @@ contains
       call write_log('', 1)
       call write_log('Build-Revision: '//trim(build_revision), 1)
       call write_log('Build-Date: '//trim(build_date), 1)
+      call write_log('Source-Revision: '//trim(source_revision), 1)
       call write_log('', 1)
       !
    end subroutine write_startup_log

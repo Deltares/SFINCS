@@ -49,7 +49,7 @@ module sfincs_data
    !
 
       !!! Revision data
-      character*256 :: build_revision, build_date
+      character*256 :: build_revision, build_date, source_revision
       !!!!
       !!! Time variables
       real*4  :: dtavg

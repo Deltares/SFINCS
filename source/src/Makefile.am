@@ -104,6 +104,7 @@ libsfincs_la_SOURCES = \
 	sfincs_wavemaker.f90 \
 	sfincs_bathtub.f90 \
 	sfincs_openacc.f90 \
+	sfincs_source_revision.F90 \
 	sfincs_lib.f90 \
 	sfincs_bmi.f90
         
@@ -116,6 +117,31 @@ libsfincs_la_LIBADD = \
 # sfincs_meteo_nonc.f90
 # sfincs_nonc.f90
 
+# Source revision written to sfincs.log and the netCDF output (Source-Revision).
+# sfincs_source_revision.inc is checked on every make and only rewritten when
+# the value changes, so an unchanged tree is not recompiled. The value is
+# SFINCS_GIT_REVISION when set (environment or make command line), otherwise
+# "git describe --tags --always --dirty" of this source tree, otherwise unknown
+# (no git, e.g. a release tarball or a Docker build context without .git).
+AM_CPPFLAGS = -DHAVE_SOURCE_REVISION_INC
+CLEANFILES = sfincs_source_revision.inc
+sfincs_source_revision.lo: sfincs_source_revision.inc
+sfincs_lib.lo: sfincs_source_revision.lo
+sfincs_source_revision.inc: FORCE
+	@rev="$$SFINCS_GIT_REVISION"; \
+	if test -z "$$rev"; then \
+	  top=`cd $(top_srcdir) && git rev-parse --show-toplevel 2>/dev/null`; \
+	  if test -n "$$top" && test "`cd $$top/source 2>/dev/null && pwd -P`" = "`cd $(top_srcdir) && pwd -P`"; then \
+	    rev=`cd $(top_srcdir) && git describe --tags --always --dirty 2>/dev/null`; \
+	  fi; \
+	fi; \
+	test -n "$$rev" || rev=unknown; \
+	rev=`printf '%s\n' "$$rev" | sed "s/'/''/g"`; \
+	printf "   character(len=*), parameter :: build_source_revision = '%s'\n" "$$rev" > $@.tmp; \
+	if cmp -s $@.tmp $@; then rm -f $@.tmp; else mv -f $@.tmp $@; echo "Source-Revision: $$rev"; fi
+.PHONY: FORCE
+FORCE:
+
 
 # only the sources for the executable (with program)
 sfincs_SOURCES = sfincs.f90
@@ -125,9 +151,8 @@ sfincs_LDADD = $(builddir)/libsfincs.la
 sfincs_LDFLAGS = -static
 sfincs_DEPENDENCIES = libsfincs.la
 
-# make sure the mod file is there
-sfincs.f90: sfincs_lib.mod
-sfincs_lib.mod: libsfincs.la
+# make sure the mod files of the library are there before sfincs.f90 is compiled
+sfincs.$(OBJEXT): libsfincs.la
 
 
 AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran
