@@ -134,6 +134,8 @@ contains
    real*4, parameter :: expo = 1.0 / 3.0
    !integer, parameter :: expo = 1
    !
+   real*4, dimension(:), allocatable :: swap                 ! work array to swap q and q0, uv and uv0
+   !
    logical   :: iok
    !
    call timer_start('momentum')
@@ -160,26 +162,21 @@ contains
        !
    endif   
    !
+   ! Flux and velocity from the previous time step. The arrays are swapped instead of copied:
+   ! q0 and uv0 now hold the previous time step, q and uv hold older values and are overwritten
+   ! below at every point. Points that are not computed here (open boundaries, structures, wave
+   ! makers, inactive points) get the previous-step value, as with a copy. The dummy point
+   ! npuv + ncuv + 1 is 0.0 in both sets of arrays.
+   !
+   call move_alloc(q0, swap)
+   call move_alloc(q, q0)
+   call move_alloc(swap, q)
+   !
+   call move_alloc(uv0, swap)
+   call move_alloc(uv, uv0)
+   call move_alloc(swap, uv)
+   !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
-   !
-   ! Copy flux and velocity from previous time step
-   !
-   !$acc parallel, present( q, q0, uv, uv0 )
-   !$omp parallel &
-   !$omp private ( ip )
-   !$omp do
-   !$acc loop gang vector
-   do ip = 1, npuv + ncuv
-      !
-      q0(ip)  = q(ip)
-      uv0(ip) = uv(ip)
-      !
-   enddo
-   !$acc end parallel
-   !$omp end do
-   !$omp end parallel
-   !
-   ! Copy flux and velocity from previous time step
    !
    !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
@@ -780,8 +777,7 @@ contains
                 !
                 timestep_analysis_required_timestep(ip) = min_dt_ip
                 !
-                
-            endif            
+            endif
             !
          else
             !
@@ -791,8 +787,17 @@ contains
             !
          endif
          !
+      else
+         !
+         ! Not computed here (open boundary, structure, wave maker or inactive point): keep the
+         ! value of the previous time step
+         !
+         q(ip)  = q0(ip)
+         uv(ip) = uv0(ip)
+         !
       endif
-   enddo   
+      !
+   enddo
    !$omp end do
    !$omp end parallel
    !$acc end parallel
