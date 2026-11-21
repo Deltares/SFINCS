@@ -473,7 +473,9 @@ contains
    real*4    :: Dnmu
    real*4    :: hnmu
    real*4    :: unh
-   !   
+   real*4    :: pnm
+   real*4    :: pnmu
+   !
    real*4    :: hnb
    !
    real*4    :: dtover2rhodx2
@@ -680,7 +682,7 @@ contains
    dtover2rhodx = (dt * dxrinv(1) / (2 * rhow))
    !
    !$omp parallel &
-   !$omp private ( ip, ipuv, nm, nmu, nhnm, nhnmu, hu, unh )
+   !$omp private ( ip, ipuv, nm, nmu, nhnm, nhnmu, hu, unh, pnm, pnmu )
    !$omp do schedule ( dynamic, 256 )
    do ip = 1, nhuv
       !
@@ -702,7 +704,21 @@ contains
          !
          if (hu > huthresh_nh) then
             !
-            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnh(nhnmu) + pnh(nhnm)) + pnh(nhnmu) - pnh(nhnm) )
+            ! At the edge of the non-hydrostatic region one of the two cells is not in the non-hydrostatic
+            ! system (row index 0). Its non-hydrostatic pressure is zero, as in the matrix assembly.
+            !
+            pnm  = 0.0
+            pnmu = 0.0
+            !
+            if (nhnm > 0) then
+               pnm = pnh(nhnm)
+            endif
+            !
+            if (nhnmu > 0) then
+               pnmu = pnh(nhnmu)
+            endif
+            !
+            unh = - 1.0 * dtover2rhodx * ( AB(ip) * (pnmu + pnm) + pnmu - pnm )
             !
             ! Do some nudging to avoid 2dx waves
             !

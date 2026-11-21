@@ -20,6 +20,10 @@ module sfincs_initial_conditions
    !     Read the binary initial water level file.
    !     Called from: set_initial_conditions (sfincs_initial_conditions)
    !
+   !   set_restart_infiltration()
+   !     Copy the infiltration state from the restart file into the infiltration arrays.
+   !     Called from: sfincs_initialize (sfincs_lib)
+   !
    ! ------------ Copyright notice SFINCS ------------
    !
    ! Copyright (C)  Stichting Deltares, 2016-2026.
@@ -54,8 +58,15 @@ module sfincs_initial_conditions
    use netcdf       
    !         
    real*8, dimension(:),   allocatable :: inizs
-   real*4, dimension(:),   allocatable :: inizs4   
+   real*4, dimension(:),   allocatable :: inizs4
    real*4, dimension(:),   allocatable :: iniq
+   !
+   ! Infiltration state from the restart file. The restart file is read before the infiltration arrays are
+   ! allocated in initialize_infiltration, so the state is kept here until set_restart_infiltration is called.
+   !
+   integer                             :: rst_inftype = 0 ! rsttype with infiltration state (4, 5 or 6), 0 if none
+   real*4, dimension(:),   allocatable :: rst_inf1        ! scs_Se (4), GA_sigma (5) or rain_T1 (6)
+   real*4, dimension(:),   allocatable :: rst_inf2        ! GA_F (5)
    !
 contains
    !
@@ -289,29 +300,41 @@ contains
             read(500)rdummy
          endif
          !
-         if (rsttype==4) then ! Infiltration method cnb 
+         ! Infiltration state is stored in rst_inf1 / rst_inf2 and copied in set_restart_infiltration.
+         ! Each record is surrounded by two record markers (read into rdummy).
+         !
+         if (rsttype==4) then ! Infiltration method cnb
             !
-            read(500)rdummy                 
-            read(500)scs_Se
-            ! write(*,*)'Reading scs_Se from rstfile, overwrites input values of: ',trim(sefffile)
-            !
-         elseif (rsttype==5) then ! Infiltration method gai    
+            allocate(rst_inf1(np))
             !
             read(500)rdummy
-            read(500)GA_sigma
+            read(500)rst_inf1
+            !
+            rst_inftype = 4
+            !
+         elseif (rsttype==5) then ! Infiltration method gai
+            !
+            allocate(rst_inf1(np))
+            allocate(rst_inf2(np))
+            !
             read(500)rdummy
-            read(500)GA_F
-            write(logstr,'(a,a)')'Info    : reading GA_sigma from rstfile, overwrites input values of ', trim(sigmafile)
-            call write_log(logstr, 0)
+            read(500)rst_inf1
+            read(500)rdummy
+            read(500)rdummy
+            read(500)rst_inf2
+            !
+            rst_inftype = 5
             !
          elseif (rsttype==6) then ! Infiltration method horton
             !
-            read(500)rdummy                               
-            read(500)rain_T1
-            write(logstr,'(a,a)')'Info    : reading rain_T1 from rstfile, complements input values of ', trim(fcfile) 
-            call write_log(logstr, 0)
-            !              
-         endif          
+            allocate(rst_inf1(np))
+            !
+            read(500)rdummy
+            read(500)rst_inf1
+            !
+            rst_inftype = 6
+            !
+         endif
          !
          close(500)      
          !
@@ -343,5 +366,66 @@ contains
       inizs = inizs4
       !
    end subroutine
+   !
+   !
+   subroutine set_restart_infiltration()
+      !
+      ! Copy the infiltration state read from the restart file into the infiltration arrays. This must be
+      ! called after initialize_infiltration, which allocates and initialises these arrays.
+      !
+      ! Called from: sfincs_initialize (sfincs_lib)
+      !
+      implicit none
+      !
+      if (rst_inftype == 4) then
+         !
+         if (allocated(scs_Se)) then
+            !
+            scs_Se = rst_inf1
+            call write_log('Info    : scs_Se taken from rstfile', 0)
+            !
+         else
+            !
+            call write_log('Warning : rstfile contains cnb infiltration state, but cnb infiltration is not used, state is ignored', 1)
+            !
+         endif
+         !
+      elseif (rst_inftype == 5) then
+         !
+         if (allocated(GA_sigma) .and. allocated(GA_F)) then
+            !
+            GA_sigma = rst_inf1
+            GA_F     = rst_inf2
+            write(logstr,'(a,a)')'Info    : GA_sigma and GA_F taken from rstfile, overwrites input values of ', trim(sigmafile)
+            call write_log(logstr, 0)
+            !
+         else
+            !
+            call write_log('Warning : rstfile contains gai infiltration state, but gai infiltration is not used, state is ignored', 1)
+            !
+         endif
+         !
+      elseif (rst_inftype == 6) then
+         !
+         if (allocated(rain_T1)) then
+            !
+            rain_T1 = rst_inf1
+            write(logstr,'(a,a)')'Info    : rain_T1 taken from rstfile, complements input values of ', trim(fcfile)
+            call write_log(logstr, 0)
+            !
+         else
+            !
+            call write_log('Warning : rstfile contains hor infiltration state, but hor infiltration is not used, state is ignored', 1)
+            !
+         endif
+         !
+      endif
+      !
+      if (allocated(rst_inf1)) deallocate(rst_inf1)
+      if (allocated(rst_inf2)) deallocate(rst_inf2)
+      !
+      rst_inftype = 0
+      !
+   end subroutine set_restart_infiltration
    !
 end module

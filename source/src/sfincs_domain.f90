@@ -2531,10 +2531,19 @@ contains
       allocate(uorb(np))
       allocate(gnapp2(npuv))
       !
-      uorb = 0.0      
+      uorb   = 0.0
       gnapp2 = 0.0
       !
-   endif   
+      ! Start from the roughness without waves, as gnapp2 is only updated when update_wave_enhanced_roughness
+      ! is called (through BMI). Otherwise fully wet uv points would have zero friction.
+      !
+      if (subgrid) then
+         !
+         gnapp2 = subgrid_uv_navg_w
+         !
+      endif
+      !
+   endif
    !
    end subroutine
 

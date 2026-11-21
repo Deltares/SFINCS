@@ -62,6 +62,7 @@ module sfincs_lib
    use sfincs_urban_drainage
    use sfincs_meteo
    use sfincs_infiltration
+   use sfincs_initial_conditions, only: set_restart_infiltration
    use sfincs_data
    use sfincs_date
    use sfincs_output
@@ -141,8 +142,8 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.5.0 Hautacam Release 2026.02"
-   build_date     = "$Date: 2026-10-30"
+   build_revision = "$Rev: v2.5.0+ Hautacam branch:375-error-sweep"
+   build_date     = "$Date: 2026-11-04"
    !
    call write_startup_log()
    !
@@ -179,6 +180,8 @@ module sfincs_lib
    call read_rug_file()         ! Read runup gauge file
    !
    call initialize_infiltration()     ! Reads qinf / scs / gai / horton / bucket infiltration inputs
+   !
+   call set_restart_infiltration()    ! Infiltration state from rstfile (read earlier in initialize_domain)
    !
    call initialize_discharges()       ! Reads dis and src file (river point discharges)
    !
