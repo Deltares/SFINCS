@@ -125,9 +125,8 @@ sfincs_LDADD = $(builddir)/libsfincs.la
 sfincs_LDFLAGS = -static
 sfincs_DEPENDENCIES = libsfincs.la
 
-# make sure the mod file is there
-sfincs.f90: sfincs_lib.mod
-sfincs_lib.mod: libsfincs.la
+# make sure the mod files of the library are there before sfincs.f90 is compiled
+sfincs.$(OBJEXT): libsfincs.la
 
 
 AM_FCFLAGS=${NETCDF_CFLAGS} ${NETCDF_FORTRAN_CFLAGS} -I$(top_builddir)/third_party_open/netcdf/netcdf-fortran-4.6.1/fortran
