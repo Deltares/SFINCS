@@ -30,6 +30,10 @@
 #   The user can override the default choice by setting the corresponding
 #   environment variable (e.g. OPENACC_CFLAGS).
 #
+#   OpenACC is opt-in: the flag is only searched for when configure is run
+#   with --enable-openacc. Without it (or with --disable-openacc) the output
+#   variable stays empty.
+#
 #   ACTION-IF-FOUND is a list of shell commands to run if an OpenACC flag is
 #   found, and ACTION-IF-NOT-FOUND is a list of commands to run it if it is
 #   not found. If ACTION-IF-FOUND is not specified, the default action will
@@ -142,8 +146,8 @@ AC_DEFUN([AX_OPENACC],
 [
   OPENACC_[]_AC_LANG_PREFIX[]FLAGS=
   AC_ARG_ENABLE([openacc],
-    [AS_HELP_STRING([--disable-openacc], [do not use OpenACC])])
-  if test "$enable_openacc" != no; then
+    [AS_HELP_STRING([--enable-openacc], [compile and link with OpenACC @<:@default=no@:>@])])
+  if test "x$enable_openacc" = xyes; then
     AC_CACHE_CHECK([for $[]_AC_CC[] option to support OpenACC],
       [ac_cv_prog_[]_AC_LANG_ABBREV[]_openacc],
       [ac_cv_prog_[]_AC_LANG_ABBREV[]_openacc='unsupported'
