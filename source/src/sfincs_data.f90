@@ -136,6 +136,7 @@ module sfincs_data
       real*4 structure_relax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 wiggle_facmin
       real*4 uvlim
       real*4 uvmax
       !real*4 normbnd
@@ -293,6 +294,7 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_mask
       logical       :: wiggle_suppression
+      logical       :: wiggle_detect
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
       logical       :: h73table
@@ -639,6 +641,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
+      real*4, dimension(:),   allocatable :: z_wetfrac ! wet-area fraction of the cell (subgrid), for the wiggle suppression
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
@@ -1066,6 +1069,9 @@ module sfincs_data
     if(allocated(vmax)) deallocate(vmax)
     if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
+    if(allocated(zs0)) deallocate(zs0)
+    if(allocated(zsderv)) deallocate(zsderv)
+    if(allocated(z_wetfrac)) deallocate(z_wetfrac)
     !if(allocated(z_volume)) deallocate(z_volume) > this one seems to cause an error, not sure why
     if(allocated(q)) deallocate(q)
     if(allocated(q0)) deallocate(q0)
