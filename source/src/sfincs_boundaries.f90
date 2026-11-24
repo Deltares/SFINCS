@@ -554,9 +554,9 @@ contains
    ! For tide and surge, these are the indices and weights of the points in the bnd file
    !
    integer nm, nb, ib1, ib2, ib, ic, ibnd, ibdr
-   integer nmi, nmb, ip
+   integer ikcuv2, nr_multiple
    !
-   integer, dimension(:), allocatable :: ib_of_nm
+   integer, dimension(:), allocatable :: nr_open_faces
    !
    real x, y, dst1, dst2, dst
    !
@@ -584,50 +584,54 @@ contains
       allocate(nmi_gbp(ngbnd))
       nmi_gbp = 0
       !
-      ! Temporary map from cell index to grid boundary index
+      ! Number of open (kcuv=6) faces of each grid boundary point
       !
-      allocate(ib_of_nm(np))
-      ib_of_nm = 0
+      allocate(nr_open_faces(ngbnd))
+      nr_open_faces = 0
       !
-      do ib = 1, ngbnd
+      ! The internal point of a Neumann cell is the regular cell across its kcuv=6 face. The
+      ! kcuv=2/6 faces, with their boundary and internal cells, were already listed in
+      ! sfincs_domain. Using the faces (rather than neighbours at the same refinement level)
+      ! also finds internal points across refinement transitions. Faces that were closed by
+      ! thin dams (kcuv=0) after the list was made do not count.
+      !
+      do ikcuv2 = 1, nkcuv2
          !
-         ib_of_nm(nmindbnd(ib)) = ib
-         !
-      enddo
-      !
-      ! The internal point of a Neumann cell is the regular cell across its first kcuv=6 face.
-      ! Using the faces (rather than neighbours at the same refinement level) also finds
-      ! internal points across refinement transitions. Faces closed by thin dams (kcuv=0) do not count.
-      ! The water level gradient at kcuv=6 faces is set to zero in sfincs_momentum, so when
-      ! a cell has more than one kcuv=6 face, the choice only affects the output water level.
-      !
-      do ip = 1, npuv
-         !
-         if (kcuv(ip) == 6) then
+         if (kcuv(index_kcuv2(ikcuv2)) == 6) then
             !
-            if (kcs(uv_index_z_nm(ip)) == 6) then
-               !
-               nmb = uv_index_z_nm(ip)
-               nmi = uv_index_z_nmu(ip)
-               !
-            else
-               !
-               nmb = uv_index_z_nmu(ip)
-               nmi = uv_index_z_nm(ip)
-               !
-            endif
+            ib = ibkcuv2(ikcuv2)
             !
-            ib = ib_of_nm(nmb)
+            nr_open_faces(ib) = nr_open_faces(ib) + 1
             !
             if (nmi_gbp(ib) == 0) then
                !
-               nmi_gbp(ib) = nmi
+               nmi_gbp(ib) = nmikcuv2(ikcuv2)
                !
             endif
             !
          endif
          !
       enddo
+      !
+      ! A Neumann cell can only hold one water level, which is copied from one internal point
+      ! (the first one found). With more than one open face (staircase boundary, or a coarse
+      ! Neumann cell next to two fine regular cells), the water level gradient across the
+      ! other faces is not zero. This is not supported, so give a warning.
+      !
+      nr_multiple = count(nr_open_faces > 1)
+      !
+      if (nr_multiple > 0) then
+         !
+         write(logstr,'(a,i0,a)')'Warning : ', nr_multiple, &
+            ' Neumann cells (msk=6) have more than one open face to a regular cell (msk=1)!'
+         call write_log(logstr, 0)
+         write(logstr,'(a)')'          A zero water level gradient is only imposed at one of these faces. ' // &
+            'Use Neumann cells along straight boundaries, not coarser than the cells next to them.'
+         call write_log(logstr, 0)
+         !
+      endif
+      !
+      deallocate(nr_open_faces)
       !
       ! A Neumann cell without an open (kcuv=6) face to a regular cell does not interact
       ! with the model. Make it inactive.
@@ -647,8 +651,6 @@ contains
          endif
          !
       enddo
-      !
-      deallocate(ib_of_nm)
       !
    endif
    !
@@ -1061,7 +1063,7 @@ contains
          !
          if (kcs(nmb) == 6) then
             !
-            zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. Technically there can be more than one internal point. This always uses the last point that was found.
+            zs(nmb) = zs(nmi_gbp(ib)) ! nm index of internal point. A cell with more than one internal point uses the first one found (see find_boundary_indices).
             !
          endif
          !
