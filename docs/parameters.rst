@@ -619,7 +619,7 @@ Domain
 	  :required:		Only if 'inputformat = bin'
 	  :format:		bin	  
 	mskfile = sfincs.msk
-	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2) or outflow boundary cell msk=3).
+	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2), outflow boundary cell (msk=3), downstream river boundary cell (msk=5) or Neumann boundary cell (msk=6). Other positive values stop the model with an error.
 	  :units:		-
 	  :required:		yes	  
 	  :format:		bin or asc	  

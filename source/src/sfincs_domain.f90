@@ -240,6 +240,7 @@ contains
    integer ip, n, m, nm, nmu, num, iref, npu, npv, ndm, nmd, iq
    integer ndmu, nmdu, numu
    integer irefuv, npuvtotal, icuv
+   integer nbad, ibad
    logical ok
    !
    ! Temporary arrays
@@ -567,8 +568,33 @@ contains
          z_index_z_md2(ip)   = index_sfincs_in_quadtree(quadtree_md2(iq))
       endif
       !
-   enddo   
-   ! 
+   enddo
+   !
+   ! Check the mask values. Valid are 0 (inactive, already removed), 1 (regular), 2 (water level
+   ! boundary), 3 (outflow), 5 (downstream river) and 6 (Neumann). 4 is used internally for wave
+   ! maker cells. Other values would give active cells that are never updated.
+   !
+   nbad = 0
+   !
+   do ip = 1, np
+      !
+      if (kcs(ip) == 4 .or. kcs(ip) > 6) then
+         !
+         nbad = nbad + 1
+         ibad = kcs(ip)
+         !
+      endif
+      !
+   enddo
+   !
+   if (nbad > 0) then
+      !
+      write(logstr,'(a,i0,a,i0,a)')'Error ! Mask contains ', nbad, ' cells with an invalid value (e.g. ', ibad, &
+         '). Valid mask values are 0, 1, 2, 3, 5 and 6 !'
+      call stop_sfincs(trim(logstr), 1)
+      !
+   endif
+   !
    ! Loop through quadtree to count the number of u and v points
    !
    npu = 0
