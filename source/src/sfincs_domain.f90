@@ -137,8 +137,6 @@ contains
    !
    call set_advection_mask()
    !
-   call fill_h73_tables()
-   !
    end subroutine
 
 
@@ -1903,8 +1901,56 @@ contains
    integer :: nm
    integer :: nmu
    integer :: ikcuv2
+   integer :: nr_inactive
+   !
+   logical, dimension(:), allocatable :: linked
    !
    ! BOUNDARIES
+   !
+   ! Boundary cells (kcs = 2, 3, 5 or 6) that do not share a uv point with a regular cell
+   ! (kcs = 1), typically the corner cells of a boundary, never get a water level. Make them
+   ! inactive (kcs = 0), so that they are left out of the boundary arrays and the output.
+   !
+   allocate(linked(np))
+   !
+   linked = .false.
+   !
+   ! Loop over uv points and check if they are linked to a regular cell. If so, mark the boundary cell as linked.
+   !
+   do ip = 1, npuv
+      !
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      if (kcs(nm) == 1) linked(nmu) = .true.
+      if (kcs(nmu) == 1) linked(nm) = .true.
+      !
+   enddo
+   !
+   nr_inactive = 0
+   !
+   ! Loop over boundary cells and make inactive those that are not linked to a regular cell
+   !
+   do nm = 1, np
+      !
+      if ((kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) .and. .not. linked(nm)) then
+         !
+         kcs(nm)     = 0
+         nr_inactive = nr_inactive + 1
+         !
+      endif
+      !
+   enddo
+   !
+   deallocate(linked)
+   !
+   if (nr_inactive > 0) then
+      !
+      write(logstr,'(a,i0,a)')'Info    : ', nr_inactive, &
+         ' boundary cell(s) without a link to a regular cell made inactive (msk = 0)'
+      call write_log(logstr, 0)
+      !
+   endif
    !
    ! First count number of boundary cells
    !
