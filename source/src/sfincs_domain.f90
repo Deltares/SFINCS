@@ -137,8 +137,6 @@ contains
    !
    call set_advection_mask()
    !
-   call fill_h73_tables()
-   !
    end subroutine
 
 
