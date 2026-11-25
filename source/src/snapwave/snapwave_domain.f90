@@ -115,6 +115,7 @@ contains
    real*8,    dimension(:),     allocatable    :: theta360d0 ! wave angles,sine and cosine of wave angles
    real*8,    dimension(:,:),   allocatable    :: ds360d0
    real*8,    dimension(:,:,:), allocatable    :: w360d0
+   real*4,    dimension(:),     allocatable    :: dhdx_dummy, dhdy_dummy
    integer*4                                   :: idummy
    character*2                                 :: ext
    logical                                     :: generate_upw, exists
@@ -225,6 +226,9 @@ contains
    allocate(F(no_nodes))
    allocate(Fx(no_nodes))
    allocate(Fy(no_nodes))
+   allocate(Sxx_rs(no_nodes))
+   allocate(Syy_rs(no_nodes))
+   allocate(Sxy_rs(no_nodes))
    allocate(u10(no_nodes))
    allocate(u10dir(no_nodes))   
    allocate(Df(no_nodes))
@@ -371,7 +375,19 @@ contains
       write(145)dhdy
       close(145)
       !
-   endif  
+   elseif (wave_force_radstress) then
+      !
+      ! The upwind file does not store the surrounding points kp, but the
+      ! radiation-stress force needs them for its gradients (snapwave_node_gradient).
+      ! Rebuild kp here; the bed slopes read from the upwind file are kept.
+      !
+      allocate(dhdx_dummy(no_nodes), dhdy_dummy(no_nodes))
+      !
+      call fm_surrounding_points(x, y, zb, no_nodes, sferic, face_nodes, no_faces, kp, np, dhdx_dummy, dhdy_dummy)
+      !
+      deallocate(dhdx_dummy, dhdy_dummy)
+      !
+   endif
    !
    theta360 = theta360*pi/180
    dtheta   = dtheta*pi/180   
@@ -2338,5 +2354,82 @@ contains
    endif
    !
    end subroutine
-   
+
+
+   subroutine snapwave_node_gradient(s, dsdx, dsdy)
+   !
+   ! Spatial gradient of a generic scalar nodal field s, computed with the same
+   ! surrounding-point (kp) least-squares stencil that fm_surrounding_points uses
+   ! to build dhdx/dhdy. Unlike fm_surrounding_points (which runs once at init on
+   ! the static bed and flips sign to turn bed slope into depth slope), this can
+   ! be called every force update and returns the plain gradient of s.
+   !
+   ! Nodes with an incomplete stencil (boundary / non-inner) get a zero gradient.
+   !
+   use snapwave_data, only: no_nodes, kp, inner, x, y, sferic
+   !
+   implicit none
+   !
+   real*4, dimension(no_nodes), intent(in)  :: s          ! scalar field at nodes
+   real*4, dimension(no_nodes), intent(out) :: dsdx, dsdy ! gradients of s
+   !
+   integer :: kn, j, kj
+   real*8  :: sxz, syz, sx2, sy2
+   real*8  :: dxp, dyp
+   real*8  :: pi
+   real*8  :: circumf_eq = 40075017.d0, circumf_pole = 40007863.d0
+   !
+   pi = 4.d0 * atan(1.d0)
+   !
+   dsdx = 0.0
+   dsdy = 0.0
+   !
+   ! Least-squares plane fit over the surrounding nodes kp(:,kn).
+   !
+   do kn = 1, no_nodes
+      !
+      if (.not. inner(kn)) cycle
+      !
+      if (sum(kp(:,kn)) <= 0) cycle
+      !
+      sxz = 0.d0
+      syz = 0.d0
+      sx2 = 0.d0
+      sy2 = 0.d0
+      !
+      do j = 1, size(kp, 1)
+         !
+         kj = kp(j, kn)
+         !
+         if (kj <= 0) cycle
+         !
+         if (sferic==0) then
+            !
+            sxz = sxz + (x(kj) - x(kn)) * (s(kj) - s(kn))
+            syz = syz + (y(kj) - y(kn)) * (s(kj) - s(kn))
+            sx2 = sx2 + (x(kj) - x(kn))**2
+            sy2 = sy2 + (y(kj) - y(kn))**2
+            !
+         else
+            !
+            dxp = (x(kj) - x(kn)) * circumf_eq / 360.d0 * cos(y(kn) * 180.d0 / pi)
+            dyp = (y(kj) - y(kn)) * circumf_pole / 360.d0
+            sxz = sxz + dxp * (s(kj) - s(kn))
+            syz = syz + dyp * (s(kj) - s(kn))
+            sx2 = sx2 + dxp**2
+            sy2 = sy2 + dyp**2
+            !
+         endif
+         !
+      enddo
+      !
+      ! Plain gradient of s (no bed-to-depth sign flip, unlike fm_surrounding_points)
+      !
+      dsdx(kn) = real(sxz / max(sx2, 1.0d-10), 4)
+      dsdy(kn) = real(syz / max(sy2, 1.0d-10), 4)
+      !
+   enddo
+   !
+   end subroutine
+
 end module

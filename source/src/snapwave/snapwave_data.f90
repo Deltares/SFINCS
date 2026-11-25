@@ -310,6 +310,11 @@ module snapwave_data
    logical                                   :: iterative_srcig     ! IG source/sink term calculated in the iterative loop (true, bit slower), or based on previous timestep (false)
    real*4                                    :: crit
    integer                                   :: nr_sweeps
+   logical                                   :: wave_force_radstress ! switch: wave force from radiation-stress gradients (.true.) or dissipation form (.false., default)
+   character*256                             :: wave_force_str       ! raw 'snapwave_wave_force' keyword string
+   real*4,  dimension(:),       allocatable    :: Sxx_rs            ! radiation-stress tensor component Sxx (radstress force)
+   real*4,  dimension(:),       allocatable    :: Syy_rs            ! radiation-stress tensor component Syy (radstress force)
+   real*4,  dimension(:),       allocatable    :: Sxy_rs            ! radiation-stress tensor component Sxy (radstress force)
    !
    logical                                   :: restart
    logical                                   :: coupled_to_sfincs
