@@ -39,8 +39,7 @@ module quadtree
    !
    !   find_quadtree_cell_by_index(n, m, iref)
    !     Find the index of the quadtree cell with grid indices (n, m) at level iref.
-   !     Called from: find_uv_points_intersected_by_polyline (quadtree),
-   !       find_sfincs_cell (sfincs_boundaries)
+   !     Called from: find_uv_points_intersected_by_polyline (quadtree)
    !
    !   find_uv_points_intersected_by_polyline(uv_indices, vertices, nint, xpol, ypol, npol)
    !     Find all uv points intersected by a polyline.
@@ -973,8 +972,7 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
       ! Returns:
       !   indx : index of the quadtree cell (0 if (n, m) is outside the grid or has no cell at this level)
       !
-      ! Called from: find_uv_points_intersected_by_polyline (quadtree),
-      !   find_sfincs_cell (sfincs_boundaries)
+      ! Called from: find_uv_points_intersected_by_polyline (quadtree)
       !
       implicit none
       !
