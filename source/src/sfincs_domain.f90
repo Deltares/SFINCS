@@ -1891,6 +1891,8 @@ contains
    !
    linked = .false.
    !
+   ! Loop over uv points and check if they are linked to a regular cell. If so, mark the boundary cell as linked.
+   !
    do ip = 1, npuv
       !
       nm  = uv_index_z_nm(ip)
@@ -1902,6 +1904,8 @@ contains
    enddo
    !
    nr_inactive = 0
+   !
+   ! Loop over boundary cells and make inactive those that are not linked to a regular cell
    !
    do nm = 1, np
       !
