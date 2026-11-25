@@ -225,7 +225,7 @@ More parameters for model input (only for advanced users)
 	  :max:			True
 	  :limitation:	Only for subgrid mode
 	cbrt
-	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation without the power function that overestimates h^(1/3) by at most 0.13 %.
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation without the power function that overestimates h^(1/3) by at most 0.13 %. In the testbed, 'fast' reduced the run time by about 10-20 %.
 	  :units:		-
 	  :default:		exact
 	  :min:			exact
@@ -294,7 +294,7 @@ More parameters for model input (only for advanced users)
 	  :min:			-
 	  :max:			-
 	h73table - deprecated after SFINCS v2.5.0, the keyword is ignored, replaced by 'cbrt'
-	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation. The lookup table has been removed; a model that sets h73table gives a warning, and the keyword has no effect. Use cbrt = fast for a fast approximation instead.
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation. The lookup table has been removed; a model that sets h73table gives a warning, and the keyword has no effect. Use cbrt = fast for a fast approximation instead (about 10-20 % shorter run time in the testbed).
 	  :units:		logical
 	  :default:		0
 	  :min:			0
