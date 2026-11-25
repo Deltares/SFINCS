@@ -1569,9 +1569,10 @@ contains
             ! Water level and depth only at points that are not completely dry. Unlike the map
             ! output, huthresh is not used here, so that shallow water (e.g. from rainfall)
             ! still shows up in the time series. The small tolerance avoids flickering between
-            ! fill values and zb due to round-off after a cell has drained.
+            ! fill values and zb due to round-off after a cell has drained. Inactive cells
+            ! (kcs = 0) are never updated, so they get no water level either.
             !
-            if (hloc > 0.0001) then
+            if (hloc > 0.0001 .and. kcs(nm) > 0) then
                !
                zobs(iobs) = zs(nm)
                hobs(iobs) = hloc

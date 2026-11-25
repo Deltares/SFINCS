@@ -179,7 +179,7 @@ contains
    !
    ! For some reason, it is necessary to set num_gangs here! Without, the program launches only 1 gang, and everything becomes VERY slow!
    !
-   !$acc parallel, present( kcs, kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
+   !$acc parallel, present( kcuv, kfuv, zs, q, q0, uv, uv0, zsderv, z_wetfrac, &
    !$acc                    uv_flags_iref, uv_flags_type, uv_flags_dir, mask_adv, &
    !$acc                    subgrid_uv_zmin, subgrid_uv_zmax, subgrid_uv_havg, subgrid_uv_nrep, subgrid_uv_pwet, &
    !$acc                    subgrid_uv_havg_zmax, subgrid_uv_nrep_zmax, subgrid_uv_fnfit, subgrid_uv_navg_w, &
@@ -209,24 +209,6 @@ contains
          iok  = .false.
          !
          zsu = max(zs(nm), zs(nmu)) ! water level at u point
-         !
-         if (kcuv(ip) == 6) then
-            !
-            ! Neumann (msk=6) boundary face: use the water level of the regular cell. The
-            ! Neumann cell holds the level of only one of its neighbours, which may be another
-            ! cell when it has more than one kcuv=6 face (corners, refinement transitions).
-            !
-            if (kcs(nm) == 6) then
-               !
-               zsu = zs(nmu)
-               !
-            else
-               !
-               zsu = zs(nm)
-               !
-            endif
-            !
-         endif
          !
          if (subgrid) then
             !
@@ -455,15 +437,9 @@ contains
             !
             ! Apply slope limiter to dzdx (turned off by default)
             !
-            if (kcuv(ip) == 6) then
+            if (slopelim < 9999.0) then
                !
-               ! Neumann (msk=6) boundary face: zero water level gradient across the boundary
-               !
-               dzdx = 0.0
-               !
-            elseif (slopelim < 9999.0) then
-               !
-               dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim)
+               dzdx = min(max((zs(nmu) - zs(nm)) * dxuvinv, -slopelim), slopelim) 
                !
             else
                !

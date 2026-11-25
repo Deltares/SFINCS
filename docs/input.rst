@@ -216,6 +216,7 @@ Cells with a value of 1 are normal active cells, where the water level is calcul
 At downstream river boundary cells (msk=5), the water level is taken from an internal point in the model, corrected for the river slope; these cells require a 'bdrfile'.
 At Neumann boundary cells (msk=6), a zero water level gradient is imposed: the water level is taken from the neighbouring active cell (msk=1), and no input file is needed.
 A Neumann cell without an open face to an active cell (msk=1) is made inactive, with a warning.
+Neumann cells are meant for straight boundaries, where each cell has one open face to an active cell: with more than one (a staircase boundary, or a coarse Neumann cell next to two finer active cells in a quadtree grid), the zero gradient is only imposed at one of the faces and SFINCS gives a warning.
 Any other positive mask value (including 4, which SFINCS uses internally for wave maker cells) stops the model with an error.
 The file can be made with the HydroMT-SFINCS function 'mask.create_active' to define what cells should be active.
 And afterwards with the function 'mask.create_boundary' to define of the active cells which ones are boundary or outflow cells.
