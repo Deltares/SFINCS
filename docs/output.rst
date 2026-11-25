@@ -201,7 +201,7 @@ Fill values: dry cells and undefined quantities
 All variables in sfincs_map.nc and sfincs_his.nc have a fill value of -99999.0, set as the '_FillValue' attribute, so that most tools (e.g. xarray, QGIS, Matlab ncread with fill value handling) read these as NaN.
 From **SFINCS v2.5.0 (Hautacam release) onwards**, the map, maximum and his output use one rule: the fill value is written where a cell or observation point is dry, where there are no waves, or where a quantity is undefined.
 Cells that are inactive (msk = 0) or fall outside the quadtree/regular output grid are fill value as well.
-Water level, outflow and river boundary cells (msk = 2, 3 or 5) that do not share a cell face with an active interior cell, typically the corner cells of a boundary, do not take part in the computation: their water level and depth (zs, h, zsmax, hmax, zvolmax, point_zs, point_h) are always fill value.
+Boundary cells (msk = 2, 3, 5 or 6) that do not share a cell face with a regular cell (msk = 1), typically the corner cells of a boundary, are made inactive at the start of the simulation: they get msk = 0 in the output and fill values in the map and his output.
 
 A cell or observation point is considered dry when its water depth is at or below 'huthresh' (default 0.05 m), with the water depth computed as zs - zb (regular) or zs - subgrid_z_zmin (subgrid).
 The exception is the water level and depth at observation points (point_zs, point_h): these are only set to fill value when the point is completely dry (water depth at or below 0.1 mm), so that shallow water, for example from rainfall, still shows up in the time series.

@@ -1877,10 +1877,52 @@ contains
    integer :: nm
    integer :: nmu
    integer :: ikcuv2
+   integer :: nr_inactive
    !
    logical, dimension(:), allocatable :: linked
    !
    ! BOUNDARIES
+   !
+   ! Boundary cells (kcs = 2, 3, 5 or 6) that do not share a uv point with a regular cell
+   ! (kcs = 1), typically the corner cells of a boundary, never get a water level. Make them
+   ! inactive (kcs = 0), so that they are left out of the boundary arrays and the output.
+   !
+   allocate(linked(np))
+   !
+   linked = .false.
+   !
+   do ip = 1, npuv
+      !
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      if (kcs(nm) == 1) linked(nmu) = .true.
+      if (kcs(nmu) == 1) linked(nm) = .true.
+      !
+   enddo
+   !
+   nr_inactive = 0
+   !
+   do nm = 1, np
+      !
+      if ((kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) .and. .not. linked(nm)) then
+         !
+         kcs(nm)     = 0
+         nr_inactive = nr_inactive + 1
+         !
+      endif
+      !
+   enddo
+   !
+   deallocate(linked)
+   !
+   if (nr_inactive > 0) then
+      !
+      write(logstr,'(a,i0,a)')'Info    : ', nr_inactive, &
+         ' boundary cell(s) without a link to a regular cell made inactive (msk = 0)'
+      call write_log(logstr, 0)
+      !
+   endif
    !
    ! First count number of boundary cells
    !
@@ -2060,62 +2102,6 @@ contains
          !
       endif
    enddo
-   !
-   ! List the water level, outflow and river boundary cells (kcs=2/3/5) without a kcuv=2 link
-   ! to an interior cell (e.g. corner cells). Their water level is never updated, so they are
-   ! written as fill values in the map and his output.
-   !
-   allocate(linked(ngbnd))
-   !
-   linked = .false.
-   !
-   do ikcuv2 = 1, nkcuv2
-      !
-      linked(ibkcuv2(ikcuv2)) = .true.
-      !
-   enddo
-   !
-   nbnd_nolink = 0
-   !
-   do ib = 1, ngbnd
-      !
-      nm = nmindbnd(ib)
-      !
-      if (.not. linked(ib) .and. (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5)) then
-         !
-         nbnd_nolink = nbnd_nolink + 1
-         !
-      endif
-      !
-   enddo
-   !
-   if (allocated(nmbnd_nolink)) deallocate(nmbnd_nolink)
-   allocate(nmbnd_nolink(nbnd_nolink))
-   !
-   nbnd_nolink = 0
-   !
-   do ib = 1, ngbnd
-      !
-      nm = nmindbnd(ib)
-      !
-      if (.not. linked(ib) .and. (kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5)) then
-         !
-         nbnd_nolink               = nbnd_nolink + 1
-         nmbnd_nolink(nbnd_nolink) = nm
-         !
-      endif
-      !
-   enddo
-   !
-   deallocate(linked)
-   !
-   if (nbnd_nolink > 0) then
-      !
-      write(logstr,'(a,i0,a)')'Info    : ', nbnd_nolink, &
-         ' boundary cell(s) without a link to an interior cell, written as fill values in the output'
-      call write_log(logstr, 0)
-      !
-   endif
    !
    end subroutine
 

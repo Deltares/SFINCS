@@ -370,11 +370,9 @@ contains
    subroutine write_cell_var_wet(ncid, varid, source, zref, nt, check_wet)
       !
       ! Wet-cell filtered writer for a cell variable (e.g. zs / zsmax).
-      ! On quadtree: skips kcs<=0 cells. On both grids: when check_wet (default
+      ! Skips kcs<=0 cells. When check_wet (default
       ! .true.), only writes cells where (source-zref) > huthresh, i.e. the cell
       ! is wet. To write the depth (source-zref) itself, use write_cell_var_depth.
-      ! Boundary cells without a link to an interior cell (nmbnd_nolink) are always
-      ! written as fill values, as their water level is never updated.
       !
       ! Input:
       !   ncid      : netCDF file id
@@ -397,7 +395,7 @@ contains
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
       logical :: filt_wet
-      integer :: nm, nmq, ib
+      integer :: nm, nmq
       !
       filt_wet = .true.; if (present(check_wet)) filt_wet = check_wet
       !
@@ -414,34 +412,16 @@ contains
                endif
             endif
          enddo
-         !
-         ! Boundary cells without a link to an interior cell get no water level
-         !
-         do ib = 1, nbnd_nolink
-            !
-            buf_q(index_quadtree_in_sfincs(nmbnd_nolink(ib))) = FILL_VALUE
-            !
-         enddo
-         !
          NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
       else
          allocate(buf_r(mmax, nmax))
          buf_r = FILL_VALUE
          do nm = 1, np
+            if (kcs(nm) <= 0) cycle
             if (.not. filt_wet .or. (source(nm) - zref(nm)) > huthresh) then
                buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm)
             endif
          enddo
-         !
-         ! Boundary cells without a link to an interior cell get no water level
-         !
-         do ib = 1, nbnd_nolink
-            !
-            nm                                       = nmbnd_nolink(ib)
-            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = FILL_VALUE
-            !
-         enddo
-         !
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
       endif
    end subroutine write_cell_var_wet
@@ -452,8 +432,7 @@ contains
       ! Writes depth = water_level - bed_level, only in cells that are wet, i.e.
       ! where that depth exceeds huthresh. When check_wet is .false. the depth
       ! test is skipped and the depth is written in every cell.
-      ! On quadtree: additionally skips kcs<=0 cells. Boundary cells without a link
-      ! to an interior cell (nmbnd_nolink) are always written as fill values.
+      ! Additionally skips kcs<=0 cells.
       !
       ! Input:
       !   ncid        : netCDF file id
@@ -475,7 +454,7 @@ contains
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
       logical :: filt_wet
-      integer :: nm, nmq, ib
+      integer :: nm, nmq
       real*4  :: depth
       !
       filt_wet = .true.; if (present(check_wet)) filt_wet = check_wet
@@ -494,35 +473,17 @@ contains
                endif
             endif
          enddo
-         !
-         ! Boundary cells without a link to an interior cell get no water depth
-         !
-         do ib = 1, nbnd_nolink
-            !
-            buf_q(index_quadtree_in_sfincs(nmbnd_nolink(ib))) = FILL_VALUE
-            !
-         enddo
-         !
          NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
       else
          allocate(buf_r(mmax, nmax))
          buf_r = FILL_VALUE
          do nm = 1, np
+            if (kcs(nm) <= 0) cycle
             depth = water_level(nm) - bed_level(nm)
             if (.not. filt_wet .or. depth > huthresh) then
                buf_r(z_index_z_m(nm), z_index_z_n(nm)) = depth
             endif
          enddo
-         !
-         ! Boundary cells without a link to an interior cell get no water depth
-         !
-         do ib = 1, nbnd_nolink
-            !
-            nm                                       = nmbnd_nolink(ib)
-            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = FILL_VALUE
-            !
-         enddo
-         !
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
       endif
    end subroutine write_cell_var_depth
