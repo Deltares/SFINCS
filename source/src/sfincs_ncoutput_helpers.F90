@@ -370,7 +370,7 @@ contains
    subroutine write_cell_var_wet(ncid, varid, source, zref, nt, check_wet)
       !
       ! Wet-cell filtered writer for a cell variable (e.g. zs / zsmax).
-      ! On quadtree: skips kcs<=0 cells. On both grids: when check_wet (default
+      ! Skips kcs<=0 cells. When check_wet (default
       ! .true.), only writes cells where (source-zref) > huthresh, i.e. the cell
       ! is wet. To write the depth (source-zref) itself, use write_cell_var_depth.
       !
@@ -417,6 +417,7 @@ contains
          allocate(buf_r(mmax, nmax))
          buf_r = FILL_VALUE
          do nm = 1, np
+            if (kcs(nm) <= 0) cycle
             if (.not. filt_wet .or. (source(nm) - zref(nm)) > huthresh) then
                buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm)
             endif
@@ -431,7 +432,7 @@ contains
       ! Writes depth = water_level - bed_level, only in cells that are wet, i.e.
       ! where that depth exceeds huthresh. When check_wet is .false. the depth
       ! test is skipped and the depth is written in every cell.
-      ! On quadtree: additionally skips kcs<=0 cells.
+      ! Additionally skips kcs<=0 cells.
       !
       ! Input:
       !   ncid        : netCDF file id
@@ -477,6 +478,7 @@ contains
          allocate(buf_r(mmax, nmax))
          buf_r = FILL_VALUE
          do nm = 1, np
+            if (kcs(nm) <= 0) cycle
             depth = water_level(nm) - bed_level(nm)
             if (.not. filt_wet .or. depth > huthresh) then
                buf_r(z_index_z_m(nm), z_index_z_n(nm)) = depth
