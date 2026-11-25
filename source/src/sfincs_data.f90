@@ -308,6 +308,7 @@ module sfincs_data
       integer*4 :: npuv
       integer*4 :: ncuv
       integer*4 :: nkcuv2
+      integer*4 :: nbnd_nolink ! number of boundary cells in nmbnd_nolink
       !
       ! Temp for reading ascii depfile in initialize_bathymetry().
       !
@@ -316,6 +317,7 @@ module sfincs_data
       ! Indices
       !
       integer*4,          dimension(:),   allocatable :: nmindbnd
+      integer*4,          dimension(:),   allocatable :: nmbnd_nolink ! kcs=2/3/5 cells without kcuv=2 link (fill value in output)
       integer*4,          dimension(:),   allocatable, target :: z_index_z_n
       integer*4,          dimension(:),   allocatable, target :: z_index_z_m
       integer*4,          dimension(:),   allocatable :: z_index_uv_md1
@@ -981,6 +983,7 @@ module sfincs_data
    ! memory cleanup
 !    if(allocated(indices)) deallocate(indices)
     if(allocated(nmindbnd)) deallocate(nmindbnd)
+    if(allocated(nmbnd_nolink)) deallocate(nmbnd_nolink)
 !    if(allocated(index_v_m)) deallocate(index_v_m)
 !    if(allocated(index_v_n)) deallocate(index_v_n)
 !    if(allocated(index_v_nm)) deallocate(index_v_nm)

@@ -373,6 +373,8 @@ contains
       ! On quadtree: skips kcs<=0 cells. On both grids: when check_wet (default
       ! .true.), only writes cells where (source-zref) > huthresh, i.e. the cell
       ! is wet. To write the depth (source-zref) itself, use write_cell_var_depth.
+      ! Boundary cells without a link to an interior cell (nmbnd_nolink) are always
+      ! written as fill values, as their water level is never updated.
       !
       ! Input:
       !   ncid      : netCDF file id
@@ -395,7 +397,7 @@ contains
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
       logical :: filt_wet
-      integer :: nm, nmq
+      integer :: nm, nmq, ib
       !
       filt_wet = .true.; if (present(check_wet)) filt_wet = check_wet
       !
@@ -412,6 +414,15 @@ contains
                endif
             endif
          enddo
+         !
+         ! Boundary cells without a link to an interior cell get no water level
+         !
+         do ib = 1, nbnd_nolink
+            !
+            buf_q(index_quadtree_in_sfincs(nmbnd_nolink(ib))) = FILL_VALUE
+            !
+         enddo
+         !
          NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
       else
          allocate(buf_r(mmax, nmax))
@@ -421,6 +432,16 @@ contains
                buf_r(z_index_z_m(nm), z_index_z_n(nm)) = source(nm)
             endif
          enddo
+         !
+         ! Boundary cells without a link to an interior cell get no water level
+         !
+         do ib = 1, nbnd_nolink
+            !
+            nm                                       = nmbnd_nolink(ib)
+            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = FILL_VALUE
+            !
+         enddo
+         !
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
       endif
    end subroutine write_cell_var_wet
@@ -431,7 +452,8 @@ contains
       ! Writes depth = water_level - bed_level, only in cells that are wet, i.e.
       ! where that depth exceeds huthresh. When check_wet is .false. the depth
       ! test is skipped and the depth is written in every cell.
-      ! On quadtree: additionally skips kcs<=0 cells.
+      ! On quadtree: additionally skips kcs<=0 cells. Boundary cells without a link
+      ! to an interior cell (nmbnd_nolink) are always written as fill values.
       !
       ! Input:
       !   ncid        : netCDF file id
@@ -453,7 +475,7 @@ contains
       !
       real*4,  allocatable :: buf_q(:), buf_r(:,:)
       logical :: filt_wet
-      integer :: nm, nmq
+      integer :: nm, nmq, ib
       real*4  :: depth
       !
       filt_wet = .true.; if (present(check_wet)) filt_wet = check_wet
@@ -472,6 +494,15 @@ contains
                endif
             endif
          enddo
+         !
+         ! Boundary cells without a link to an interior cell get no water depth
+         !
+         do ib = 1, nbnd_nolink
+            !
+            buf_q(index_quadtree_in_sfincs(nmbnd_nolink(ib))) = FILL_VALUE
+            !
+         enddo
+         !
          NF90(nf90_put_var(ncid, varid, buf_q, (/1, nt/)))
       else
          allocate(buf_r(mmax, nmax))
@@ -482,6 +513,16 @@ contains
                buf_r(z_index_z_m(nm), z_index_z_n(nm)) = depth
             endif
          enddo
+         !
+         ! Boundary cells without a link to an interior cell get no water depth
+         !
+         do ib = 1, nbnd_nolink
+            !
+            nm                                       = nmbnd_nolink(ib)
+            buf_r(z_index_z_m(nm), z_index_z_n(nm)) = FILL_VALUE
+            !
+         enddo
+         !
          NF90(nf90_put_var(ncid, varid, buf_r, (/1, 1, nt/)))
       endif
    end subroutine write_cell_var_depth

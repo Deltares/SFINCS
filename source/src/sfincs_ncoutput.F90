@@ -1569,9 +1569,10 @@ contains
             ! Water level and depth only at points that are not completely dry. Unlike the map
             ! output, huthresh is not used here, so that shallow water (e.g. from rainfall)
             ! still shows up in the time series. The small tolerance avoids flickering between
-            ! fill values and zb due to round-off after a cell has drained.
+            ! fill values and zb due to round-off after a cell has drained. Boundary cells
+            ! without a link to an interior cell get no water level.
             !
-            if (hloc > 0.0001) then
+            if (hloc > 0.0001 .and. .not. any(nmbnd_nolink == nm)) then
                !
                zobs(iobs) = zs(nm)
                hobs(iobs) = hloc
@@ -1787,6 +1788,11 @@ contains
             zvolmax_out(nm) = zvolmax(nm)
          endif
       enddo
+      !
+      ! Boundary cells without a link to an interior cell get no value
+      !
+      zvolmax_out(nmbnd_nolink) = FILL_VALUE
+      !
       call write_cell_var(map_file%ncid, map_file%zvolmax_varid, zvolmax_out, ntmaxout, check_kcs=.true.)
       deallocate(zvolmax_out)
    endif
@@ -1807,6 +1813,10 @@ contains
                hmax_out(nm) = hmean(nm)
             endif
          enddo
+         !
+         ! Boundary cells without a link to an interior cell get no water depth
+         !
+         hmax_out(nmbnd_nolink) = FILL_VALUE
          !
          call write_cell_var(map_file%ncid, map_file%hmax_varid, hmax_out, ntmaxout, check_kcs=.true.)
          !
