@@ -34,8 +34,9 @@ If this PR adds model functionality:
 - [ ] If a new type of input is needed, a feature request has been opened in the [HydroMT-SFINCS repository](https://github.com/Deltares/hydromt_sfincs/issues) <!-- link the issue here -->
 
 ### Self Review
-- [ ] I have reviewed my own changes.
 - [ ] Fortran changes follow the [coding style](https://github.com/Deltares/SFINCS/blob/main/source/CODING_STYLE.md).
+- [ ] I have checked the changes against the [review checklist](https://github.com/Deltares/SFINCS/blob/main/source/CODING_REVIEW.md).
+- [ ] I have reviewed my own changes.
 
 ## Additional Notes
 <!-- Anything reviewers should know -->
