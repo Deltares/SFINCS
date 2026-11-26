@@ -469,6 +469,13 @@ contains
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
+   integer, dimension(:), allocatable         :: neu_start              ! first entry in neu_list for each inner node (last entry: neu_start(k + 1) - 1)
+   integer, dimension(:), allocatable         :: neu_list               ! Neumann nodes, grouped per inner node they are connected to
+   integer, dimension(:), allocatable         :: neu_next               ! next free entry in neu_list per inner node (only used to fill neu_list)
+   integer                                    :: ineu                   ! counter over neu_list
+   logical                                    :: selfnode               ! node has Neumann nodes connected to it
+   real*4, dimension(ntheta)                  :: wself                  ! upwind weight of the node's own Neumann nodes per direction
+   real*4, dimension(ntheta)                  :: eeself, eeself_ig      ! upwind energy from the node's own Neumann nodes per direction
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:,:), allocatable        :: eeold_ig            ! IG wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
@@ -575,6 +582,43 @@ contains
    allocate(diff(no_nodes)); diff=0.0
    allocate(ra(no_nodes)); ra=0.0
    allocate(srcig_local(ntheta,no_nodes)); srcig_local = 0.0
+   !
+   ! Inverse of neumannconnected: for each inner node, the Neumann nodes connected to it
+   ! (entries neu_start(k) to neu_start(k + 1) - 1 of neu_list). Used to update the Neumann
+   ! nodes directly after their inner node in each sweep.
+   !
+   allocate(neu_start(no_nodes + 1)); neu_start = 0
+   allocate(neu_next(no_nodes))
+   !
+   do k = 1, no_nodes
+      !
+      if (neumannconnected(k) > 0) neu_start(neumannconnected(k) + 1) = neu_start(neumannconnected(k) + 1) + 1
+      !
+   enddo
+   !
+   neu_start(1) = 1
+   !
+   do k = 1, no_nodes
+      !
+      neu_start(k + 1) = neu_start(k + 1) + neu_start(k)
+      !
+   enddo
+   !
+   allocate(neu_list(max(neu_start(no_nodes + 1) - 1, 1))); neu_list = 0
+   neu_next = neu_start(1:no_nodes)
+   !
+   do k = 1, no_nodes
+      !
+      if (neumannconnected(k) > 0) then
+         !
+         neu_list(neu_next(neumannconnected(k))) = k
+         neu_next(neumannconnected(k))           = neu_next(neumannconnected(k)) + 1
+         !
+      endif
+      !
+   enddo
+   !
+   deallocate(neu_next)
    !
    do itheta = 1, ntheta
       sinth(itheta) = sin(theta(itheta))
@@ -863,6 +907,47 @@ contains
             !
          enddo
          !
+         ! Upwind points that are Neumann nodes connected to this node itself. They hold a copy
+         ! of ee(:, k), so treating them explicitly turns the update into a slow fixed-point
+         ! iteration of the node on itself (about 150 iterations for waves entering through a
+         ! Neumann edge). Their weights (wself) and energy (eeself, eeself_ig) are split off
+         ! here, and treated implicitly in steps 4 and 7.
+         !
+         selfnode = neu_start(k + 1) > neu_start(k)
+         !
+         if (selfnode) then
+            !
+            do itheta = 1, ntheta
+               !
+               k1 = prev(1, itheta, k)
+               k2 = prev(2, itheta, k)
+               !
+               wself(itheta)     = 0.0
+               eeself(itheta)    = 0.0
+               eeself_ig(itheta) = 0.0
+               !
+               if (neumannconnected(k1) == k) then
+                  !
+                  wself(itheta)  = wself(itheta) + w(1, itheta, k)
+                  eeself(itheta) = eeself(itheta) + w(1, itheta, k) * ee(itheta, k1)
+                  !
+                  if (igwaves) eeself_ig(itheta) = eeself_ig(itheta) + w(1, itheta, k) * ee_ig(itheta, k1)
+                  !
+               endif
+               !
+               if (neumannconnected(k2) == k) then
+                  !
+                  wself(itheta)  = wself(itheta) + w(2, itheta, k)
+                  eeself(itheta) = eeself(itheta) + w(2, itheta, k) * ee(itheta, k2)
+                  !
+                  if (igwaves) eeself_ig(itheta) = eeself_ig(itheta) + w(2, itheta, k) * ee_ig(itheta, k2)
+                  !
+               endif
+               !
+            enddo
+            !
+         endif
+         !
          ! --- Step 2: Pre-solve sig and celerities from upwind Ek/Ak (wind only) ----
          !
          ! The upwind Ek/Ak provides the best pre-solve estimate of local sig, so that
@@ -992,6 +1077,19 @@ contains
          !
          if (wind) R(:) = R(:) + WsorE(:, k)
          !
+         ! Implicit treatment of upwind points that are this node's own Neumann nodes
+         !
+         if (selfnode) then
+            !
+            do itheta = 1, ntheta
+               !
+               R(itheta) = R(itheta) - cgprev(itheta) * eeself(itheta) / ds(itheta, k)
+               B(itheta) = B(itheta) - cgprev(itheta) * wself(itheta) / ds(itheta, k)
+               !
+            enddo
+            !
+         endif
+         !
          call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
          ee(:, k) = max(ee(:, k), waveps)
          !
@@ -1110,6 +1208,19 @@ contains
                C_ig(ntheta) = 0.0
             endif
             !
+            ! Implicit treatment of upwind points that are this node's own Neumann nodes
+            !
+            if (selfnode) then
+               !
+               do itheta = 1, ntheta
+                  !
+                  R_ig(itheta) = R_ig(itheta) - cgprev_ig(itheta) * eeself_ig(itheta) / ds(itheta, k)
+                  B_ig(itheta) = B_ig(itheta) - cgprev_ig(itheta) * wself(itheta) / ds(itheta, k)
+                  !
+               enddo
+               !
+            endif
+            !
             call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
             ee_ig(:, k) = max(ee_ig(:, k), 0.0)
             !
@@ -1123,6 +1234,20 @@ contains
             ee_ig(:, k) = 0.0
             !
          endif
+         !
+         ! Copy the new energy directly to the Neumann nodes connected to this node. Energy then
+         ! travels along a Neumann boundary within one sweep, instead of one node per sweep
+         ! through the copy at the start of each sweep.
+         !
+         do ineu = neu_start(k), neu_start(k + 1) - 1
+            !
+            kn           = neu_list(ineu)
+            ee(:, kn)    = ee(:, k)
+            ee_ig(:, kn) = ee_ig(:, k)
+            !
+            if (wind) aa(:, kn) = aa(:, k)
+            !
+         enddo
          !
       enddo
       !

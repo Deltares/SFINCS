@@ -44,7 +44,7 @@ module snapwave_domain
    !     Called from: not called (currently unused)
    !
    !   neuboundaries_light(x, y, msk, no_nodes, neumannconnected)
-   !     Find, for each Neumann boundary node, the nearest inner node it is connected to.
+   !     Find, for each Neumann boundary node, the inner node it is connected to.
    !     Called from: initialize_snapwave_domain (snapwave_domain)
    !
    !   read_snapwave_sfincs_mesh()
@@ -1009,71 +1009,148 @@ contains
          
 
    subroutine neuboundaries_light(x, y, msk, no_nodes, neumannconnected)
-   !
-   ! Find, for each Neumann boundary node, the nearest inner node it is connected to.
-   !
-   ! Input:
-   !   x                : x coordinates of the nodes
-   !   y                : y coordinates of the nodes
-   !   msk              : node mask (1 = inner, 3 = Neumann boundary)
-   !   no_nodes         : number of grid nodes
-   !
-   ! Output:
-   !   neumannconnected : nearest inner node of each Neumann boundary node
-   !
-   ! Called from: initialize_snapwave_domain (snapwave_domain)
-   ! 
-   implicit none
-   !
-   integer, intent(in)                        :: no_nodes
-   real*8, dimension(no_nodes), intent(in)    :: x, y
-   integer*1, dimension(no_nodes), intent(in) :: msk   
-   integer, dimension(no_nodes), intent(out)  :: neumannconnected   
-   !
-   real    :: xgb, ygb, dst1, dst   
-   integer :: k, ib1, ic
-   !
-   ! Loop through all msk=3 cells and find their nearest msk=1 cell, save in 'neumannconnected'
-   !
-   do ic = 1, no_nodes    
       !
-      ! Loop through all grid points
+      ! Find, for each Neumann boundary node, the inner node it is connected to. In the solver
+      ! the Neumann node copies its wave energy from this node.
       !
-      if (msk(ic) == 3) then ! point ic is on the neumann boundary       
+      ! On the quadtree mesh, a Neumann node with exactly one open side (grid edge or inactive
+      ! neighbour) is connected to its inner neighbour on the opposite side, so normal to the
+      ! boundary. The nearest inner node is not used there: where the refinement level changes
+      ! along the boundary, the nearest inner node of the last coarse Neumann node is the fine
+      ! node diagonally inward. When that node lies downwave, it has the Neumann node as its
+      ! upwind point, so it takes its energy from itself and a shadow wedge forms downwave.
+      ! Corner nodes, and nodes without an inner neighbour on the inward side, are connected to
+      ! the nearest inner node.
+      !
+      ! Input:
+      !   x                : x coordinates of the nodes
+      !   y                : y coordinates of the nodes
+      !   msk              : node mask (1 = inner, 3 = Neumann boundary)
+      !   no_nodes         : number of grid nodes
+      !
+      ! Output:
+      !   neumannconnected : inner node connected to each Neumann boundary node (0 if none)
+      !
+      ! Called from: initialize_snapwave_domain (snapwave_domain)
+      !
+      use snapwave_data, only: index_quadtree_in_snapwave, index_snapwave_in_quadtree
+      use quadtree,      only: quadtree_md1, quadtree_md2, quadtree_mu1, quadtree_mu2, &
+                               quadtree_nd1, quadtree_nd2, quadtree_nu1, quadtree_nu2
+      !
+      implicit none
+      !
+      integer, intent(in)                        :: no_nodes
+      real*8, dimension(no_nodes), intent(in)    :: x, y
+      integer*1, dimension(no_nodes), intent(in) :: msk
+      integer, dimension(no_nodes), intent(out)  :: neumannconnected
+      !
+      real                   :: dst1, dst
+      integer                :: k, ib1, ic, ip, iside, iopen, iin, j
+      integer, dimension(2, 4) :: nbr
+      logical, dimension(4)  :: open_side
+      logical                :: use_quadtree
+      !
+      ! Side order: left, right, below, above; inward(i) is the side opposite to side i
+      !
+      integer, dimension(4), parameter :: inward = [2, 1, 4, 3]
+      !
+      neumannconnected = 0
+      !
+      use_quadtree = allocated(index_quadtree_in_snapwave) .and. allocated(index_snapwave_in_quadtree) &
+                     .and. allocated(quadtree_md1)
+      !
+      do ic = 1, no_nodes
          !
-         dst1 = 1.0e9
+         if (msk(ic) /= 3) cycle
+         !
          ib1 = 0
-         !        
-         do k = 1, no_nodes 
-            !
-            if (msk(k) == 1) then
-               !
-               xgb = x(k)
-               ygb = y(k)          
-               !
-               dst = sqrt((x(ic) - xgb)**2 + (y(ic) - ygb)**2)
-               !
-               if (dst < dst1) then
-                  !
-                  ! Nearest point found
-  	               !
-                  dst1 = dst
-                  ib1  = k
-                  !
-               endif  
-            endif 
-         enddo
          !
-         if (ib1 > 0) then
+         if (use_quadtree) then
             !
-            neumannconnected(ic) = ib1
+            ! Neighbours (SnapWave node indices, 0 if absent or inactive) on each side
             !
-         endif   
-         !     
-      endif
+            ip = index_quadtree_in_snapwave(ic)
+            !
+            nbr(1, 1) = quadtree_md1(ip)
+            nbr(2, 1) = quadtree_md2(ip)
+            nbr(1, 2) = quadtree_mu1(ip)
+            nbr(2, 2) = quadtree_mu2(ip)
+            nbr(1, 3) = quadtree_nd1(ip)
+            nbr(2, 3) = quadtree_nd2(ip)
+            nbr(1, 4) = quadtree_nu1(ip)
+            nbr(2, 4) = quadtree_nu2(ip)
+            !
+            do iside = 1, 4
+               do j = 1, 2
+                  !
+                  if (nbr(j, iside) > 0) nbr(j, iside) = index_snapwave_in_quadtree(nbr(j, iside))
+                  !
+               enddo
+               !
+               open_side(iside) = all(nbr(:, iside) <= 0)
+               !
+            enddo
+            !
+            if (count(open_side) == 1) then
+               !
+               ! Connect to the inner neighbour opposite the open side
+               !
+               do iside = 1, 4
+                  !
+                  if (open_side(iside)) iopen = iside
+                  !
+               enddo
+               !
+               iin = inward(iopen)
+               !
+               do j = 1, 2
+                  !
+                  if (nbr(j, iin) > 0) then
+                     !
+                     if (msk(nbr(j, iin)) == 1) then
+                        !
+                        ib1 = nbr(j, iin)
+                        exit
+                        !
+                     endif
+                     !
+                  endif
+                  !
+               enddo
+               !
+            endif
+            !
+         endif
+         !
+         if (ib1 == 0) then
+            !
+            ! Fall back on the nearest inner node
+            !
+            dst1 = 1.0e9
+            !
+            do k = 1, no_nodes
+               !
+               if (msk(k) == 1) then
+                  !
+                  dst = sqrt((x(ic) - x(k))**2 + (y(ic) - y(k))**2)
+                  !
+                  if (dst < dst1) then
+                     !
+                     dst1 = dst
+                     ib1  = k
+                     !
+                  endif
+                  !
+               endif
+               !
+            enddo
+            !
+         endif
+         !
+         neumannconnected(ic) = ib1
+         !
+      enddo
       !
-   enddo       
-   !
    end subroutine neuboundaries_light
    
 
