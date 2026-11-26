@@ -1201,8 +1201,10 @@ contains
          !
          nnofreeze = sum(nofreeze)
          !
-         write(logstr,'(a,i8,a,i8)')'      nodes not converged: ', no_nodes - sum(ok), '   held back: ', nnofreeze
-         call write_log(logstr, 0)
+         ! Number of nodes not converged and held back per iteration (uncomment for debugging)
+         !
+         !write(logstr,'(a,i8,a,i8)')'      nodes not converged: ', no_nodes - sum(ok), '   held back: ', nnofreeze
+         !call write_log(logstr, 0)
          !
          ! Check convergence of IG waves
          !

@@ -79,7 +79,6 @@ This resulted in too low wave heights behind shoals, reefs and dikes, and in nea
 From SFINCS v2.5.1 onwards, a node is therefore not marked as converged as long as it is 'cold' (its energy is below 1% of the energy that flows into it in the current sweep), or as long as its under-relaxed D/E differs more than 10% from its unrelaxed value.
 A SnapWave Neumann boundary node (a lateral boundary node with a zero gradient in the wave field) copies the energy of its inner node, and is now marked as converged only when that inner node is.
 At convergence the solution is unchanged; the change only prevents nodes from being skipped too early.
-The number of nodes that are not converged and the number of nodes held back are written to the log file at every iteration.
 In the tested cases this costs about 20% more SnapWave iterations.
 
 
