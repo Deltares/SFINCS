@@ -1,0 +1,35 @@
+Build started at 10:39...
+1>------ Build started: Project: sfincs_lib, Configuration: Release x64 ------
+Compiling with Intel® Fortran Compiler 2026.1.1 [Intel(R) 64]...
+snapwave_solver.f90
+sfincs_snapwave.f90
+sfincs_ncoutput_helpers.F90
+sfincs_wavemaker.f90
+sfincs_ncoutput.F90
+sfincs_output.f90
+sfincs_lib.f90
+Creating library...
+
+Build log written to  "file://C:/Users/leijnse/repos/SFINCS_wt_swconv/source/sfincs_lib/x64/Release/BuildLog.htm"
+sfincs_lib - 0 error(s), 0 warning(s)
+2>------ Build started: Project: sfincs_dll, Configuration: Release x64 ------
+3>------ Build started: Project: sfincs, Configuration: Release x64 ------
+Compiling with Intel® Fortran Compiler 2026.1.1 [Intel(R) 64]...
+sfincs_bmi.f90
+Compiling with Intel® Fortran Compiler 2026.1.1 [Intel(R) 64]...
+sfincs.f90
+Linking...
+Linking...
+Embedding manifest...
+LINK : warning LNK4217: symbol 'free' defined in 'libucrt.lib(free.obj)' is imported by 'netcdff.lib(nf_lib.obj)' in function 'nc_inq_dimids_f'
+LINK : warning LNK4217: symbol 'malloc' defined in 'libucrt.lib(malloc.obj)' is imported by 'netcdff.lib(nf_lib.obj)' in function 'nc_inq_dimids_f'
+Embedding manifest...
+
+Build log written to  "file://C:/Users/leijnse/repos/SFINCS_wt_swconv/source/sfincs_dll/x64/Release/BuildLog.htm"
+sfincs_dll - 0 error(s), 0 warning(s)
+
+Build log written to  "file://C:/Users/leijnse/repos/SFINCS_wt_swconv/source/sfincs/x64/Release/BuildLog.htm"
+sfincs - 0 error(s), 2 warning(s)
+========== Build: 3 succeeded, 0 failed, 2 up-to-date, 0 skipped ==========
+========== Build completed at 10:39 and took 10,036 seconds ==========
+
