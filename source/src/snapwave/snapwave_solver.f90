@@ -214,6 +214,16 @@ contains
             !
          enddo
          !$omp end parallel do
+         !
+         ! Neumann nodes take cg_ig of their inner node, as cg in the sweep, so that the IG
+         ! energy copied to them is not amplified by cg_ig(Neumann) / cg_ig(inner)
+         !
+         do k = 1, no_nodes
+            !
+            if (neumannconnected(k) > 0) cg_ig(k) = cg_ig(neumannconnected(k))
+            !
+         enddo
+         !
       endif
       !
       ! Solve the directional wave energy balance on an unstructured grid
