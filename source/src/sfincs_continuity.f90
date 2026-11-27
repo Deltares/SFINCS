@@ -493,7 +493,7 @@ contains
       !$omp private ( dvol, nmd, nmu, ndm, num, a, iuv, facint, dzvol, iwm, &
       !$omp           qnmd, qnmu, qndm, qnum, dv, zs00, zs11 )
       !$omp do schedule ( dynamic, 256 )
-      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, t_zsmax, zvolmax, zsm, maxzsm, zsderv, &
+      !$acc parallel present( kcs, zs, zs0, zb, z_volume, zsmax, t_zsmax, zvolmax, zsm, maxzsm, zsderv, z_wetfrac, &
       !$acc                   subgrid_z_zmin,  subgrid_z_zmax, subgrid_z_dep, subgrid_z_volmax, &
       !$acc                   q, qext, z_flags_iref, uv_flags_iref, &
       !$acc                   z_index_uv_md, z_index_uv_nd, z_index_uv_mu, z_index_uv_nu, &
@@ -685,9 +685,9 @@ contains
             !
             z_volume(nm) = z_volume(nm) + dvol
             !
-            if (wiggle_suppression) then
+            if (wiggle_suppression .and. wiggle_detect) then
                !
-               ! Store previous water level to determine gradient
+               ! Store previous water level to determine gradient (original limiter, wiggle_detect = 1)
                !
                zs00    = zs0(nm) ! previous time step
                zs11    = zs(nm)  ! current time step before updating
@@ -695,7 +695,9 @@ contains
                !
             endif
             !
-            ! Obtain new water level from subgrid tables
+            ! Obtain new water level from subgrid tables. With the under-relaxation method of the wiggle
+            ! suppression (wiggle_detect = 0), the wet-area fraction of the cell z_wetfrac is set as well.
+            ! It is used in the momentum update.
             !
             if (z_volume(nm) >= subgrid_z_volmax(nm) * 0.999) then
                !
@@ -703,11 +705,23 @@ contains
                !
                zs(nm) = max(subgrid_z_zmax(nm), -20.0) + (z_volume(nm) - subgrid_z_volmax(nm)) / a
                !
+               if (wiggle_suppression .and. .not. wiggle_detect) then
+                  !
+                  z_wetfrac(nm) = 1.0
+                  !
+               endif
+               !
             elseif (z_volume(nm) <= 1.0e-6) then
                !
                ! No water in this cell. Set zs to z_zmin.
                !
                zs(nm) = max(subgrid_z_zmin(nm), -20.0)
+               !
+               if (wiggle_suppression .and. .not. wiggle_detect) then
+                  !
+                  z_wetfrac(nm) = 0.0
+                  !
+               endif
                !
             else
                !
@@ -718,10 +732,17 @@ contains
                facint   = (z_volume(nm) - (iuv - 1) * dzvol ) / dzvol
                zs(nm)   = subgrid_z_dep(iuv, nm) + (subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm)) * facint
                !
+               if (wiggle_suppression .and. .not. wiggle_detect) then
+                  !
+                  ! Wet-area fraction (dV/dzs) / A from the same segment of the volume table
+                  !
+                  z_wetfrac(nm) = min(dzvol / (max(subgrid_z_dep(iuv + 1, nm) - subgrid_z_dep(iuv, nm), 1.0e-6) * a), 1.0)
+                  !
+               endif
+               !
             endif
             !
-            !
-            if (wiggle_suppression) then
+            if (wiggle_suppression .and. wiggle_detect) then
                !
                zsderv(nm) = zs(nm) - 2 * zs11 + zs00
                !

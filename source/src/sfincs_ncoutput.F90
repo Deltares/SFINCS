@@ -2044,6 +2044,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'wiggle_suppression',logical2int(wiggle_suppression)))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_factor',wiggle_factor))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_threshold',wiggle_threshold)) 
+        NF90(nf90_put_att(ncid, varid, 'wiggle_facmin',wiggle_facmin))
+        NF90(nf90_put_att(ncid, varid, 'wiggle_detect',logical2int(wiggle_detect)))
         NF90(nf90_put_att(ncid, varid, 'cbrt_fast',logical2int(cbrt_fast)))
         NF90(nf90_put_att(ncid, varid, 'slopelim',slopelim))            
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    

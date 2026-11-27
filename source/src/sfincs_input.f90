@@ -204,8 +204,10 @@ contains
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
-      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor
-      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold
+      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! amplitude factor of the original limiter (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! trigger threshold of the original limiter (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the under-relaxation factor (-), 0 to 1 (only with wiggle_detect = 0)
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .true.)            ! wiggle suppression method: 1 = original limiter, 0 = under-relaxation with the wet fraction
       call get_keyword(500, 'cbrt',                            cbrtstr,                         'exact')           ! cube root hu**(1/3) in the friction term ('exact', or 'fast' = approximation, at most 0.13 % too high)
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
