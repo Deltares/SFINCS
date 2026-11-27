@@ -146,7 +146,7 @@ Fill in [.github/pull_request_template.md](../.github/pull_request_template.md) 
 Tick an item only when it is true:
 
 - **Done:** tick it, only when it was actually done. Compilation boxes only for builds that were really run on that platform (Windows, Linux CPU, Linux GPU). Testbed and test boxes only when the testbed was run or the tests were added.
-- **Not relevant:** tick it and add "n/a" behind it, e.g. the documentation items when no documentation or user-facing behaviour changed, the test items when no model functionality was added or changed, the HydroMT-SFINCS item when no new type of input is needed.
+- **Not relevant:** tick it and add "n/a" behind it, e.g. the documentation items when no documentation or user-facing behaviour changed, the test items when no model functionality was added or changed, the HydroMT-SFINCS item when no new type of input is needed, the figure item for small changes.
 - **Relevant but not done:** leave it unticked and say in the description what is missing (e.g. "not compiled on Linux GPU"). Never tick it to make the check pass.
 
 AI agents: never tick **"I have reviewed my own changes."** That box is for the human developer, after reading the diff. Leave it unticked, so the pull request cannot pass the checklist check before a person has reviewed it.

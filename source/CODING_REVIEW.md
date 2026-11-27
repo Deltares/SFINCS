@@ -108,3 +108,4 @@ Not every item applies to every PR. Go through the sections that the diff touche
 - New functionality comes with a conceptual test and a real-world test case in the testbed.
 - Bug fixes remove the root cause rather than masking the symptom (e.g. a clip or an `if` around the failing line), and the same pattern is checked elsewhere, such as the regular-grid and quadtree versions of the same routine.
 - Bug fixes come with a case that reproduces the bug, where practical.
+- A significant change or new feature comes with a figure that explains it (e.g. before/after results, or the scheme on a sketch of the grid), stored in `docs/figures_prs/` as `pr<number>_<topic>.png` and shown in the PR description.
