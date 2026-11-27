@@ -1049,12 +1049,19 @@ contains
       !
       integer, dimension(4), parameter :: inward = [2, 1, 4, 3]
       !
+      ! Start with no connection, so that a Neumann node without any inner node keeps 0.
+      !
       neumannconnected = 0
+      !
+      ! The neighbour search needs the quadtree neighbour arrays and the index maps between
+      ! quadtree and SnapWave nodes; without them only the nearest-node search is used.
       !
       use_quadtree = allocated(index_quadtree_in_snapwave) .and. allocated(index_snapwave_in_quadtree) &
                      .and. allocated(quadtree_md1)
       !
       do ic = 1, no_nodes
+         !
+         ! Only Neumann boundary nodes get a connected node.
          !
          if (msk(ic) /= 3) cycle
          !
@@ -1062,7 +1069,8 @@ contains
          !
          if (use_quadtree) then
             !
-            ! Neighbours (SnapWave node indices, 0 if absent or inactive) on each side
+            ! Collect the (up to two) quadtree neighbours on each side of the node, since a
+            ! coarse node can have two finer neighbours on one side.
             !
             ip = index_quadtree_in_snapwave(ic)
             !
@@ -1074,6 +1082,9 @@ contains
             nbr(2, 3) = quadtree_nd2(ip)
             nbr(1, 4) = quadtree_nu1(ip)
             nbr(2, 4) = quadtree_nu2(ip)
+            !
+            ! Convert the neighbours to SnapWave node indices (0 for inactive cells) and mark a
+            ! side as open when it has no active neighbour at all.
             !
             do iside = 1, 4
                do j = 1, 2
@@ -1088,13 +1099,16 @@ contains
             !
             if (count(open_side) == 1) then
                !
-               ! Connect to the inner neighbour opposite the open side
+               ! A single open side means a straight boundary: find which side is open.
                !
                do iside = 1, 4
                   !
                   if (open_side(iside)) iopen = iside
                   !
                enddo
+               !
+               ! Connect to the first inner neighbour on the opposite side, so normal to the
+               ! boundary; if neither is an inner node, ib1 stays 0.
                !
                iin = inward(iopen)
                !
@@ -1119,7 +1133,8 @@ contains
          !
          if (ib1 == 0) then
             !
-            ! Fall back on the nearest inner node
+            ! Regular mesh, corner node or no inner neighbour on the inward side: fall back on
+            ! the nearest inner node by searching all inner nodes.
             !
             dst1 = 1.0e9
             !
@@ -1141,6 +1156,8 @@ contains
             enddo
             !
          endif
+         !
+         ! Store the connection; the solver copies wave energy from this node to the Neumann node.
          !
          neumannconnected(ic) = ib1
          !
