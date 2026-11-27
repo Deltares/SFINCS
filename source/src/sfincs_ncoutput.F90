@@ -2084,6 +2084,7 @@ contains
         NF90(nf90_put_att(ncid, varid, 'bathtub',logical2int(bathtub)))
         NF90(nf90_put_att(ncid, varid, 'bathtub_fac_hs',bathtub_fac_hs))
         NF90(nf90_put_att(ncid, varid, 'bathtub_dt',bathtub_dt))
+        NF90(nf90_put_att(ncid, varid, 'bathtub_snapwave',logical2int(bathtub_snapwave)))
         NF90(nf90_put_att(ncid, varid, 'factor_wind',factor_wind))
         NF90(nf90_put_att(ncid, varid, 'factor_pres',factor_pres))
         NF90(nf90_put_att(ncid, varid, 'factor_prcp',factor_prcp))

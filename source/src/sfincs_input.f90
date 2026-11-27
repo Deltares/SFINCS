@@ -231,6 +231,7 @@ contains
       call get_keyword(500, 'bathtub',                         bathtub,                         .false.)           ! run in bathtub (no momentum) mode
       call get_keyword(500, 'bathtub_fachs',                   bathtub_fac_hs,                  0.2)               ! bathtub Hs multiplier
       call get_keyword(500, 'bathtub_dt',                      bathtub_dt,                      -999.0)            ! bathtub time step (s); -999 = use dtmapout
+      call get_keyword(500, 'bathtub_snapwave',                bathtub_snapwave,                .false.)           ! also run the full SnapWave solver in bathtub mode (wave fields in output)
       !
       ! Domain files
       !
@@ -685,6 +686,8 @@ contains
          !
       endif
       !
+      bathtub_wave_setup = .false.
+      !
       if (bathtub) then
          !
          call write_log('Info    : turning on process: Bathtub flooding', 0)
@@ -706,15 +709,29 @@ contains
          dkbfile       = 'none'
          urbfile       = 'none'
          !
-         meteo3d        = .false.
-         wind           = .false.
-         store_meteo    = .false.
-         store_wind     = .false.
-         store_wind_max = .false.
-         precip         = .false.
-         patmos         = .false.
-         if (snapwave) bathtub_snapwave = .true.
-         snapwave               = .false.
+         ! With SnapWave, the boundary water levels are raised by bathtub_fachs * Hs from
+         ! the SnapWave wave boundary conditions. The full SnapWave solver only runs
+         ! with bathtub_snapwave, for the wave fields in the output.
+         !
+         bathtub_wave_setup = snapwave
+         !
+         if (.not. bathtub_snapwave) snapwave = .false.
+         if (.not. snapwave)         snapwavewind = .false.
+         !
+         ! Wind is only kept as input for SnapWave wind growth
+         !
+         if (.not. snapwavewind) then
+            !
+            meteo3d    = .false.
+            wind       = .false.
+            store_wind = .false.
+            !
+         endif
+         !
+         store_meteo            = .false.
+         store_wind_max         = .false.
+         precip                 = .false.
+         patmos                 = .false.
          infiltration           = .false.
          store_velocity         = .false.
          store_maximum_velocity = .false.

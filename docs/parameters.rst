@@ -406,6 +406,33 @@ More parameters for model input (only for advanced users)
 	  :units:		-
 	  :default:		bin
 
+	**Bathtub mode:**
+	
+	bathtub
+	  :description:		Bathtub mode: the water level in every cell is interpolated from the boundary water levels, without solving the flow. Discharges, drainage structures, infiltration, precipitation and atmospheric pressure are switched off.
+	  :units:		logical
+	  :default:		False
+	  :min:			False
+	  :max:			True
+	bathtub_dt
+	  :description:		Time step in bathtub mode, also used as his output interval. When not set (-999), dtmapout is used.
+	  :units:		s
+	  :default:		-999 (= dtmapout)
+	  :min:			0
+	  :max:			Inf
+	bathtub_fachs
+	  :description:		In bathtub mode with snapwave = 1, the boundary water levels are raised by bathtub_fachs times the wave height from the SnapWave wave boundary conditions (snapwave_bndfile, snapwave_jonswapfile or netsnapwavefile), as an estimate of wave setup.
+	  :units:		-
+	  :default:		0.2
+	  :min:			0.0
+	  :max:			Inf
+	bathtub_snapwave - added from SFINCS v2.5.1 onwards
+	  :description:		In bathtub mode with snapwave = 1, also run the full SnapWave solver on the bathtub water levels, so that the wave fields are available in the output. Wind growth in SnapWave (snapwave_wind = 1) is supported. The wave setup from bathtub_fachs is applied either way.
+	  :units:		logical
+	  :default:		False
+	  :min:			False
+	  :max:			True
+
 	**Drag coefficients:**
 	
 	cdnrb

@@ -80,7 +80,7 @@ Output and utilities:
 `sfincs_initialize` in `sfincs_lib.f90` runs these steps in order:
 
 1. `read_sfincs_input`: all keywords from `sfincs.inp`.
-2. `read_meteo_data` (not in bathtub mode).
+2. `read_meteo_data` (in bathtub mode only for SnapWave wind growth).
 3. `initialize_domain` (`sfincs_domain.f90`):
    1. `initialize_processes`: sets process flags (wind, precipitation, quadtree, ...) from the input.
    2. `initialize_mesh`: reads the quadtree file or builds the regular grid; indices and neighbours.
@@ -89,7 +89,7 @@ Output and utilities:
    5. `initialize_hydro`: initial water levels and fluxes (including restart).
 4. Structures, boundary data, observation points, cross-sections, run-up gauges.
 5. Processes: `initialize_infiltration`, `initialize_discharges`, `initialize_src_structures`, `initialize_urban_drainage`, then non-hydrostatic, wave makers and bathtub when switched on.
-6. SnapWave coupling, when switched on.
+6. SnapWave coupling, when switched on. Then, in bathtub mode with SnapWave, `initialize_bathtub_wave_setup` adds `bathtub_fachs` times the boundary wave height to the boundary water levels.
 7. `initialize_output`.
 8. `deallocate_quadtree`: the quadtree neighbour arrays (`quadtree_md`, `quadtree_mu`, ...) are freed here. Code that needs them must run before this point.
 9. `initialize_openacc`: all device arrays are copied to the GPU. Every array used on the GPU must be allocated by now.
@@ -104,12 +104,12 @@ A new process that has its own input is initialised in step 5. A new spatial fie
 2. Meteo fields and SnapWave are updated when their update interval is reached.
 3. `update_meteo_forcing`: wind stress, pressure, precipitation.
 4. `update_boundaries`: boundary water levels and velocities.
-5. `update_wave_field` (SnapWave).
-6. In bathtub mode, `bathtub_compute_water_levels`. Otherwise:
-   1. `compute_fluxes` (`sfincs_momentum.f90`): fluxes at the uv points.
-   2. Wave-maker fluxes, fluxes over structures (weirs, thin dams), non-hydrostatic correction.
-   3. `update_continuity` (`sfincs_continuity.f90`): river discharges, drainage structures, infiltration and urban drainage add to `qsrc`; then the water levels are updated.
-7. `write_output` when output is due.
+5. In bathtub mode, `bathtub_compute_water_levels`, then `update_wave_field` (SnapWave, with `bathtub_snapwave`). Otherwise:
+   1. `update_wave_field` (SnapWave).
+   2. `compute_fluxes` (`sfincs_momentum.f90`): fluxes at the uv points.
+   3. Wave-maker fluxes, fluxes over structures (weirs, thin dams), non-hydrostatic correction.
+   4. `update_continuity` (`sfincs_continuity.f90`): river discharges, drainage structures, infiltration and urban drainage add to `qsrc`; then the water levels are updated.
+6. `write_output` when output is due.
 
 Where a new term goes:
 

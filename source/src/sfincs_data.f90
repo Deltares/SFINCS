@@ -299,7 +299,8 @@ module sfincs_data
       logical       :: use_bcafile
       logical       :: snapwave_use_nearest
       logical       :: bathtub
-      logical       :: bathtub_snapwave      
+      logical       :: bathtub_snapwave
+      logical       :: bathtub_wave_setup
       !!!
       !!! Static data
       !!!

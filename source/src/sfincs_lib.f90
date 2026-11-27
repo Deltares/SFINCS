@@ -154,13 +154,15 @@ module sfincs_lib
    call write_log('Reading input file ...', 0) 
    call read_sfincs_input()     ! Reads sfincs.inp
    !
-   if (.not. bathtub) then
+   if (.not. bathtub .or. snapwavewind) then
+      !
+      ! In bathtub mode, meteo is only needed as wind input for SnapWave wind growth
       !
       call write_log('Reading meteo data ...', 0)
       !
       call read_meteo_data()       ! Reads meteo data (amu, amv, spw file etc.)
       !
-   endif   
+   endif
    !
    call write_log('Preparing domain ...', 0)
    !
@@ -219,6 +221,15 @@ module sfincs_lib
       !
       call write_log('Coupling with SnapWave ...', 1)
       call couple_snapwave(crsgeo)
+      !
+   endif
+   !
+   if (bathtub_wave_setup) then
+      !
+      ! After couple_snapwave, so that the full SnapWave run (bathtub_snapwave) and the
+      ! bathtub wave setup share the SnapWave boundary conditions
+      !
+      call initialize_bathtub_wave_setup()
       !
    endif
    !
@@ -492,21 +503,29 @@ module sfincs_lib
       !
       call update_boundaries(t, dt)
       !
-      if (snapwave .and. update_waves) then
-         !
-         ! Update wave fields from SnapWave coupling (this happens at intervals of dtwave)
-         !
-         call update_wave_field(t)
-         !
-      endif
-      !
       if (bathtub) then
          !
          ! In bathtub mode, only update water levels based on boundary conditions
          !
          call bathtub_compute_water_levels()
          !
+         if (snapwave .and. update_waves) then
+            !
+            ! Update wave fields from SnapWave on the new bathtub water levels (bathtub_snapwave)
+            !
+            call update_wave_field(t)
+            !
+         endif
+         !
       else
+         !
+         if (snapwave .and. update_waves) then
+            !
+            ! Update wave fields from SnapWave coupling (this happens at intervals of dtwave)
+            !
+            call update_wave_field(t)
+            !
+         endif
          !
          ! And now for the real computations ! Unless we're in bathtub mode
          !
