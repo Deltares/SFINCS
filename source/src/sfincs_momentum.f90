@@ -135,9 +135,6 @@ contains
    !
    real*4    :: min_dt_ip
    !
-   real*4, parameter :: expo = 1.0 / 3.0
-   !integer, parameter :: expo = 1
-   !
    real*4, dimension(:), allocatable :: swap                 ! work array to swap q and q0, uv and uv0
    !
    logical   :: iok
@@ -195,7 +192,6 @@ contains
    !$omp           qx_nmd,qx_nmu,qy_nm,qy_ndm,qy_nmu,qy_ndmu,uu_nm,uu_nmd,uu_nmu,uu_num,uu_ndm,vu, & 
    !$omp           fcoriouv,gnavg2,iok,zsu,dzuv,iuv,facint,fwmax,zmax,zmin,one_minus_facint,dqxudx,dqyudy,uu,ud,qu,qd,qy,hwet,phi,adv,mdrv,phiz,fac,hu73,hu13,i_cbrt,min_dt_ip, &
    !$omp           q_abs,q_k,q_ref,wt_nmd,wt_nmu,wt_ndm,wt_num ) &
-
    !$omp reduction ( min : min_dt  )
    !$omp do schedule ( dynamic, 256 )
    !$acc loop, reduction( min : min_dt ), gang, vector
