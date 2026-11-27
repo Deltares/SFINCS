@@ -29,6 +29,7 @@ If this PR adds model functionality:
 ### Documentation
 - [ ] Relevant documentation has been updated to reflect the changes.
 - [ ] Examples, tutorials, or user guides have been updated where necessary.
+- [ ] For a significant change or new feature, a figure explaining it has been added to [`docs/figures_prs/`](https://github.com/Deltares/SFINCS/tree/main/docs/figures_prs) and is shown in this description.
 
 ### HydroMT-SFINCS
 - [ ] If a new type of input is needed, a feature request has been opened in the [HydroMT-SFINCS repository](https://github.com/Deltares/hydromt_sfincs/issues) <!-- link the issue here -->
