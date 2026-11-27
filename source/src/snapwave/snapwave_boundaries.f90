@@ -553,60 +553,88 @@ subroutine find_nearest_depth_for_boundary_points()
     !
     real*4  :: h1, h2, fac
     !
-    real xgb, ygb, dst1, dst2, dst   
+    real xgb, ygb, dst1, dst2, dst
     integer k, ib1, ib2, ic
     !
-    ! Loop through all water level boundary points
+    ! The two nearest grid points and their weight only depend on the (fixed) coordinates,
+    ! so they are searched once and only the depth is updated in later calls
     !
-    do ic = 1, nwbnd    
-        ! Loop through all grid points
+    integer, dimension(:), allocatable, save :: ib1_bwv, ib2_bwv
+    real*4,  dimension(:), allocatable, save :: fac_bwv
+    !
+    if (.not. allocated(ib1_bwv)) then
+       !
+       allocate(ib1_bwv(nwbnd), ib2_bwv(nwbnd), fac_bwv(nwbnd))
+       !
+       ! Loop through all water level boundary points
+       !
+       !$omp parallel do private(ic, k, xgb, ygb, dst, dst1, dst2, ib1, ib2) schedule(static)
+       do ic = 1, nwbnd
+           ! Loop through all grid points
+           !
+           dst1 = 1.0e10
+           dst2 = 1.0e10
+           ib1 = 0
+           ib2 = 0
+           !
+           do k = 1, no_nodes
+               !
+               xgb = x(k)
+               ygb = y(k)
+               !
+               dst = sqrt((x_bwv(ic) - xgb)**2 + (y_bwv(ic) - ygb)**2)
+               !
+               if (dst<dst1) then
+                   !
+                   ! Nearest point found
+                   !
+                   dst2 = dst1
+                   ib2  = ib1
+                   dst1 = dst
+                   ib1  = k
+                   !
+               elseif (dst<dst2) then
+                   !
+                   ! Second nearest point found
+                   !
+                   dst2 = dst
+                   ib2  = k
+                   !
+               endif
+           enddo
+           !
+           ib1_bwv(ic) = ib1
+           ib2_bwv(ic) = ib2
+           fac_bwv(ic) = 1.0
+           if (ib2 /= 0) fac_bwv(ic) = dst2/(dst1 + dst2)
+           !
+       enddo
+       !$omp end parallel do
+       !
+       do ic = 1, nwbnd
+           if (ib2_bwv(ic) == 0) then
+               write(logstr,*)'Warning: only 1 close grid point found for boundary input location (x,y): ',x_bwv(ic),y_bwv(ic)
+               call write_log(logstr, 1)
+           endif
+       enddo
+       !
+    endif
+    !
+    do ic = 1, nwbnd
         !
-	    dst1 = 1.0e10
-	    dst2 = 1.0e10
-	    ib1 = 0
-	    ib2 = 0
-        !    
-        do k = 1, no_nodes
+        if (ib2_bwv(ic) == 0) then
             !
-	        xgb = x(k)
-	        ygb = y(k)          
-	        !
-	        dst = sqrt((x_bwv(ic) - xgb)**2 + (y_bwv(ic) - ygb)**2)
-	        !
-	        if (dst<dst1) then
-		        !
-		        ! Nearest point found
-		        !
-		        dst2 = dst1
-		        ib2  = ib1
-		        dst1 = dst
-		        ib1  = k
-		        !
-	        elseif (dst<dst2) then
-		        !
-		        ! Second nearest point found
-		        !
-		        dst2 = dst
-		        ib2  = k
-		        !
-	        endif    
-        enddo
-        !
-        if (ib2 == 0) then
-            !
-            write(logstr,*)'Warning: only 1 close grid point found for boundary input location (x,y): ',x_bwv(ic),y_bwv(ic)
-            call write_log(logstr, 1)            
-            deptht_bwv(ic) = depth(ib1)
+            deptht_bwv(ic) = depth(ib1_bwv(ic))
             !
         else
-            !    
-            h1  = depth(ib1)
-            h2  = depth(ib2)
-            fac = dst2/(dst1 + dst2)   
+            !
+            h1  = depth(ib1_bwv(ic))
+            h2  = depth(ib2_bwv(ic))
+            fac = fac_bwv(ic)
             deptht_bwv(ic) = h1*fac + h2*(1.0 - fac)
             !
-        endif        
-    enddo    
+        endif
+    enddo
     !
 end subroutine
 
@@ -866,21 +894,9 @@ subroutine update_boundary_points(t, just_time_series)
       endif
    endif  
    !
-   ! Determine theta grid and adjust w, prev and ds tables
-   !
-   ! Definition of directional grid
-   !
-   thetamean = wdmean_bwv
-   !
-   if (ntwbnd > 0) then
-      call make_theta_grid(wdmean_bwv)
-   else
-      thetamean=u10dmean
-      call make_theta_grid(u10dmean)
-   endif 
-   !
-   ! Spectra on the support points are built in build_boundary_support_points_spectra,
-   ! after the final theta grid is known (see update_boundary_conditions)
+   ! The theta grid (and the w, prev and ds tables) is made in update_boundary_conditions,
+   ! around the mean wave or wind direction. Spectra on the support points are built in
+   ! build_boundary_support_points_spectra, after the final theta grid is known.
    !
 end subroutine update_boundary_points
 !
@@ -894,28 +910,16 @@ subroutine update_wind_field()
    !
    implicit none
    !
-   integer k
-   real*4, dimension(:), allocatable :: windspread360k
-   !
-   allocate(windspread360k(ntheta360))
-   windspread360k=0.0
-   !
-   ! Interpolate boundary conditions in timeseries to boundary points 
+   ! Interpolate boundary conditions in timeseries to boundary points
    ! TL: already done in SFINCS
    !
    ! average wind direction
-   ! 
-   u10dmean = atan2(sum(sin(u10dir)*u10),sum(cos(u10dir)*u10))  
    !
-   ! Initialize the distribution array of wind input
-   ! 
-   do k = 1,no_nodes
-      windspread360k = (cos(theta360-u10dir(k)))**2.0
-      where(cos(theta360-u10dir(k))<0.0) windspread360k = 0.0
-      windspread360k = (windspread360k/sum(windspread360k))/dtheta ! normalized and converted to input per rad
-      windspread360(:,k) = windspread360k
-   enddo
-   !   
+   u10dmean = atan2(sum(sin(u10dir)*u10),sum(cos(u10dir)*u10))
+   !
+   ! The distribution of the wind input over the directions (windspreadfac) is computed on
+   ! the final theta grid in make_theta_grid
+   !
 end subroutine update_wind_field
 !
 !    
@@ -934,7 +938,9 @@ subroutine make_theta_grid(central_theta)
    implicit none
    !
    real, intent(in) :: central_theta
-   integer k, itheta, ind
+   integer k, itheta, ind, i
+   integer, save :: ind_prev = -huge(1) ! grid offset of the tables copied in the previous call
+   real*4  :: cw, sw
    !
    ! Determine theta grid and adjust w, prev and ds tables
    !
@@ -946,34 +952,62 @@ subroutine make_theta_grid(central_theta)
    enddo
    !
    do itheta = 1, ntheta
-      !
       theta(itheta) = theta360(i360(itheta))
+   enddo
+   !
+   ! The tables only depend on the grid offset ind (w360, prev360 and ds360 are fixed), so
+   ! they are only copied when the offset changes. Nodes are in the outer loop, so that the
+   ! (.., ntheta, no_nodes) tables are written contiguously.
+   !
+   if (ind /= ind_prev) then
       !
+      !$omp parallel do private(k, itheta, i) schedule(static)
       do k = 1, no_nodes
-         w(1, itheta, k)    = w360(1, i360(itheta), k)
-         w(2, itheta, k)    = w360(2, i360(itheta), k)
-         prev(1, itheta, k) = prev360(1, i360(itheta), k)
-         prev(2, itheta, k) = prev360(2, i360(itheta), k)
-         ds(itheta, k)      = ds360(i360(itheta), k)
-         !
-         windspreadfac(itheta, k) = windspread360(i360(itheta), k)
+         do itheta = 1, ntheta
+            i = i360(itheta)
+            w(1, itheta, k)          = w360(1, i, k)
+            w(2, itheta, k)          = w360(2, i, k)
+            prev(1, itheta, k)       = prev360(1, i, k)
+            prev(2, itheta, k)       = prev360(2, i, k)
+            ds(itheta, k)            = ds360(i, k)
+         enddo
       enddo
+      !$omp end parallel do
       !
-   enddo  
+      ind_prev = ind
+      !
+   endif
    !
    if (wind) then
        !
        ! initialization of distribution array of wind input
        !
+       ! Explicit loops (no array temporaries per node, which would be heap allocated)
+       !
+       !$omp parallel do private(k, itheta, cw, sw) schedule(static)
        do k = 1, no_nodes
-          windspreadfac(:,k)=(cos(theta-u10dir(k)))**mwind
-          where(cos(theta-u10dir(k))<0.0) windspreadfac(:,k)=0.0
-          if (sum(windspreadfac(:,k))>0.0) then      
-             windspreadfac(:,k) = (windspreadfac(:,k)/sum(windspreadfac(:,k)))/dtheta
+          !
+          sw = 0.0
+          do itheta = 1, ntheta
+             cw = cos(theta(itheta) - u10dir(k))
+             if (cw < 0.0) then
+                windspreadfac(itheta, k) = 0.0
+             else
+                windspreadfac(itheta, k) = cw**mwind
+             endif
+             sw = sw + windspreadfac(itheta, k)
+          enddo
+          !
+          if (sw > 0.0) then
+             do itheta = 1, ntheta
+                windspreadfac(itheta, k) = (windspreadfac(itheta, k) / sw) / dtheta
+             enddo
           else
-             windspreadfac(:,k)=0.0
-          endif  
+             windspreadfac(:, k) = 0.0
+          endif
+          !
        enddo
+       !$omp end parallel do
        !
    endif
    !

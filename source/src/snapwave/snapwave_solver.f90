@@ -477,9 +477,9 @@ contains
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_bstems               ! Width/diameter of individual vegetation stems [m]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Nstems               ! Number of vegetation stems per unit horizontal area [m-2]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Cd                   ! Bulk drag coefficient [-]     
-   real*4, dimension(no_nodes)                          :: Fvw                      ! vegetation wave drag force   
-   real*4, dimension(no_nodes,50)                       :: unl                      ! non-linear wave orbital velocity time series, in 50 points per wave length
-   real*4, dimension(no_nodes,50)                       :: etaw0                    ! non-linear sea surface time series, in 50 points per wave length
+   real*4, dimension(:), allocatable                    :: Fvw                      ! vegetation wave drag force (vegetation only)
+   real*4, dimension(:,:), allocatable                  :: unl                      ! non-linear wave orbital velocity time series, in 50 points per wave length (vegetation only)
+   real*4, dimension(:,:), allocatable                  :: etaw0                    ! non-linear sea surface time series, in 50 points per wave length (vegetation only)
    !
    !
    ! Local variables and arrays
@@ -498,15 +498,13 @@ contains
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
-   real*4, dimension(:,:), allocatable        :: depthprev              ! water depth at upwind intersection point per direction     
-   real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
    real*4, dimension(:), allocatable          :: DoverA                 ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: DoverE_ig              ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: E                      ! mean wave energy
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: diff_ig                ! maximum difference of IG wave energy relative to previous iteration
-   real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
+   real*4, dimension(:,:), allocatable        :: ra                     ! coordinate in sweep direction, per sweep
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
    real*4                                     :: pi = 4.0 * atan(1.0)
@@ -520,6 +518,9 @@ contains
    real*4                                     :: percok_ig              ! percentage of converged IG points   
    real*4                                     :: error
    real*4                                     :: error_ig               ! relative maximum IG wave error
+   real*4                                     :: eemax_new              ! maximum wave energy density in the current convergence check
+   real*4                                     :: diffmax                ! maximum difference with the previous iteration
+   integer                                    :: nok                    ! number of converged points
    real*4                                     :: alfa_ig,gamma_ig  ! coefficients in Baldock wave breaking dissipation model for IG waves
    real*4                                     :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point   
    real*4                                     :: eeinc2ig          ! ratio of incident wave energy as first estimate of IG wave energy at boundary
@@ -554,8 +555,7 @@ contains
    !
    allocate(ok(no_nodes)); ok=0
    allocate(indx(no_nodes,4)); indx=0
-   allocate(eeold(ntheta,no_nodes)); eeold=0.0
-   allocate(dee(ntheta)); dee=0.0
+   allocate(eeold(ntheta,no_nodes)) ! set in the first sweep
    allocate(E(no_nodes)); E=waveps
    allocate(Eold(no_nodes)); Eold=0.0   
    !
@@ -563,10 +563,9 @@ contains
       allocate(DoverE_ig(no_nodes)); DoverE_ig=0.0
       allocate(E_ig(no_nodes)); E_ig=waveps
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
-      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0
       allocate(beta_local(ntheta,no_nodes)); beta_local=0.0
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
-      allocate(eeold_ig(ntheta,no_nodes)); eeold_ig=0.0
+      allocate(eeold_ig(ntheta,no_nodes)) ! set in the first sweep
       allocate(diff_ig(no_nodes)); diff_ig=0.0
       allocate(ok_ig(no_nodes)); ok_ig=0
    endif
@@ -576,7 +575,7 @@ contains
    endif
    !
    allocate(diff(no_nodes)); diff=0.0
-   allocate(ra(no_nodes)); ra=0.0
+   allocate(ra(no_nodes, 4)); ra=0.0
    allocate(srcig_local(ntheta,no_nodes)); srcig_local = 0.0
    !
    do itheta = 1, ntheta
@@ -616,9 +615,14 @@ contains
    thetam         = 0.0
    !H              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90
    Dveg           = 0.0
-   Fvw            = 0.0
-   unl            = 0.0
-   etaw0          = 0.0
+   !
+   ! Vegetation work arrays (no_nodes x 50) are only needed with vegetation
+   !
+   if (vegetation) then
+      allocate(Fvw(no_nodes)); Fvw = 0.0
+      allocate(unl(no_nodes, 50)); unl = 0.0
+      allocate(etaw0(no_nodes, 50)); etaw0 = 0.0
+   endif
    !
    if (igwaves) then
       !
@@ -666,12 +670,17 @@ contains
    !
    shift = [0, 1, -1, 2]
    !
+   ! The four sorts are independent, so they run concurrently (each sort itself is serial,
+   ! so the order is the same as when they run one after the other)
+   !
+   !$omp parallel do private(sweep) schedule(static, 1)
    do sweep = 1, 4
       !
-      ra = x * cos(thetamean + 0.5 * pi * shift(sweep)) + y * sin(thetamean + 0.5 * pi * shift(sweep))
-      call hpsort_eps_epw(no_nodes, ra , indx(:, sweep), 1.0e-6)
+      ra(:, sweep) = x * cos(thetamean + 0.5 * pi * shift(sweep)) + y * sin(thetamean + 0.5 * pi * shift(sweep))
+      call hpsort_eps_epw(no_nodes, ra(:, sweep), indx(:, sweep), 1.0e-6)
       !
    enddo
+   !$omp end parallel do
    !
    ! Set inner to false for all points at grid edge
    !
@@ -710,7 +719,7 @@ contains
    ! Strip schedule of the four sweeps (indx and inner are fixed during this call)
    !
    allocate(strip_of(no_nodes, 2), halo_nodes(no_nodes, 2))
-   call build_sweep_strips(x, y, no_nodes, ntheta, prev, inner, depth, hmin, indx, thetamean, &
+   call build_sweep_strips(no_nodes, ntheta, prev, inner, depth, hmin, indx, &
                            nstrip, strips, strip_of, halo_n, halo_nodes)
    !
    if (callno == 1 .and. nstrip > 1) then
@@ -802,16 +811,11 @@ contains
       !
       if (sweep == 1) then
          !
-         eeold = ee
-         !
-         if (igwaves) then
-             !
-             eeold_ig = ee_ig
-             !
-         endif
-         !
          !$omp parallel do schedule(static)
          do k = 1, no_nodes
+            !
+            eeold(:, k) = ee(:, k)
+            if (igwaves) eeold_ig(:, k) = ee_ig(:, k)
             !
             Eold(k) = sum(eeold(:, k))
             !
@@ -875,48 +879,71 @@ contains
          !
          ! Check convergence after all 4 sweeps
          !
-         !$omp parallel do private(dee) schedule(static)
+         ! The maxima and the count are reductions over all nodes (exact in any order). The
+         ! test uses eemax of the previous check, the new eemax is used from the next check on.
+         !
+         eemax_new = -huge(1.0)
+         diffmax   = -huge(1.0)
+         nok       = 0
+         !
+         !$omp parallel do private(k, itheta) reduction(max:eemax_new, diffmax) reduction(+:nok) schedule(static)
          do k = 1, no_nodes
             !
-            dee     = ee(:, k) - eeold(:, k)
-            diff(k) = maxval(abs(dee))
+            diff(k) = 0.0
+            do itheta = 1, ntheta
+               diff(k)   = max(diff(k), abs(ee(itheta, k) - eeold(itheta, k)))
+               eemax_new = max(eemax_new, ee(itheta, k))
+            enddo
+            diffmax = max(diffmax, diff(k))
             !
             if (diff(k) / eemax < crit) then
                ok(k) = 1
             endif
+            !
+            nok = nok + ok(k)
             !
          enddo
          !$omp end parallel do
          !
          ! Percentage of converged points
          !
-         percok = sum(ok) / dble(no_nodes) * 100.0
-         eemax  = maxval(ee)
+         percok = nok / dble(no_nodes) * 100.0
+         eemax  = eemax_new
          !
          ! Relative maximum error
          !
-         error = maxval(diff) / eemax
+         error = diffmax / eemax
          !
          ! Check convergence of IG waves
          !
          if (igwaves) then
             !
-            !$omp parallel do private(dee) schedule(static)
+            eemax_new = -huge(1.0)
+            diffmax   = -huge(1.0)
+            nok       = 0
+            !
+            !$omp parallel do private(k, itheta) reduction(max:eemax_new, diffmax) reduction(+:nok) schedule(static)
             do k = 1, no_nodes
                !
-               dee        = ee_ig(:, k) - eeold_ig(:, k)
-               diff_ig(k) = maxval(abs(dee))
+               diff_ig(k) = 0.0
+               do itheta = 1, ntheta
+                  diff_ig(k) = max(diff_ig(k), abs(ee_ig(itheta, k) - eeold_ig(itheta, k)))
+                  eemax_new  = max(eemax_new, ee_ig(itheta, k))
+               enddo
+               diffmax = max(diffmax, diff_ig(k))
                !
                if (diff_ig(k) / eemax_ig < crit) then
                   ok_ig(k) = 1
                endif
                !
+               nok = nok + ok_ig(k)
+               !
             enddo
             !$omp end parallel do
             !
-            percok_ig = sum(ok_ig) / dble(no_nodes) * 100.0
-            eemax_ig  = maxval(ee_ig)
-            error_ig  = maxval(diff_ig) / eemax_ig
+            percok_ig = nok / dble(no_nodes) * 100.0
+            eemax_ig  = eemax_new
+            error_ig  = diffmax / eemax_ig
             !
             write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'   iteration ', iter / 4 , &
                ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
@@ -1794,7 +1821,7 @@ contains
    end subroutine compute_sweep_strip_stats
    !
    !
-   subroutine build_sweep_strips(x, y, no_nodes, ntheta, prev, inner, depth, hmin, indx, thetamean, &
+   subroutine build_sweep_strips(no_nodes, ntheta, prev, inner, depth, hmin, indx, &
                                  nstrip, strips, strip_of, halo_n, halo_nodes)
    !
    ! Build the strip schedule of the four ordered sweeps.
@@ -1803,20 +1830,20 @@ contains
    ! min(number of OpenMP threads, active nodes / snapwave_strip_minnodes), at least 1.
    !
    ! For each of the two sweep axes (axis 1: sweeps 1 and 4 along thetamean; axis 2: sweeps 2
-   ! and 3, perpendicular to it), inner nodes are sorted on the coordinate perpendicular to the
-   ! sweep direction and cut into nstrip strips with equal numbers of active nodes. Per sweep,
+   ! and 3, perpendicular to it), inner nodes are ordered on the coordinate perpendicular to the
+   ! sweep direction and cut into nstrip strips with equal numbers of active nodes. That order
+   ! is the sweep order of the perpendicular sweep: sweep 2 (thetamean + pi/2) for axis 1, and
+   ! sweep 4 (thetamean + pi) for axis 2, so no extra sort is needed. Per sweep,
    ! the inner nodes of each strip are listed in sweep order (indx). Halo nodes are inner nodes
    ! that are an upwind node of an active node in another strip; only these need a
    ! start-of-sweep copy.
    !
    ! Input:
-   !   x, y             : node coordinates
    !   no_nodes, ntheta : number of nodes and directions
    !   prev             : two upwind nodes per direction and node
    !   inner            : inner-node mask
    !   depth, hmin      : water depth and minimum depth
    !   indx             : node order per sweep
-   !   thetamean        : mean offshore wave direction (rad), as used for indx
    !
    ! Output:
    !   nstrip           : number of strips used
@@ -1828,34 +1855,28 @@ contains
    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
    !
    use snapwave_data, only: nstrips, strip_minnodes
-   use hpsort_eps,    only: hpsort_eps_epw
    !$ use omp_lib,    only: omp_get_max_threads
    !
    implicit none
    !
    integer,                                 intent(in)    :: no_nodes, ntheta
-   real*8,  dimension(no_nodes),            intent(in)    :: x, y
    integer, dimension(2, ntheta, no_nodes), intent(in)    :: prev
    logical, dimension(no_nodes),            intent(in)    :: inner
    real*4,  dimension(no_nodes),            intent(in)    :: depth
    real*4,                                  intent(in)    :: hmin
    integer, dimension(no_nodes, 4),         intent(in)    :: indx
-   real*4,                                  intent(in)    :: thetamean
    integer,                                 intent(out)   :: nstrip
    type(t_sweep_strips), dimension(4),      intent(inout) :: strips
    integer, dimension(no_nodes, 2),         intent(out)   :: strip_of
    integer, dimension(2),                   intent(out)   :: halo_n
    integer, dimension(no_nodes, 2),         intent(out)   :: halo_nodes
    !
-   real*4,                parameter   :: pi = 3.14159265
-   integer, dimension(2), parameter   :: axis_shift = [0, 1]          ! sweep 1 and sweep 2 directions (as in indx)
+   integer, dimension(2), parameter   :: axis_order = [2, 4]          ! sweep whose order runs across axis 1 and axis 2
    integer, dimension(4), parameter   :: sweep_axis = [1, 2, 2, 1]
    !
-   integer, dimension(:), allocatable :: ind, next, mark
-   real*4,  dimension(:), allocatable :: rp
+   integer, dimension(:), allocatable :: next, mark
    logical, dimension(:), allocatable :: active
    integer                            :: nthreads, nact, nin, iact, a, sweep, count, k, j, i, itheta, s
-   real*4                             :: phi
    !
    allocate(active(no_nodes))
    !
@@ -1891,20 +1912,13 @@ contains
       !
    else
       !
-      allocate(ind(no_nodes), rp(no_nodes), mark(no_nodes))
+      allocate(mark(no_nodes))
       !
       do a = 1, 2
          !
-         phi = thetamean + 0.5 * pi * axis_shift(a)
-         do k = 1, no_nodes
-            rp(k) = real(-x(k) * sin(phi) + y(k) * cos(phi), 4)
-         enddo
-         ind(1) = 0
-         call hpsort_eps_epw(no_nodes, rp, ind, 1.0e-6)
-         !
          iact = 0
          do count = 1, no_nodes
-            k = ind(count)
+            k = indx(count, axis_order(a))
             if (.not. inner(k)) cycle
             strip_of(k, a) = 1 + min(nstrip - 1, int(dble(iact) * nstrip / dble(max(nact, 1))))
             if (active(k)) iact = iact + 1
@@ -1939,7 +1953,7 @@ contains
          !
       enddo
       !
-      deallocate(ind, rp, mark)
+      deallocate(mark)
       !
    endif
    !
