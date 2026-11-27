@@ -224,6 +224,12 @@ More parameters for model input (only for advanced users)
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	cbrt
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation without the power function that overestimates h^(1/3) by at most 0.13 %. In the testbed, 'fast' reduced the run time by about 10-20 %.
+	  :units:		-
+	  :default:		exact
+	  :min:			exact
+	  :max:			fast
 	wiggle_threshold
 	  :description:		Threshold for the difference in water level acceleration between two neighbouring cells above which the wiggle suppression limiter is applied (when wiggle_suppression = 1).
 	  :units:		m/s2
@@ -293,12 +299,12 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
-	h73table
-	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
+	h73table - deprecated after SFINCS v2.5.0, the keyword is ignored, replaced by 'cbrt'
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation. The lookup table has been removed; a model that sets h73table gives a warning, and the keyword has no effect. Use cbrt = fast for a fast approximation instead (about 10-20 % shorter run time in the testbed).
 	  :units:		logical
 	  :default:		0
 	  :min:			0
-	  :max:			1		    
+	  :max:			1
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
@@ -619,7 +625,7 @@ Domain
 	  :required:		Only if 'inputformat = bin'
 	  :format:		bin	  
 	mskfile = sfincs.msk
-	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2) or outflow boundary cell msk=3).
+	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2), outflow boundary cell (msk=3), downstream river boundary cell (msk=5) or Neumann boundary cell (msk=6). Other positive values stop the model with an error.
 	  :units:		-
 	  :required:		yes	  
 	  :format:		bin or asc	  
