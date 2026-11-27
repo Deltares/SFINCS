@@ -310,6 +310,9 @@ module snapwave_data
    logical                                   :: iterative_srcig     ! IG source/sink term calculated in the iterative loop (true, bit slower), or based on previous timestep (false)
    real*4                                    :: crit
    integer                                   :: nr_sweeps
+   integer                                   :: stripstats      ! DIAGNOSTIC: 1 = log strip-decomposition statistics of the sweeps on first SnapWave call
+   integer                                   :: nstrips         ! number of strips for the parallel sweep: 1 = serial sweep, 0 = automatic, >1 = fixed
+   integer                                   :: strip_minnodes  ! minimum number of active nodes per strip when nstrips = 0
    !
    logical                                   :: restart
    logical                                   :: coupled_to_sfincs

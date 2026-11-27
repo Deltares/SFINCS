@@ -63,8 +63,16 @@
    !
    
    use sfincs_log
-    
+
    implicit none
+   !
+   ! Strip schedule of one ordered sweep: nodes(ptr(s):ptr(s+1)-1) are the inner nodes of strip s,
+   ! in sweep order. Strips lie side by side across the sweep direction and are swept in parallel.
+   !
+   type t_sweep_strips
+      integer, dimension(:), allocatable :: ptr
+      integer, dimension(:), allocatable :: nodes
+   end type t_sweep_strips
 
 contains
    
@@ -540,6 +548,18 @@ contains
    real*4                                     :: depthlimfac
    real*4                                     :: waveps=0.0001
    !
+   ! Strip-parallel sweeps
+   !
+   type(t_sweep_strips), dimension(4)         :: strips                 ! strip schedule per sweep
+   integer, dimension(:,:), allocatable       :: strip_of               ! strip of each node per axis (0 = not inner)
+   integer, dimension(:,:), allocatable       :: halo_nodes             ! inner nodes read by another strip, per axis
+   integer, dimension(2)                      :: halo_n                 ! number of halo nodes per axis
+   integer                                    :: nstrip                 ! number of strips used in this call
+   integer                                    :: istrip, ii, axis, sk, l1, l2
+   real*4, dimension(:,:), allocatable        :: ee_s, ee_ig_s, aa_s    ! start-of-sweep copies of halo nodes
+   real*4, dimension(:), allocatable          :: cg_s                   ! start-of-sweep copy of cg of halo nodes
+   real*4                                     :: ee1, ee2, cg1, cg2, eig1, eig2, aa1, aa2 ! upwind values (live or start-of-sweep)
+   !
    ! Allocate local arrays
    !
    waveps = 0.0001
@@ -703,7 +723,34 @@ contains
          endif
          !
       enddo
-   enddo  
+   enddo
+   !
+   ! DIAGNOSTIC: strip-decomposition statistics of the ordered sweeps (first call only)
+   !
+   if (callno == 1) call compute_sweep_strip_stats(x, y, no_nodes, ntheta, prev, w, inner, indx, depth, hmin, thetamean)
+   !
+   ! Strip schedule of the four sweeps (indx and inner are fixed during this call)
+   !
+   allocate(strip_of(no_nodes, 2), halo_nodes(no_nodes, 2))
+   call build_sweep_strips(x, y, no_nodes, ntheta, prev, inner, depth, hmin, indx, thetamean, &
+                           nstrip, strips, strip_of, halo_n, halo_nodes)
+   !
+   if (callno == 1 .and. nstrip > 1) then
+      write(logstr, '(a,i0,a,i0,a,i0,a)') 'SnapWave: parallel sweep with ', nstrip, ' strips (', &
+         halo_n(1), ' + ', halo_n(2), ' halo nodes)'
+      call write_log(logstr, 0)
+   endif
+   !
+   if (nstrip > 1) then
+      allocate(ee_s(ntheta, no_nodes)); ee_s = 0.0
+      allocate(cg_s(no_nodes)); cg_s = 0.0
+      if (igwaves) then
+         allocate(ee_ig_s(ntheta, no_nodes)); ee_ig_s = 0.0
+      endif
+      if (wind) then
+         allocate(aa_s(ntheta, no_nodes)); aa_s = 0.0
+      endif
+   endif
    !
    ! Start iteration
    !
@@ -815,9 +862,39 @@ contains
       !
       !  Loop over all points depending on sweep direction
       !
-      do count = 1, no_nodes
+      ! Strip-parallel Gauss-Seidel sweep. The domain is split into strips lying side by side
+      ! across the sweep direction; each strip is swept serially in sweep order by one thread.
+      ! Upwind values from the same strip are read live (as in the serial sweep); upwind values
+      ! from another strip are read from a start-of-sweep copy (lagged by one sweep), so strips
+      ! are independent. With nstrip = 1 this is exactly the serial sweep.
+      !
+      axis = 1
+      if (sweep == 2 .or. sweep == 3) axis = 2
+      !
+      if (nstrip > 1) then
          !
-         k = indx(count, sweep)
+         !$omp parallel do private(ii, k) schedule(static)
+         do ii = 1, halo_n(axis)
+            k = halo_nodes(ii, axis)
+            ee_s(:, k) = ee(:, k)
+            cg_s(k)    = cg(k)
+            if (igwaves) ee_ig_s(:, k) = ee_ig(:, k)
+            if (wind)    aa_s(:, k)    = aa(:, k)
+         enddo
+         !$omp end parallel do
+         !
+      endif
+      !
+      !$omp parallel do if (nstrip > 1) schedule(dynamic, 1) &
+      !$omp private(istrip, ii, k, k1, k2, sk, l1, l2, ee1, ee2, cg1, cg2, eig1, eig2, aa1, aa2, &
+      !$omp         itheta, Ek, Hk, Ek_ig, Hk_ig, Ak, uorbi, Dfk, Dwk, Dvegk, DwT, DwAk, depthlimfac, Dfk_ig, Dwk_ig, &
+      !$omp         eeprev, cgprev, eeprev_ig, cgprev_ig, aaprev, A, B, C, R, A_ig, B_ig, C_ig, R_ig, B_aa, R_aa)
+      do istrip = 1, nstrip
+      !
+      do ii = strips(sweep)%ptr(istrip), strips(sweep)%ptr(istrip + 1) - 1
+         !
+         k  = strips(sweep)%nodes(ii)
+         sk = strip_of(k, axis)
          !
          ! Skip non-inner (boundary) nodes
          !
@@ -857,16 +934,65 @@ contains
             k1 = prev(1, itheta, k)
             k2 = prev(2, itheta, k)
             !
-            eeprev(itheta) = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)
-            cgprev(itheta) = w(1, itheta, k) * cg(k1)         + w(2, itheta, k) * cg(k2)
+            ! Upwind node in the same strip (or not inner, i.e. never updated in the sweep): live value.
+            ! Upwind node in another strip: start-of-sweep copy.
+            !
+            l1 = strip_of(k1, axis)
+            l2 = strip_of(k2, axis)
+            !
+            if (l1 == sk .or. l1 == 0) then
+               ee1 = ee(itheta, k1)
+               cg1 = cg(k1)
+            else
+               ee1 = ee_s(itheta, k1)
+               cg1 = cg_s(k1)
+            endif
+            !
+            if (l2 == sk .or. l2 == 0) then
+               ee2 = ee(itheta, k2)
+               cg2 = cg(k2)
+            else
+               ee2 = ee_s(itheta, k2)
+               cg2 = cg_s(k2)
+            endif
+            !
+            eeprev(itheta) = w(1, itheta, k) * ee1 + w(2, itheta, k) * ee2
+            cgprev(itheta) = w(1, itheta, k) * cg1 + w(2, itheta, k) * cg2
             !
             if (igwaves) then
-               eeprev_ig(itheta) = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)
-               cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1)         + w(2, itheta, k) * cg_ig(k2)
+               !
+               if (l1 == sk .or. l1 == 0) then
+                  eig1 = ee_ig(itheta, k1)
+               else
+                  eig1 = ee_ig_s(itheta, k1)
+               endif
+               !
+               if (l2 == sk .or. l2 == 0) then
+                  eig2 = ee_ig(itheta, k2)
+               else
+                  eig2 = ee_ig_s(itheta, k2)
+               endif
+               !
+               eeprev_ig(itheta) = w(1, itheta, k) * eig1 + w(2, itheta, k) * eig2
+               cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1) + w(2, itheta, k) * cg_ig(k2)
+               !
             endif
             !
             if (wind) then
-               aaprev(itheta) = w(1, itheta, k) * aa(itheta, k1) + w(2, itheta, k) * aa(itheta, k2)
+               !
+               if (l1 == sk .or. l1 == 0) then
+                  aa1 = aa(itheta, k1)
+               else
+                  aa1 = aa_s(itheta, k1)
+               endif
+               !
+               if (l2 == sk .or. l2 == 0) then
+                  aa2 = aa(itheta, k2)
+               else
+                  aa2 = aa_s(itheta, k2)
+               endif
+               !
+               aaprev(itheta) = w(1, itheta, k) * aa1 + w(2, itheta, k) * aa2
                aaprev(itheta) = min(aaprev(itheta), eeprev(itheta) / sigmin)
                aaprev(itheta) = max(aaprev(itheta), eeprev(itheta) / sigmax)
             endif
@@ -1135,6 +1261,9 @@ contains
          endif
          !
       enddo
+      !
+      enddo
+      !$omp end parallel do
       !
       if (sweep==4) then
          !
@@ -1495,5 +1624,342 @@ contains
    call system_clock (count,count_rate, count_max)
    t = real(dble(count) / dble(count_rate), 4)
    end subroutine timer
+   !
+   !
+   subroutine compute_sweep_strip_stats(x, y, no_nodes, ntheta, prev, w, inner, indx, depth, hmin, thetamean)
+   !
+   ! DIAGNOSTIC (snapwave_stripstats = 1): cost of a strip decomposition of the ordered sweeps.
+   !
+   ! For a parallel sweep, each sweep's domain would be split into nstrip strips lying side by
+   ! side across the sweep direction (equal numbers of active nodes per strip). Each strip is
+   ! swept serially in the existing sweep order; upwind values from another strip are read from
+   ! a start-of-sweep copy (lagged by one sweep).
+   !
+   ! For nstrip = 8, 24, 48 and each sweep, this logs:
+   !   - the share of "forward" upwind reads (upwind node earlier in the sweep order, i.e. read
+   !     as an updated value in the serial sweep) that would cross a strip boundary and become
+   !     lagged, both as a count and weighted with the interpolation weights w;
+   !   - the share of active nodes with at least one such lagged read;
+   !   - for reference, the share of "backward" reads, which are lagged in the serial sweep already.
+   !
+   ! Active nodes: inner and depth > hmin. Reads from non-inner nodes are never lagged (those
+   ! nodes are not updated during the sweep).
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver), first call only
+   !
+   use snapwave_data,  only: stripstats
+   use hpsort_eps,     only: hpsort_eps_epw
+   !
+   implicit none
+   !
+   integer,                                 intent(in) :: no_nodes, ntheta
+   real*8,  dimension(no_nodes),            intent(in) :: x, y
+   integer, dimension(2, ntheta, no_nodes), intent(in) :: prev
+   real*4,  dimension(2, ntheta, no_nodes), intent(in) :: w
+   logical, dimension(no_nodes),            intent(in) :: inner
+   integer, dimension(no_nodes, 4),         intent(in) :: indx
+   real*4,  dimension(no_nodes),            intent(in) :: depth
+   real*4,                                  intent(in) :: hmin
+   real*4,                                  intent(in) :: thetamean
+   !
+   integer, dimension(3), parameter   :: nstrips = [8, 24, 48]
+   integer, dimension(4), parameter   :: shift   = [0, 1, -1, 2]
+   real*4,                parameter   :: pi      = 3.14159265
+   !
+   integer, dimension(:), allocatable :: pos, strip, ind
+   real*4,  dimension(:), allocatable :: rp
+   logical, dimension(:), allocatable :: active
+   integer                            :: is, nstrip, sweep, count, k, j, i, itheta, nact, iact, nlagnode
+   integer*8                          :: nfwd, nlag, nback
+   real*8                             :: wfwd, wlag
+   logical                            :: lagged
+   real*4                             :: phi
+   !
+   if (stripstats /= 1) return
+   !
+   allocate(pos(no_nodes), strip(no_nodes), ind(no_nodes), rp(no_nodes), active(no_nodes))
+   !
+   nact = 0
+   do k = 1, no_nodes
+      active(k) = inner(k) .and. depth(k) > hmin
+      if (active(k)) nact = nact + 1
+   enddo
+   !
+   call write_log('', 0)
+   write(logstr, '(a,i0,a,i0,a,i0)') 'SnapWave strip stats: nodes = ', no_nodes, ', active = ', nact, ', ntheta = ', ntheta
+   call write_log(logstr, 0)
+   call write_log(' nstrip  sweep  nodes/strip  %fwd_reads_lagged  %fwd_weight_lagged  %nodes_with_lag  %backward_reads(serial)', 0)
+   !
+   do is = 1, size(nstrips)
+      !
+      nstrip = nstrips(is)
+      !
+      do sweep = 1, 4
+         !
+         do count = 1, no_nodes
+            pos(indx(count, sweep)) = count
+         enddo
+         !
+         ! Strips: sort on the coordinate perpendicular to the sweep direction, cut into equal shares of active nodes
+         !
+         phi = thetamean + 0.5 * pi * shift(sweep)
+         do k = 1, no_nodes
+            rp(k) = real(-x(k) * sin(phi) + y(k) * cos(phi), 4)
+         enddo
+         ind(1) = 0
+         call hpsort_eps_epw(no_nodes, rp, ind, 1.0e-6)
+         !
+         strip = 0
+         iact  = 0
+         do count = 1, no_nodes
+            k = ind(count)
+            if (.not. inner(k)) cycle
+            strip(k) = 1 + min(nstrip - 1, int(dble(iact) * nstrip / dble(max(nact, 1))))
+            if (active(k)) iact = iact + 1
+         enddo
+         !
+         nfwd     = 0
+         nlag     = 0
+         nback    = 0
+         wfwd     = 0.0d0
+         wlag     = 0.0d0
+         nlagnode = 0
+         !
+         do k = 1, no_nodes
+            !
+            if (.not. active(k)) cycle
+            !
+            lagged = .false.
+            !
+            do itheta = 1, ntheta
+               do i = 1, 2
+                  !
+                  j = prev(i, itheta, k)
+                  if (j <= 0 .or. j == k) cycle
+                  if (.not. inner(j)) cycle
+                  if (w(i, itheta, k) <= 0.0) cycle
+                  !
+                  if (pos(j) < pos(k)) then
+                     nfwd = nfwd + 1
+                     wfwd = wfwd + w(i, itheta, k)
+                     if (strip(j) /= strip(k)) then
+                        nlag   = nlag + 1
+                        wlag   = wlag + w(i, itheta, k)
+                        lagged = .true.
+                     endif
+                  else
+                     nback = nback + 1
+                  endif
+                  !
+               enddo
+            enddo
+            !
+            if (lagged) nlagnode = nlagnode + 1
+            !
+         enddo
+         !
+         write(logstr, '(i7,i7,f13.1,f19.2,f20.2,f17.2,f25.2)') nstrip, sweep, dble(nact) / nstrip, &
+            100.0d0 * dble(nlag) / dble(max(nfwd, 1_8)), 100.0d0 * wlag / max(wfwd, 1.0d-12), &
+            100.0d0 * dble(nlagnode) / dble(max(nact, 1)), 100.0d0 * dble(nback) / dble(max(nfwd + nback, 1_8))
+         call write_log(logstr, 0)
+         !
+      enddo
+      !
+   enddo
+   !
+   call write_log('', 0)
+   !
+   deallocate(pos, strip, ind, rp, active)
+   !
+   end subroutine compute_sweep_strip_stats
+   !
+   !
+   subroutine build_sweep_strips(x, y, no_nodes, ntheta, prev, inner, depth, hmin, indx, thetamean, &
+                                 nstrip, strips, strip_of, halo_n, halo_nodes)
+   !
+   ! Build the strip schedule of the four ordered sweeps.
+   !
+   ! Number of strips (snapwave_nstrips): 1 = serial sweep, >1 = fixed, 0 = automatic:
+   ! min(number of OpenMP threads, active nodes / snapwave_strip_minnodes), at least 1.
+   !
+   ! For each of the two sweep axes (axis 1: sweeps 1 and 4 along thetamean; axis 2: sweeps 2
+   ! and 3, perpendicular to it), inner nodes are sorted on the coordinate perpendicular to the
+   ! sweep direction and cut into nstrip strips with equal numbers of active nodes. Per sweep,
+   ! the inner nodes of each strip are listed in sweep order (indx). Halo nodes are inner nodes
+   ! that are an upwind node of an active node in another strip; only these need a
+   ! start-of-sweep copy.
+   !
+   ! Input:
+   !   x, y             : node coordinates
+   !   no_nodes, ntheta : number of nodes and directions
+   !   prev             : two upwind nodes per direction and node
+   !   inner            : inner-node mask
+   !   depth, hmin      : water depth and minimum depth
+   !   indx             : node order per sweep
+   !   thetamean        : mean offshore wave direction (rad), as used for indx
+   !
+   ! Output:
+   !   nstrip           : number of strips used
+   !   strips           : strip schedule per sweep
+   !   strip_of         : strip of each node per axis (0 = not inner)
+   !   halo_n           : number of halo nodes per axis
+   !   halo_nodes       : halo nodes per axis
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   use snapwave_data, only: nstrips, strip_minnodes
+   use hpsort_eps,    only: hpsort_eps_epw
+   !$ use omp_lib,    only: omp_get_max_threads
+   !
+   implicit none
+   !
+   integer,                                 intent(in)    :: no_nodes, ntheta
+   real*8,  dimension(no_nodes),            intent(in)    :: x, y
+   integer, dimension(2, ntheta, no_nodes), intent(in)    :: prev
+   logical, dimension(no_nodes),            intent(in)    :: inner
+   real*4,  dimension(no_nodes),            intent(in)    :: depth
+   real*4,                                  intent(in)    :: hmin
+   integer, dimension(no_nodes, 4),         intent(in)    :: indx
+   real*4,                                  intent(in)    :: thetamean
+   integer,                                 intent(out)   :: nstrip
+   type(t_sweep_strips), dimension(4),      intent(inout) :: strips
+   integer, dimension(no_nodes, 2),         intent(out)   :: strip_of
+   integer, dimension(2),                   intent(out)   :: halo_n
+   integer, dimension(no_nodes, 2),         intent(out)   :: halo_nodes
+   !
+   real*4,                parameter   :: pi = 3.14159265
+   integer, dimension(2), parameter   :: axis_shift = [0, 1]          ! sweep 1 and sweep 2 directions (as in indx)
+   integer, dimension(4), parameter   :: sweep_axis = [1, 2, 2, 1]
+   !
+   integer, dimension(:), allocatable :: ind, next, mark
+   real*4,  dimension(:), allocatable :: rp
+   logical, dimension(:), allocatable :: active
+   integer                            :: nthreads, nact, nin, iact, a, sweep, count, k, j, i, itheta, s
+   real*4                             :: phi
+   !
+   allocate(active(no_nodes))
+   !
+   nact = 0
+   nin  = 0
+   do k = 1, no_nodes
+      active(k) = inner(k) .and. depth(k) > hmin
+      if (active(k)) nact = nact + 1
+      if (inner(k))  nin  = nin + 1
+   enddo
+   !
+   ! Number of strips
+   !
+   nthreads = 1
+   !$ nthreads = omp_get_max_threads()
+   !
+   if (nstrips == 0) then
+      nstrip = max(1, min(nthreads, nact / max(strip_minnodes, 1)))
+   else
+      nstrip = max(1, min(nstrips, max(nact, 1)))
+   endif
+   !
+   ! Strip of each node per axis
+   !
+   strip_of = 0
+   halo_n   = 0
+   !
+   if (nstrip == 1) then
+      !
+      do k = 1, no_nodes
+         if (inner(k)) strip_of(k, :) = 1
+      enddo
+      !
+   else
+      !
+      allocate(ind(no_nodes), rp(no_nodes), mark(no_nodes))
+      !
+      do a = 1, 2
+         !
+         phi = thetamean + 0.5 * pi * axis_shift(a)
+         do k = 1, no_nodes
+            rp(k) = real(-x(k) * sin(phi) + y(k) * cos(phi), 4)
+         enddo
+         ind(1) = 0
+         call hpsort_eps_epw(no_nodes, rp, ind, 1.0e-6)
+         !
+         iact = 0
+         do count = 1, no_nodes
+            k = ind(count)
+            if (.not. inner(k)) cycle
+            strip_of(k, a) = 1 + min(nstrip - 1, int(dble(iact) * nstrip / dble(max(nact, 1))))
+            if (active(k)) iact = iact + 1
+         enddo
+         !
+         ! Halo nodes: inner upwind nodes of an active node in another strip
+         !
+         mark = 0
+         !
+         !$omp parallel do private(k, itheta, i, j) schedule(static)
+         do k = 1, no_nodes
+            if (.not. active(k)) cycle
+            do itheta = 1, ntheta
+               do i = 1, 2
+                  j = prev(i, itheta, k)
+                  if (j <= 0) cycle
+                  if (strip_of(j, a) /= 0 .and. strip_of(j, a) /= strip_of(k, a)) then
+                     !$omp atomic write
+                     mark(j) = 1
+                  endif
+               enddo
+            enddo
+         enddo
+         !$omp end parallel do
+         !
+         do k = 1, no_nodes
+            if (mark(k) == 1) then
+               halo_n(a) = halo_n(a) + 1
+               halo_nodes(halo_n(a), a) = k
+            endif
+         enddo
+         !
+      enddo
+      !
+      deallocate(ind, rp, mark)
+      !
+   endif
+   !
+   ! Per sweep: inner nodes per strip, in sweep order (counting sort on strip)
+   !
+   allocate(next(nstrip + 1))
+   !
+   do sweep = 1, 4
+      !
+      a = sweep_axis(sweep)
+      !
+      if (allocated(strips(sweep)%ptr))   deallocate(strips(sweep)%ptr)
+      if (allocated(strips(sweep)%nodes)) deallocate(strips(sweep)%nodes)
+      allocate(strips(sweep)%ptr(nstrip + 1))
+      allocate(strips(sweep)%nodes(max(nin, 1)))
+      !
+      strips(sweep)%ptr = 0
+      do k = 1, no_nodes
+         s = strip_of(k, a)
+         if (s > 0) strips(sweep)%ptr(s + 1) = strips(sweep)%ptr(s + 1) + 1
+      enddo
+      strips(sweep)%ptr(1) = 1
+      do s = 1, nstrip
+         strips(sweep)%ptr(s + 1) = strips(sweep)%ptr(s + 1) + strips(sweep)%ptr(s)
+      enddo
+      !
+      next = strips(sweep)%ptr
+      do count = 1, no_nodes
+         k = indx(count, sweep)
+         s = strip_of(k, a)
+         if (s > 0) then
+            strips(sweep)%nodes(next(s)) = k
+            next(s) = next(s) + 1
+         endif
+      enddo
+      !
+   enddo
+   !
+   deallocate(next, active)
+   !
+   end subroutine build_sweep_strips
 
 end module snapwave_solver 
