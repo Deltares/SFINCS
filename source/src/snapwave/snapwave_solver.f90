@@ -1177,7 +1177,8 @@ contains
          !
          ! Copy the new energy directly to the Neumann nodes connected to this node. Energy then
          ! travels along a Neumann boundary within one sweep, instead of one node per sweep
-         ! through the copy at the start of each sweep.
+         ! through the copy at the start of each sweep. With wind, cg is copied as well, since
+         ! cg(k) was updated in this sweep and the next inner node uses it as upwind group velocity.
          !
          do ineu = neu_start(k), neu_start(k + 1) - 1
             !
@@ -1185,7 +1186,12 @@ contains
             ee(:, kn)    = ee(:, k)
             ee_ig(:, kn) = ee_ig(:, k)
             !
-            if (wind) aa(:, kn) = aa(:, k)
+            if (wind) then
+               !
+               aa(:, kn) = aa(:, k)
+               cg(kn)    = cg(k)
+               !
+            endif
             !
          enddo
          !
