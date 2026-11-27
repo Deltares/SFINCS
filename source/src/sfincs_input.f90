@@ -145,7 +145,7 @@ contains
       call get_keyword(500, 'utmzone',                         utmzone,                         'nil')             ! UTM zone string (e.g. '17N')
       call get_keyword(500, 'epsg',                            epsg,                            0)                 ! EPSG integer code for the grid
       call get_keyword(500, 'epsg',                            epsg_code,                       'nil')             ! EPSG as string (fallback)
-      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on advection term
+      call get_keyword(500, 'advlim',                          advlim,                          1.0)               ! cap on the acceleration by the advection term (m/s2); a value like 9999.9 is so high that it has no effect
       call get_keyword(500, 'slopelim',                        slopelim,                        9999.9)            ! cap on bed-slope water-level gradient
       call get_keyword(500, 'qinf_zmin',                       qinf_zmin,                       0.0)               ! minimum bed level for infiltration to apply (m)
       call get_keyword(500, 'btfilter',                        btfilter,                        60.0)              ! bathtub filter time scale (s)
@@ -204,13 +204,16 @@ contains
       call get_keyword(500, 'btrelax',                         btrelax,                         3600.0)            ! bathtub relaxation time (s)
       call get_keyword(500, 'wiggle_suppression',              wiggle_suppression,              .true.)            ! suppress spurious free-surface oscillations
       call get_keyword(500, 'structure_relax',                 structure_relax,                 10.0)              ! discharge relaxation time scale (s)
-      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! wiggle-suppression amplitude factor
-      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! wiggle-suppression trigger threshold
+      call get_keyword(500, 'wiggle_factor',                   wiggle_factor,                   0.1)               ! amplitude factor of the original limiter (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_threshold',                wiggle_threshold,                0.1)               ! trigger threshold of the original limiter (used with wiggle_detect)
+      call get_keyword(500, 'wiggle_facmin',                   wiggle_facmin,                   0.1)               ! lower bound of the under-relaxation factor (-), 0 to 1 (only with wiggle_detect = 0)
+      call get_keyword(500, 'wiggle_detect',                   wiggle_detect,                   .true.)            ! wiggle suppression method: 1 = original limiter, 0 = under-relaxation with the wet fraction
       call get_keyword(500, 'cbrt',                            cbrtstr,                         'exact')           ! cube root hu**(1/3) in the friction term ('exact', or 'fast' = approximation, at most 0.13 % too high)
       call get_keyword(500, 'uvlim',                           uvlim,                           10.0)              ! clipping velocity for momentum (m/s)
       call get_keyword(500, 'uvmax',                           uvmax,                           1000.0)            ! error-trigger velocity for momentum (m/s)
       call get_keyword(500, 'friction2d',                      friction2d,                      .true.)            ! apply friction at every UV point (true) or cell-wise (false)
-      call get_keyword(500, 'advection_mask',                  advection_mask,                  .true.)            ! mask advection near dry cells
+      call get_keyword(500, 'advection_mask',                  advection_mask,                  .true.)            ! switch off advection at uv points next to open boundary and wave maker points
+      call get_keyword(500, 'advection_bank_correction',       advection_bank_correction,       .false.)           ! weight the partner faces in the advection stencil with their depth/flux ratio
       call get_keyword(500, 'nuviscfac',                       nuviscfac,                       100.0)             ! multiplier on nuvisc near "difficult" points
       call get_keyword(500, 'nonh',                            nonhydrostatic,                  .false.)           ! enable non-hydrostatic pressure corrector
       call get_keyword(500, 'nh_fnudge',                       nh_fnudge,                       0.9)               ! non-hydrostatic nudging factor
@@ -660,6 +663,14 @@ contains
          else
             write(logstr, *) 'Warning : advection scheme ', trim(advstr), ' not recognized! Using default upw1 instead!'
             call write_log(logstr, 1)
+         endif
+         !
+         if (advection_bank_correction .and. advection_scheme /= 1) then
+            !
+            ! The bank correction only exists in the upw1 scheme
+            !
+            call write_log('Warning : advection_bank_correction is only available with advection_scheme = upw1, and is not used!', 1)
+            !
          endif
          !
       endif

@@ -2327,7 +2327,10 @@ contains
    endif
    !
    ! And now set the mask
-   ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
+   ! The advection term at uv points that have neighbors that are 1) boundary points or
+   ! 2) wave maker points will be set to 0.0
+   ! A missing neighbor (dummy index npuv + ncuv + 1, next to an inactive cell) does not switch off advection:
+   ! the edge of the active domain is a closed wall, not an open boundary.
    !
    if (advection) then
       !
@@ -2342,14 +2345,14 @@ contains
             !
             do ip = 1, npuv
                !
-               if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_nm(ip)) /= 1  .or. &
-                    kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_num(ip)) /= 1 ) then
+               if ( (kcuv(uv_index_u_nmu(ip))  /= 1 .and. uv_index_u_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_nmd(ip))  /= 1 .and. uv_index_u_nmd(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nm(ip))   /= 1 .and. uv_index_v_nm(ip)   <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nmu(ip))  /= 1 .and. uv_index_v_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndm(ip))  /= 1 .and. uv_index_v_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndmu(ip)) /= 1 .and. uv_index_v_ndmu(ip) <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_ndm(ip))  /= 1 .and. uv_index_u_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_num(ip))  /= 1 .and. uv_index_u_num(ip)  <= npuv + ncuv) ) then
                   !
                   mask_adv(ip) = 0
                   !
@@ -2404,13 +2407,24 @@ contains
    !
    kfuv = 0 
    !
-   if (wiggle_suppression) then 
-      ! 
+   if (wiggle_suppression) then
+      !
+      ! Arrays of both wiggle suppression methods. All three are allocated for either method,
+      ! because they are all in the OpenACC data lists. Only the arrays of the selected method
+      ! are updated during the simulation.
+      !
+      ! Original limiter (wiggle_detect = 1): previous water level and second time difference of the water level
+      !
       allocate(zs0(np))
       allocate(zsderv(np))
-      zs0 = 0.0
+      zs0    = 0.0
       zsderv = 0.0
-      ! 
+      !
+      ! Under-relaxation (wiggle_detect = 0): wet-area fraction of the cells
+      !
+      allocate(z_wetfrac(np))
+      z_wetfrac = 1.0
+      !
    endif
    !
    if (snapwave) then
@@ -2465,8 +2479,10 @@ contains
    !
    call set_initial_conditions()
    !
-   if (wiggle_suppression) then 
+   if (wiggle_suppression .and. wiggle_detect) then
+      !
       zs0 = zs
+      !
    endif
    !
    ! Loop through combined uv points and determine average uv and q (this also happens at the end of sfincs_momentum.f90).
