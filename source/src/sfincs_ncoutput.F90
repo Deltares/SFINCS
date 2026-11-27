@@ -1569,9 +1569,10 @@ contains
             ! Water level and depth only at points that are not completely dry. Unlike the map
             ! output, huthresh is not used here, so that shallow water (e.g. from rainfall)
             ! still shows up in the time series. The small tolerance avoids flickering between
-            ! fill values and zb due to round-off after a cell has drained.
+            ! fill values and zb due to round-off after a cell has drained. Inactive cells
+            ! (kcs = 0) are never updated, so they get no water level either.
             !
-            if (hloc > 0.0001) then
+            if (hloc > 0.0001 .and. kcs(nm) > 0) then
                !
                zobs(iobs) = zs(nm)
                hobs(iobs) = hloc
@@ -2038,12 +2039,14 @@ contains
         NF90(nf90_put_att(ncid, varid, 'uvlim',uvlim))  
         NF90(nf90_put_att(ncid, varid, 'uvmax',uvmax))  
         NF90(nf90_put_att(ncid, varid, 'advection_mask',logical2int(advection_mask)))
+        NF90(nf90_put_att(ncid, varid, 'advection_bank_correction',logical2int(advection_bank_correction)))
         NF90(nf90_put_att(ncid, varid, 'friction2d',logical2int(friction2d)))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_suppression',logical2int(wiggle_suppression)))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_factor',wiggle_factor))  
         NF90(nf90_put_att(ncid, varid, 'wiggle_threshold',wiggle_threshold)) 
         NF90(nf90_put_att(ncid, varid, 'wiggle_facmin',wiggle_facmin))
         NF90(nf90_put_att(ncid, varid, 'wiggle_detect',logical2int(wiggle_detect)))
+        NF90(nf90_put_att(ncid, varid, 'cbrt_fast',logical2int(cbrt_fast)))
         NF90(nf90_put_att(ncid, varid, 'slopelim',slopelim))            
         NF90(nf90_put_att(ncid, varid, 'qinf_zmin',qinf_zmin))    
         NF90(nf90_put_att(ncid, varid, 'btfilter', btfilter))                     

@@ -60,7 +60,7 @@ These inputs are then ignored.
 The 'sfincs.nc'qtrfile follows the UGRID conventions (dimension 'mesh2d_nFaces' for the cells, https://ugrid-conventions.github.io/ugrid-conventions/) and contains:
 
 * global attributes 'x0', 'y0', 'dx', 'dy', 'mmax', 'nmax', 'rotation' and 'nr_levels' describing the coarse grid;
-* per cell: the refinement level ('level'), the indices within that level ('n', 'm'), the indices of the neighbouring cells in each direction ('mu', 'mu1', 'mu2', 'md', 'md1', 'md2', 'nu', 'nu1', 'nu2', 'nd', 'nd1', 'nd2'), the bed level ('z') and the mask ('mask', with the same values 6 as described in :ref:`mask_file` in 'User manual - General').
+* per cell: the refinement level ('level'), the indices within that level ('n', 'm'), the indices of the neighbouring cells in each direction ('mu', 'mu1', 'mu2', 'md', 'md1', 'md2', 'nu', 'nu1', 'nu2', 'nd', 'nd1', 'nd2'), the bed level ('z') and the mask ('mask', with the same values as described in :ref:`mask_file` in 'User manual - General').
 
 The cells are numbered per refinement level, starting with level 1. Within a level, n runs fastest, so the cells are numbered column by column.
 The 'n' and 'm' indices of a cell count rows and columns of its own level, so level l has 2^(l-1) * nmax rows and 2^(l-1) * mmax columns.

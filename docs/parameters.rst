@@ -65,7 +65,7 @@ Parameters for model input
 	  :min:			upw1	
 	  :max:			original	  
 	advlim
-	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default
+	  :description:		Limit advection term (when advection > 0) such that horizontal acceleration due to advection does not exceed advlim (default 1.0 m/s2, so limiter turned on by default). A high value like 9999.9 switches the limiter off.
 	  :units:		m/s2
 	  :default:		1.0 - updated from SFINCS v2.2.0 onwards
 	  :min:			0
@@ -224,6 +224,12 @@ More parameters for model input (only for advanced users)
 	  :min:			False
 	  :max:			True
 	  :limitation:	Only for subgrid mode
+	cbrt
+	  :description:		Cube root of the water depth in the friction term (h^(7/3), and h^(5/3) at points that just became wet). 'exact' uses the power function; 'fast' uses an approximation without the power function that overestimates h^(1/3) by at most 0.13 %. In the testbed, 'fast' reduced the run time by about 10-20 %.
+	  :units:		-
+	  :default:		exact
+	  :min:			exact
+	  :max:			fast
 	wiggle_detect
 	  :description:		Method of the wiggle suppression (when wiggle_suppression = 1). True: at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor. False: under-relaxation of the flux increment with the wet-area fraction (see wiggle_suppression and wiggle_facmin).
 	  :units:		logical
@@ -248,6 +254,12 @@ More parameters for model input (only for advanced users)
 	  :default:		0.1
 	  :min:			0.0
 	  :max:			Inf
+	advection_bank_correction - added from SFINCS v2.5.1 onwards
+	  :description:		Weights the velocity differences with the four neighbouring uv points in the advection term (advection_scheme = upw1) with the larger of the depth ratio and the flux ratio between neighbour and uv point (at most 1). A dry or shallow neighbour then no longer slows down the flow along a bank that follows the grid in steps.
+	  :units:		logical
+	  :default:		False
+	  :min:			False
+	  :max:			True
 	uvlim - added from SFINCS v2.2.0 onwards
 	  :description:		Limit flux velocity (default 10 m/s)
 	  :units:		m/s
@@ -299,12 +311,12 @@ More parameters for model input (only for advanced users)
 	  :default:		nil
 	  :min:			-
 	  :max:			-
-	h73table
-	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation, depending on model schematisation can lead to ~0-30% speedup of model, default is off (0)
+	h73table - deprecated after SFINCS v2.5.0, the keyword is ignored, replaced by 'cbrt'
+	  :description:		Option to use lookup table to calculate nonlinear term h^(7/3) in momentum equation. The lookup table has been removed; a model that sets h73table gives a warning, and the keyword has no effect. Use cbrt = fast for a fast approximation instead (about 10-20 % shorter run time in the testbed).
 	  :units:		logical
 	  :default:		0
 	  :min:			0
-	  :max:			1		    
+	  :max:			1
 	structure_relax
 	  :description:		Relaxation time constant for drainage structure discharges: the discharge follows the structure formula with a first-order lag of about structure_relax seconds (alpha = dt / (structure_relax + dt)). 0 disables the relaxation.
 	  :units:		s
@@ -625,7 +637,7 @@ Domain
 	  :required:		Only if 'inputformat = bin'
 	  :format:		bin	  
 	mskfile = sfincs.msk
-	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2) or outflow boundary cell msk=3).
+	  :description:		This mask indicates for every cell whether it is an inactive cell (msk=0), active cell (msk=1), water level boundary cell (msk=2), outflow boundary cell (msk=3), downstream river boundary cell (msk=5) or Neumann boundary cell (msk=6). Other positive values stop the model with an error.
 	  :units:		-
 	  :required:		yes	  
 	  :format:		bin or asc	  

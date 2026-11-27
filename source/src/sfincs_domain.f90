@@ -137,8 +137,6 @@ contains
    !
    call set_advection_mask()
    !
-   call fill_h73_tables()
-   !
    end subroutine
 
 
@@ -242,6 +240,7 @@ contains
    integer ip, n, m, nm, nmu, num, iref, npu, npv, ndm, nmd, iq
    integer ndmu, nmdu, numu
    integer irefuv, npuvtotal, icuv
+   integer nbad, ibad
    logical ok
    !
    ! Temporary arrays
@@ -569,8 +568,33 @@ contains
          z_index_z_md2(ip)   = index_sfincs_in_quadtree(quadtree_md2(iq))
       endif
       !
-   enddo   
-   ! 
+   enddo
+   !
+   ! Check the mask values. Valid are 0 (inactive, already removed), 1 (regular), 2 (water level
+   ! boundary), 3 (outflow), 5 (downstream river) and 6 (Neumann). 4 is used internally for wave
+   ! maker cells. Other values would give active cells that are never updated.
+   !
+   nbad = 0
+   !
+   do ip = 1, np
+      !
+      if (kcs(ip) == 4 .or. kcs(ip) > 6) then
+         !
+         nbad = nbad + 1
+         ibad = kcs(ip)
+         !
+      endif
+      !
+   enddo
+   !
+   if (nbad > 0) then
+      !
+      write(logstr,'(a,i0,a,i0,a)')'Error ! Mask contains ', nbad, ' cells with an invalid value (e.g. ', ibad, &
+         '). Valid mask values are 0, 1, 2, 3, 5 and 6 !'
+      call stop_sfincs(trim(logstr), 1)
+      !
+   endif
+   !
    ! Loop through quadtree to count the number of u and v points
    !
    npu = 0
@@ -1877,8 +1901,56 @@ contains
    integer :: nm
    integer :: nmu
    integer :: ikcuv2
+   integer :: nr_inactive
+   !
+   logical, dimension(:), allocatable :: linked
    !
    ! BOUNDARIES
+   !
+   ! Boundary cells (kcs = 2, 3, 5 or 6) that do not share a uv point with a regular cell
+   ! (kcs = 1), typically the corner cells of a boundary, never get a water level. Make them
+   ! inactive (kcs = 0), so that they are left out of the boundary arrays and the output.
+   !
+   allocate(linked(np))
+   !
+   linked = .false.
+   !
+   ! Loop over uv points and check if they are linked to a regular cell. If so, mark the boundary cell as linked.
+   !
+   do ip = 1, npuv
+      !
+      nm  = uv_index_z_nm(ip)
+      nmu = uv_index_z_nmu(ip)
+      !
+      if (kcs(nm) == 1) linked(nmu) = .true.
+      if (kcs(nmu) == 1) linked(nm) = .true.
+      !
+   enddo
+   !
+   nr_inactive = 0
+   !
+   ! Loop over boundary cells and make inactive those that are not linked to a regular cell
+   !
+   do nm = 1, np
+      !
+      if ((kcs(nm) == 2 .or. kcs(nm) == 3 .or. kcs(nm) == 5 .or. kcs(nm) == 6) .and. .not. linked(nm)) then
+         !
+         kcs(nm)     = 0
+         nr_inactive = nr_inactive + 1
+         !
+      endif
+      !
+   enddo
+   !
+   deallocate(linked)
+   !
+   if (nr_inactive > 0) then
+      !
+      write(logstr,'(a,i0,a)')'Info    : ', nr_inactive, &
+         ' boundary cell(s) without a link to a regular cell made inactive (msk = 0)'
+      call write_log(logstr, 0)
+      !
+   endif
    !
    ! First count number of boundary cells
    !
@@ -2255,7 +2327,10 @@ contains
    endif
    !
    ! And now set the mask
-   ! The advection term at uv points that have neighbors that are 1) boundary points or 2) wave maker points will be set to 0.0
+   ! The advection term at uv points that have neighbors that are 1) boundary points or
+   ! 2) wave maker points will be set to 0.0
+   ! A missing neighbor (dummy index npuv + ncuv + 1, next to an inactive cell) does not switch off advection:
+   ! the edge of the active domain is a closed wall, not an open boundary.
    !
    if (advection) then
       !
@@ -2270,14 +2345,14 @@ contains
             !
             do ip = 1, npuv
                !
-               if ( kcuv(uv_index_u_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_nmd(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_nm(ip)) /= 1  .or. &
-                    kcuv(uv_index_v_nmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_v_ndmu(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_ndm(ip)) /= 1 .or. &
-                    kcuv(uv_index_u_num(ip)) /= 1 ) then
+               if ( (kcuv(uv_index_u_nmu(ip))  /= 1 .and. uv_index_u_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_nmd(ip))  /= 1 .and. uv_index_u_nmd(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nm(ip))   /= 1 .and. uv_index_v_nm(ip)   <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_nmu(ip))  /= 1 .and. uv_index_v_nmu(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndm(ip))  /= 1 .and. uv_index_v_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_v_ndmu(ip)) /= 1 .and. uv_index_v_ndmu(ip) <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_ndm(ip))  /= 1 .and. uv_index_u_ndm(ip)  <= npuv + ncuv) .or. &
+                    (kcuv(uv_index_u_num(ip))  /= 1 .and. uv_index_u_num(ip)  <= npuv + ncuv) ) then
                   !
                   mask_adv(ip) = 0
                   !

@@ -110,7 +110,6 @@ contains
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc               x73, &
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &
@@ -170,7 +169,6 @@ contains
    !$acc               dxminv, dxrinv, dyrinv, dxm2inv, dxr2inv, dyr2inv, dxrinvc, dyrinvc, dxm, dxrm, dyrm, cell_area_m2, cell_area, &
    !$acc               gn2uv, fcorio2d, storage_volume, nuvisc, &
    !$acc               cuv_index_uv, cuv_index_uv1, cuv_index_uv2, &
-   !$acc               x73, &
    !$acc               gnapp2, &
    !$acc               timestep_analysis_required_timestep, timestep_analysis_average_required_timestep, timestep_analysis_times_wet, timestep_analysis_times_limiting, &   
    !$acc               qinffield, qinfmap, cuminf, scs_rain, scs_Se, scs_P1, scs_F1, scs_S1, rain_T1, &

@@ -59,7 +59,7 @@ libsfincs_la_SOURCES = \
 	../third_party_open/utils/geometry.f90 \
 	../third_party_open/utils/hpsort_eps.f90 \
 	sfincs_error.f90 \
-	sfincs_quadtree.f90 \
+	sfincs_quadtree.F90 \
 	sfincs_ncinput.F90 \
 	sfincs_vegetation.f90 \
 	snapwave/interp.F90 \
@@ -74,7 +74,7 @@ libsfincs_la_SOURCES = \
 	snapwave/snapwave_RFtable.f90 \
 	snapwave/snapwave_vegetation.f90 \
 	snapwave/snapwave_solver.f90 \
-	sfincs_initial_conditions.f90 \
+	sfincs_initial_conditions.F90 \
 	sfincs_boundaries.f90 \
 	sfincs_crosssections.f90 \
 	sfincs_discharges.f90 \
