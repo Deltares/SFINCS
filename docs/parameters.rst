@@ -230,13 +230,13 @@ More parameters for model input (only for advanced users)
 	  :default:		exact
 	  :min:			exact
 	  :max:			fast
-	wiggle_detect
+	wiggle_detect - added from SFINCS v2.5.1 onwards
 	  :description:		Method of the wiggle suppression (when wiggle_suppression = 1). True: at uv points where the water level accelerations of the two neighbouring cells differ by more than wiggle_threshold, the flux is reduced by a factor that depends on wiggle_factor. False: under-relaxation of the flux increment with the wet-area fraction (see wiggle_suppression and wiggle_facmin).
 	  :units:		logical
 	  :default:		True
 	  :min:			False
 	  :max:			True
-	wiggle_facmin
+	wiggle_facmin - added from SFINCS v2.5.1 onwards
 	  :description:		Lower bound of the under-relaxation factor of the wiggle suppression (when wiggle_suppression = 1 and wiggle_detect = 0).
 	  :units:		-
 	  :default:		0.1
