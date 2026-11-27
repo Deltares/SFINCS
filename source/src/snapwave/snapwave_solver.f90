@@ -513,6 +513,7 @@ contains
    real*4                                     :: rhog8
    real*4                                     :: Dfk
    real*4                                     :: Dwk
+   real*4                                     :: dtot                   ! sum of the dissipation terms at a node before scaling
    real*4                                     :: Ek
    real*4                                     :: Hk
    real*4                                     :: percok
@@ -802,8 +803,13 @@ contains
                !
             endif
             !
-            Df(k) = Df(kn)
-            Dw(k) = Dw(kn)
+            ! Neumann nodes are not inner nodes and are skipped in the sweep, so DoverE and
+            ! Dveg are copied as well. The wave force scales Dw with DoverE after the solve.
+            !
+            Df(k)     = Df(kn)
+            Dw(k)     = Dw(kn)
+            Dveg(k)   = Dveg(kn)
+            DoverE(k) = DoverE(kn)
             !
          endif
          !
@@ -1327,7 +1333,7 @@ contains
    endif   
    !
    ! Update wave forces - depends on vegetation
-   !$omp parallel do schedule(static)
+   !$omp parallel do private(dtot) schedule(static)
    do k = 1, no_nodes
       !
       ! Compute some directionally integrated parameters for output
@@ -1340,6 +1346,45 @@ contains
          !else
          !   call baldock(rho, g, alfa, gamma, depth(k), H(k), Tp(k), 1, Dw(k), Hmx(k))
          !endif
+         !
+         ! Make the breaking dissipation consistent with the solved energy balance.
+         !
+         ! Dw(k) was stored in the sweep from the wave height before the solve, whereas the
+         ! solve removes DoverE(k) * E(k) from the balance (the dissipation is implicit in the
+         ! energy). Where the solution has not converged these differ. At nodes with a depth
+         ! just above hmin the pre-solve wave height can be many times Hmx, while the solved
+         ! wave height is a few cm. With the factor (H / Hmx)**baldock_exponent the pre-solve
+         ! breaking dissipation is then orders of magnitude larger than the energy flux that
+         ! arrives at the node, and the wave force Dw * k / sig below followed that value.
+         !
+         ! Dw(k) is therefore capped at its share of what the solve removed, which cannot
+         ! exceed the incoming energy flux. The share is taken from the pre-solve terms. The
+         ! cap only reduces Dw(k): where the solve removed more than the pre-solve terms
+         ! (e.g. because DoverE is under-relaxed), Dw(k) is left as it is. At converged
+         ! nodes nothing changes.
+         !
+         ! Only Dw(k) is scaled:
+         ! - Df(k) is not used after the solve (output only) and is left as it is, so at a
+         !   node that has not converged it can still belong to the pre-solve wave height.
+         ! - Dveg(k) is recomputed below from the solved wave height when vegetation is on.
+         !
+         ! Possible improvements:
+         ! - Store the solved dissipation per term in the sweep (DoverE split into its
+         !   breaking, friction and vegetation parts, times the solved energy), so that all
+         !   three are consistent with the output wave height and nothing needs scaling here.
+         ! - Compute the wave force from the gradients of the radiation stresses instead of
+         !   from the dissipation (F = -dSxx/dx - dSxy/dy, ...). The force then follows
+         !   from the solved energy field alone, includes the part that is not related to
+         !   dissipation (shoaling, refraction), and cannot exceed what the wave field holds.
+         !   That is where this should go in the end.
+         !
+         dtot = Dw(k) + Df(k) + Dveg(k)
+         !
+         if (dtot > 0.0) then
+            !
+            Dw(k) = Dw(k) * min(DoverE(k) * E(k) / dtot, 1.0)
+            !
+         endif
          !
          ! Update wave forces
          F(k) = Dw(k) * kwav(k) / sig(k) / rho / depth(k)

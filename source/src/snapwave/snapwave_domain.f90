@@ -504,7 +504,7 @@ contains
                   ysect=[y(ind1), y(ind2)]
                   call intersect_angle(x(k), y(k), theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                else
-                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cos(y(k)*180.0/pi)
+                  xsect=[x(ind1)-x(k), x(ind2)-x(k)]*circumf_eq/360.0*cosd(y(k))
                   ysect=[y(ind1)-y(k), y(ind2)-y(k)]*circumf_pole/360.0
                   call intersect_angle(0.d0, 0.d0, theta(itheta) + pi, xsect, ysect, ww, dss, xi, yi)
                endif               
@@ -608,6 +608,8 @@ contains
    !
    ! Called from: initialize_snapwave_domain (snapwave_domain)
    !
+   implicit none
+   !
    real*8,  dimension(no_nodes),                 intent(in)  :: xn,yn              ! coordinates of network nodes
    real*4,  dimension(no_nodes),                 intent(in)  :: zn                 ! coordinates of network nodes
    integer,                                      intent(in)  :: no_nodes           ! number of network nodes
@@ -625,9 +627,12 @@ contains
    integer, dimension(4)                        :: kpts, edge
    integer, dimension(np)                       :: surr_points
    integer, dimension(np)                       :: surr_pts
-   real*4,  dimension(np)                       :: xp,yp,zp              ! x,y,z of sorted surrounding nodes for each node
+   real*8,  dimension(np)                       :: xp,yp                 ! x,y of sorted surrounding nodes for each node
+   real*4,  dimension(np)                       :: zp                    ! z of sorted surrounding nodes for each node
    real*8                                       :: circumf_eq=40075017.,circumf_pole=40007863.
-   real*4                                       :: dxp,dyp
+   real*8                                       :: dxp,dyp
+   real*8                                       :: sxz,syz,sx2,sy2
+   integer                                      :: k,inode,knode,kn,kcell,isp,isp2,ip,j,jj,next
    !
    allocate(no_connected_cells(no_nodes))
    allocate(connected_cells(12,no_nodes))
@@ -730,10 +735,10 @@ contains
                sx2=sx2+(xp(j)-xn(kn))**2
                sy2=sy2+(yp(j)-yn(kn))**2
             else
-               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cos(yn(kn)*180.0/pi)
+               dxp=(xp(j)-xn(kn))*circumf_eq/360.0*cosd(yn(kn))
                dyp=(yp(j)-yn(kn))*circumf_pole/360.0
                sxz=sxz+dxp*(zp(j)-zn(kn))
-               syz=syz+(yp(j)-yn(kn))*(zp(j)-zn(kn))
+               syz=syz+dyp*(zp(j)-zn(kn))
                sx2=sx2+dxp**2
                sy2=sy2+dyp**2
             endif
@@ -1049,12 +1054,19 @@ contains
       !
       integer, dimension(4), parameter :: inward = [2, 1, 4, 3]
       !
+      ! Start with no connection, so that a Neumann node without any inner node keeps 0.
+      !
       neumannconnected = 0
+      !
+      ! The neighbour search needs the quadtree neighbour arrays and the index maps between
+      ! quadtree and SnapWave nodes; without them only the nearest-node search is used.
       !
       use_quadtree = allocated(index_quadtree_in_snapwave) .and. allocated(index_snapwave_in_quadtree) &
                      .and. allocated(quadtree_md1)
       !
       do ic = 1, no_nodes
+         !
+         ! Only Neumann boundary nodes get a connected node.
          !
          if (msk(ic) /= 3) cycle
          !
@@ -1062,7 +1074,8 @@ contains
          !
          if (use_quadtree) then
             !
-            ! Neighbours (SnapWave node indices, 0 if absent or inactive) on each side
+            ! Collect the (up to two) quadtree neighbours on each side of the node, since a
+            ! coarse node can have two finer neighbours on one side.
             !
             ip = index_quadtree_in_snapwave(ic)
             !
@@ -1074,6 +1087,9 @@ contains
             nbr(2, 3) = quadtree_nd2(ip)
             nbr(1, 4) = quadtree_nu1(ip)
             nbr(2, 4) = quadtree_nu2(ip)
+            !
+            ! Convert the neighbours to SnapWave node indices (0 for inactive cells) and mark a
+            ! side as open when it has no active neighbour at all.
             !
             do iside = 1, 4
                do j = 1, 2
@@ -1088,13 +1104,16 @@ contains
             !
             if (count(open_side) == 1) then
                !
-               ! Connect to the inner neighbour opposite the open side
+               ! A single open side means a straight boundary: find which side is open.
                !
                do iside = 1, 4
                   !
                   if (open_side(iside)) iopen = iside
                   !
                enddo
+               !
+               ! Connect to the first inner neighbour on the opposite side, so normal to the
+               ! boundary; if neither is an inner node, ib1 stays 0.
                !
                iin = inward(iopen)
                !
@@ -1119,7 +1138,8 @@ contains
          !
          if (ib1 == 0) then
             !
-            ! Fall back on the nearest inner node
+            ! Regular mesh, corner node or no inner neighbour on the inward side: fall back on
+            ! the nearest inner node by searching all inner nodes.
             !
             dst1 = 1.0e9
             !
@@ -1141,6 +1161,8 @@ contains
             enddo
             !
          endif
+         !
+         ! Store the connection; the solver copies wave energy from this node to the Neumann node.
          !
          neumannconnected(ic) = ib1
          !

@@ -7,10 +7,6 @@ module sfincs_data
    !
    ! Subroutines / functions:
    !
-   !   fill_h73_tables()
-   !     Fill the lookup tables for the h**(7/3) calculations.
-   !     Called from: initialize_domain (sfincs_domain)
-   !
    !   initialize_parameters()
    !     Legacy initialization of local time-loop parameters.
    !     Called from: not called (currently unused)
@@ -136,6 +132,7 @@ module sfincs_data
       real*4 structure_relax
       real*4 wiggle_factor
       real*4 wiggle_threshold
+      real*4 wiggle_facmin
       real*4 uvlim
       real*4 uvmax
       !real*4 normbnd
@@ -293,9 +290,11 @@ module sfincs_data
       logical       :: friction2d
       logical       :: advection_mask
       logical       :: wiggle_suppression
+      logical       :: wiggle_detect
+      logical       :: advection_bank_correction ! weight the partner faces in the advection stencil with their depth/flux ratio (free slip at dry or shallow partners)
+      logical       :: cbrt_fast                 ! fast approximation of hu**(1/3) in the friction term (keyword cbrt = fast), otherwise exact
       logical       :: store_dynamic_bed_level
       logical       :: nonhydrostatic
-      logical       :: h73table
       logical       :: wave_enhanced_roughness
       logical       :: use_bcafile
       logical       :: snapwave_use_nearest
@@ -639,6 +638,7 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
       real*4, dimension(:),   allocatable :: zsderv
+      real*4, dimension(:),   allocatable :: z_wetfrac ! wet-area fraction of the cell (subgrid), for the wiggle suppression
       real*4, dimension(:),   allocatable, target :: qext
       real*4, dimension(:),   allocatable, target :: uorb
       real*4, dimension(:),   allocatable :: gnapp2
@@ -894,40 +894,9 @@ module sfincs_data
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858, &
                                               0.682, 0.852, 0.984, 1.100, 1.205, 1.302, 1.395, 1.485, 1.574, 1.658, 1.742, 1.828, 1.908, 1.989, 2.071, 2.154, 2.225, 2.124, 2.034, 1.946, 1.871, 1.797, 1.731, 1.668, 1.612, 1.556, 1.505, 1.459, 1.413, 1.372, 1.332, 1.295, 1.258, 1.226, 1.194, 1.164, 1.135, 1.107, 1.082, 1.057, 1.032, 1.009, 0.989, 0.968, 0.947, 0.929, 0.909, 0.892, 0.875, 0.858 /), shape(cdlgx))
       !
-      ! h**(7/3) table
-      ! 
-      real*4, dimension(:,:), allocatable :: x73
-      
    contains
-
-
-   subroutine fill_h73_tables()
    !
-   ! Fill lookup tables for h**(7/3) calculations
    !
-   ! Called from: initialize_domain (sfincs_domain)
-   !
-   implicit none
-   !
-   integer :: j, k
-   !
-   real*4  :: hh
-   !
-   if (h73table) then
-      !
-      allocate(x73(1000, 10))
-      !
-      do k = 1, 10
-         do j = 1, 1000
-            hh = 0.001 * j * 10.0 ** (k - 6)
-            x73(j, k) = hh**2 * hh**(1.0/3.0)
-         enddo   
-      enddo   
-      !
-   endif
-   !
-   end subroutine
-   
    subroutine initialize_parameters()
       !
       ! Legacy initialization of local time-loop parameters.
@@ -1066,6 +1035,9 @@ module sfincs_data
     if(allocated(vmax)) deallocate(vmax)
     if(allocated(qmax)) deallocate(qmax)
     if(allocated(zs)) deallocate(zs)
+    if(allocated(zs0)) deallocate(zs0)
+    if(allocated(zsderv)) deallocate(zsderv)
+    if(allocated(z_wetfrac)) deallocate(z_wetfrac)
     !if(allocated(z_volume)) deallocate(z_volume) > this one seems to cause an error, not sure why
     if(allocated(q)) deallocate(q)
     if(allocated(q0)) deallocate(q0)

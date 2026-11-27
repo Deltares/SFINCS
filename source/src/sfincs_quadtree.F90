@@ -39,8 +39,7 @@ module quadtree
    !
    !   find_quadtree_cell_by_index(n, m, iref)
    !     Find the index of the quadtree cell with grid indices (n, m) at level iref.
-   !     Called from: find_uv_points_intersected_by_polyline (quadtree),
-   !       find_sfincs_cell (sfincs_boundaries)
+   !     Called from: find_uv_points_intersected_by_polyline (quadtree)
    !
    !   find_uv_points_intersected_by_polyline(uv_indices, vertices, nint, xpol, ypol, npol)
    !     Find all uv points intersected by a polyline.
@@ -962,47 +961,57 @@ subroutine make_quadtree_from_indices(np, indices, nmax, mmax, x0, y0, dx, dy, r
    end function
 
    function find_quadtree_cell_by_index(n, m, iref) result (indx)
-   !
-   ! Find the index of the quadtree cell with grid indices (n, m) at level iref.
-   !
-   ! Input:
-   !   n    : row index at the refinement level
-   !   m    : column index at the refinement level
-   !   iref : refinement level
-   !
-   ! Returns:
-   !   indx : index of the quadtree cell (0 if not found)
-   !
-   ! Called from: find_uv_points_intersected_by_polyline (quadtree),
-   !   find_sfincs_cell (sfincs_boundaries)
-   !
-   implicit none
-   !
-   integer              :: indx
-   !
-   integer              :: iref
-   integer              :: nmx
-   integer              :: n, m, nm, i1, i2, j
-   !
-   indx = 0
-   !
-   nmx = quadtree_nmax*2**(iref - 1)
-   !
-   nm = (m - 1)*nmx + n
-   !
-   ! Find nm index of this point
-   !
-   i1 = quadtree_first_point_per_level(iref)
-   i2 = quadtree_last_point_per_level(iref)
-   !
-   if (nm>0) then      
       !
-      indx = binary_search(quadtree_nm_indices(i1:i2), i2 - i1 + 1, nm)
-      indx = indx + i1 - 1
+      ! Find the index of the quadtree cell with grid indices (n, m) at level iref.
       !
-   endif
-   !
-   end function
+      ! Input:
+      !   n    : row index at the refinement level
+      !   m    : column index at the refinement level
+      !   iref : refinement level
+      !
+      ! Returns:
+      !   indx : index of the quadtree cell (0 if (n, m) is outside the grid or has no cell at this level)
+      !
+      ! Called from: find_uv_points_intersected_by_polyline (quadtree)
+      !
+      implicit none
+      !
+      integer              :: indx
+      !
+      integer              :: iref
+      integer              :: nmx
+      integer              :: mmx
+      integer              :: n, m, nm, i1, i2, j
+      !
+      indx = 0
+      !
+      nmx = quadtree_nmax*2**(iref - 1)
+      mmx = quadtree_mmax*2**(iref - 1)
+      !
+      ! Indices outside the grid have no cell. Without this check, n > nmx would
+      ! alias to a cell in the next column.
+      !
+      if (n < 1 .or. n > nmx .or. m < 1 .or. m > mmx) return
+      !
+      nm = (m - 1)*nmx + n
+      !
+      ! Find nm index of this point
+      !
+      i1 = quadtree_first_point_per_level(iref)
+      i2 = quadtree_last_point_per_level(iref)
+      !
+      j = binary_search(quadtree_nm_indices(i1:i2), i2 - i1 + 1, nm)
+      !
+      ! binary_search returns 0 when nm is not found. Only convert a hit to a
+      ! global index, otherwise i1 - 1 (the last cell of the previous level) would be returned.
+      !
+      if (j > 0) then
+         !
+         indx = j + i1 - 1
+         !
+      endif
+      !
+   end function find_quadtree_cell_by_index
    
 
    subroutine find_uv_points_intersected_by_polyline(uv_indices,vertices,nint,xpol,ypol,npol)
