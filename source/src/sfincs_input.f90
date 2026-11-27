@@ -306,6 +306,8 @@ contains
       call get_keyword(500, 'storevel',                        store_velocity,                  .false.)           ! store velocity on dtout interval
       call get_keyword(500, 'storecumprcp',                    store_cumulative_precipitation,  .false.)           ! store cumulative precipitation + infiltration on dtmaxout interval
       call get_keyword(500, 'storetwet',                       store_twet,                      .false.)           ! store per-cell wet duration
+      call get_keyword(500, 'storehm0zs',                      store_hm0_zs,                    .false.)           ! store Hm0 = 4*sqrt(variance of zs) over each dtzsvar interval (netCDF map output only)
+      call get_keyword(500, 'dtzsvar',                         dtzsvar,                         dtwave)            ! interval of the water-level variance for storehm0zs (s); default = dtwave
       call get_keyword(500, 'storetzsmax',                     store_t_zsmax,                   .false.)           ! store time stamp of zsmax occurrence
       call get_keyword(500, 'storehsubgrid',                   store_hsubgrid,                  .false.)           ! store hmax in subgrid mode (zsmax - subgrid_z_zmin)
       call get_keyword(500, 'storehmean',                      store_hmean,                     .false.)           ! store hmax as subgrid-mean depth instead of max (requires storehsubgrid)
@@ -519,6 +521,17 @@ contains
          outputtype_his = outputtype
       endif
       !
+      ! Hm0 from the water-level variance is computed over each dtzsvar
+      ! window and only written to the netCDF map file (which needs dtmapout > 0).
+      !
+      if (store_hm0_zs .and. (dtzsvar <= 0.0 .or. dtmapout <= 0.0 .or. outputtype_map /= 'net')) then
+         !
+         call write_log('Warning : storehm0zs requires dtzsvar > 0, dtmapout > 0 and netCDF map output, it is switched off', 1)
+         !
+         store_hm0_zs = .false.
+         !
+      endif
+      !
       if (sbgfile(1:4) /= 'none') then
          !
          subgrid = .true.
@@ -717,6 +730,7 @@ contains
          snapwave               = .false.
          infiltration           = .false.
          store_velocity         = .false.
+         store_hm0_zs           = .false.
          store_maximum_velocity = .false.
          store_zvolume_max      = .false.
          !
