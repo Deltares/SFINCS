@@ -37,6 +37,10 @@ module sfincs_continuity
    !     from update_continuity only when any of store_maximum_velocity,
    !     store_maximum_flux or store_twet is enabled.
    !
+   !   compute_zs_variance(dt)
+   !     Running mean and variance of zs over the dtzsvar window, for
+   !     the Hm0 output (storehm0zs). Called from update_continuity.
+   !
    ! ------------ Copyright notice SFINCS ------------
    !
    ! Copyright (C)  Stichting Deltares, 2016-2026.
@@ -201,6 +205,16 @@ contains
       endif
       !
       call timer_stop('continuity')
+      !
+      ! Running water-level variance for the Hm0 output (own timer, only registered when active)
+      !
+      if (store_hm0_zs) then
+         !
+         call timer_start('zs variance')
+         call compute_zs_variance(dt)
+         call timer_stop('zs variance')
+         !
+      endif
       !
    end subroutine
    !
@@ -918,5 +932,77 @@ contains
       !$acc end parallel
       !
    end subroutine
+   !
+   !
+   subroutine compute_zs_variance(dt)
+      !
+      ! Update the running mean and variance of the water level zs over the
+      ! current dtzsvar window (storehm0zs). Hm0 = 4 * sqrt(variance) is
+      ! written at the end of the window, after which a new one starts.
+      !
+      ! Uses a time-weighted Welford update, which is stable in single
+      ! precision and needs no window length in advance:
+      !
+      !   fac  = dt / T_new
+      !   d    = zs - mean_old
+      !   mean = mean_old + fac * d
+      !   var  = (1 - fac) * var_old + fac * d * (zs - mean)
+      !
+      ! T is the wet time per cell: a cell only accumulates while its depth
+      ! exceeds huthresh (the wet criterion of the map output), so dry
+      ! periods in the swash zone do not count. The first wet step of a
+      ! window has fac = 1, which sets mean = zs and var = 0, so a reset
+      ! only needs zs_variance_time = 0.
+      !
+      ! The variance includes all fluctuations within the window: incident
+      ! and infragravity waves, but also tide or setup changes. Using
+      ! zs - zsm (wavemaker filtered water level) instead of zs would remove
+      ! the slow part, but ties the result to wavemaker_filter_time.
+      !
+      ! Input:
+      !   dt : time step [s]
+      !
+      ! Called from: update_continuity (only when store_hm0_zs is enabled)
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      real*4           :: dt
+      !
+      integer          :: nm
+      !
+      real*4           :: fac
+      real*4           :: dzs
+      real*4           :: zsl
+      real*4           :: hloc
+      !
+      !$acc parallel loop present( zs, zb, subgrid_z_zmin, zs_mean_window, zs_variance, zs_variance_time ) &
+      !$acc private( fac, dzs, zsl, hloc )
+      !$omp parallel do private( nm, fac, dzs, zsl, hloc ) schedule( static )
+      do nm = 1, np
+         !
+         zsl = real(zs(nm), 4)
+         !
+         if (subgrid) then
+            hloc = zsl - subgrid_z_zmin(nm)
+         else
+            hloc = zsl - zb(nm)
+         endif
+         !
+         if (hloc > huthresh) then
+            !
+            zs_variance_time(nm) = zs_variance_time(nm) + dt
+            fac                  = dt / zs_variance_time(nm)
+            dzs                  = zsl - zs_mean_window(nm)
+            zs_mean_window(nm)   = zs_mean_window(nm) + fac * dzs
+            zs_variance(nm)      = (1.0 - fac) * zs_variance(nm) + fac * dzs * (zsl - zs_mean_window(nm))
+            !
+         endif
+         !
+      enddo
+      !$omp end parallel do
+      !
+   end subroutine compute_zs_variance
    !
 end module

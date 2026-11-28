@@ -163,6 +163,14 @@ module sfincs_ncoutput
    !     his file.
    !     Called from: write_output (sfincs_output)
    !
+   !   ncoutput_update_zsvar(t, ntzsvarout)
+   !     Write Hm0 from the water-level variance over the last dtzsvar window to the map and his file.
+   !     Called from: write_zsvar_output (sfincs_output)
+   !
+   !   nr_zsvar_windows()
+   !     Length of the timezsvar axis (number of water-level variance windows written).
+   !     Called from: ncoutput_map_init, ncoutput_his_init
+   !
    !   ncoutput_update_max(t, ntmaxout)
    !     Write the maximum-value fields to the map file.
    !     Called from: write_output (sfincs_output)
@@ -336,6 +344,11 @@ contains
    NF90(nf90_def_dim(map_file%ncid, 'time',    NF90_UNLIMITED, map_file%time_dimid))
    ntmx = max(ceiling((t1out - t0out)/dtmaxout), 1)
    NF90(nf90_def_dim(map_file%ncid, 'timemax', ntmx, map_file%timemax_dimid))
+   !
+   if (store_hm0_zs) then
+      NF90(nf90_def_dim(map_file%ncid, 'timezsvar', nr_zsvar_windows(), map_file%timezsvar_dimid))
+   endif
+   !
    NF90(nf90_def_dim(map_file%ncid, 'runtime', 1,    map_file%runtime_dimid))
    !
    if (store_vegetation) then
@@ -733,6 +746,20 @@ contains
       call def_time_cell_float('pnonh', map_file%pnonh_varid, 'N m-2', 'Non-hydrostatic pressure')
    endif
    !
+   ! Hm0 = 4 * sqrt(variance of zs) over the dtzsvar window ending at each timezsvar time
+   !
+   if (store_hm0_zs) then
+      NF90(nf90_def_var(map_file%ncid, 'timezsvar', NF90_FLOAT, (/map_file%timezsvar_dimid/), map_file%timezsvar_varid))
+      NF90(nf90_put_att(map_file%ncid, map_file%timezsvar_varid, 'units',         'seconds since ' // trim(trefstr_iso8601)))
+      NF90(nf90_put_att(map_file%ncid, map_file%timezsvar_varid, 'standard_name', 'time'))
+      NF90(nf90_put_att(map_file%ncid, map_file%timezsvar_varid, 'long_name',     'end time of the water level variance window'))
+      !
+      call ncdef_float_var(map_file%ncid, 'hm0_zs', (/dims_s(1:nsd), map_file%timezsvar_dimid/), map_file%hm0_zs_varid, &
+           'm', 'Hm0 wave height from water level variance', standard_name='sea_surface_wave_significant_height', &
+           coordinates=coord_str, deflate_level=nc_deflate_level)
+      call add_ugrid_face_attrs(map_file%hm0_zs_varid)
+   endif
+   !
    ! Runtime scalars
    call ncdef_float_var(map_file%ncid, 'total_runtime', (/map_file%runtime_dimid/), map_file%total_runtime_varid, &
         's', 'Total model runtime (s)')
@@ -1054,6 +1081,21 @@ contains
    NF90(nf90_put_att(his_file%ncid, his_file%time_varid, 'units', 'seconds since ' // trim(trefstr_iso8601) ))  ! time stamp following ISO 8601
    NF90(nf90_put_att(his_file%ncid, his_file%time_varid, 'standard_name', 'time'))     
    NF90(nf90_put_att(his_file%ncid, his_file%time_varid, 'long_name', 'time_in_seconds_since_' // trim(trefstr_iso8601) ))   !--> add  trefstr from sfincs_input
+   !
+   ! Hm0 = 4 * sqrt(variance of zs) at the observation points, on its own time axis (end of each dtzsvar window)
+   !
+   if (store_hm0_zs .and. nobs > 0) then
+      NF90(nf90_def_dim(his_file%ncid, 'timezsvar', nr_zsvar_windows(), his_file%timezsvar_dimid))
+      !
+      NF90(nf90_def_var(his_file%ncid, 'timezsvar', NF90_FLOAT, (/his_file%timezsvar_dimid/), his_file%timezsvar_varid))
+      NF90(nf90_put_att(his_file%ncid, his_file%timezsvar_varid, 'units',         'seconds since ' // trim(trefstr_iso8601)))
+      NF90(nf90_put_att(his_file%ncid, his_file%timezsvar_varid, 'standard_name', 'time'))
+      NF90(nf90_put_att(his_file%ncid, his_file%timezsvar_varid, 'long_name',     'end time of the water level variance window'))
+      !
+      call ncdef_float_var(his_file%ncid, 'point_hm0_zs', (/his_file%points_dimid, his_file%timezsvar_dimid/), his_file%hm0_zs_varid, &
+           'm', 'Hm0 wave height from water level variance', standard_name='sea_surface_wave_significant_height', &
+           coordinates=pt_coord, deflate_level=nc_deflate_level)
+   endif
    !
    ! Time varying map output
    !
@@ -1742,6 +1784,74 @@ contains
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
    !
 
+   !
+   !
+   subroutine ncoutput_update_zsvar(t, ntzsvarout)
+      !
+      ! Write Hm0 = 4 * sqrt(variance of zs) over the wet time in the dtzsvar
+      ! window ending at t to the map file, and at the observation points to
+      ! the his file when it has them. Cells that were not wet in the window
+      ! get the fill value.
+      !
+      ! Input:
+      !   t          : end time of the window [s since tref]
+      !   ntzsvarout : index of the output time on the timezsvar axis
+      !
+      ! Called from: write_zsvar_output (sfincs_output)
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      real*8   :: t
+      integer  :: ntzsvarout
+      !
+      real*4, dimension(:), allocatable :: hm0_zs
+      !
+      allocate(hm0_zs(np))
+      !
+      hm0_zs = 4.0 * sqrt(max(zs_variance, 0.0))
+      !
+      NF90(nf90_put_var(map_file%ncid, map_file%timezsvar_varid, t, (/ntzsvarout/)))
+      !
+      call write_cell_var(map_file%ncid, map_file%hm0_zs_varid, hm0_zs, ntzsvarout, check_kcs=.true., mask=zs_variance_time)
+      !
+      NF90(nf90_sync(map_file%ncid))
+      !
+      if (his_file%timezsvar_varid >= 0) then
+         !
+         NF90(nf90_put_var(his_file%ncid, his_file%timezsvar_varid, t, (/ntzsvarout/)))
+         !
+         call write_point_var(his_file%hm0_zs_varid, hm0_zs, ntzsvarout, mask=zs_variance_time)
+         !
+         NF90(nf90_sync(his_file%ncid))
+         !
+      endif
+      !
+      deallocate(hm0_zs)
+      !
+   end subroutine ncoutput_update_zsvar
+   !
+   !
+   integer function nr_zsvar_windows()
+      !
+      ! Number of water-level variance windows that are written: windows end at
+      ! t0 + k * dtzsvar (the last one capped at t1out), and only those ending
+      ! at or after t0out are written.
+      !
+      ! Returns:
+      !   nr_zsvar_windows : length of the timezsvar axis in the map and his file
+      !
+      ! Called from: ncoutput_map_init, ncoutput_his_init (sfincs_ncoutput)
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      nr_zsvar_windows = max(ceiling((t1out - t0)/dtzsvar) - max(ceiling((t0out - t0)/dtzsvar), 1) + 1, 1)
+      !
+   end function nr_zsvar_windows
+   !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
    subroutine ncoutput_update_max(t,ntmaxout)
@@ -2166,6 +2276,8 @@ contains
         NF90(nf90_put_att(ncid, varid, 'storevel',logical2int(store_velocity)))
         NF90(nf90_put_att(ncid, varid, 'storecumprcp',logical2int(store_cumulative_precipitation)))
         NF90(nf90_put_att(ncid, varid, 'storetwet',logical2int(store_twet)))
+        NF90(nf90_put_att(ncid, varid, 'storehm0zs',logical2int(store_hm0_zs)))
+        NF90(nf90_put_att(ncid, varid, 'dtzsvar',dtzsvar))
         NF90(nf90_put_att(ncid, varid, 'storehsubgrid',logical2int(store_hsubgrid)))
         NF90(nf90_put_att(ncid, varid, 'twet_threshold',twet_threshold))
         NF90(nf90_put_att(ncid, varid, 'store_tsunami_arrival_time',logical2int(store_tsunami_arrival_time)))

@@ -510,6 +510,14 @@ Parameters for model output
 	  :description:		Flag to turn on writing away duration that a cell was wet during simulation (storetwet = 1)
 	  :units:		-
 	  :default:		0	  
+	storehm0zs - added from SFINCS v2.5.1 onwards
+	  :description:		Flag to turn on writing away the significant wave height Hm0 = 4*sqrt(variance of zs) over each 'dtzsvar' interval (storehm0zs = 1), e.g. to determine the wave height behind a wave maker. Only wet time steps are used. Written to the netcdf map file, so requires netcdf output with dtmapout > 0. The variance includes all water level fluctuations within the interval (incident and infragravity waves, but also tide or setup changes), so choose 'dtzsvar' short compared to the tide.
+	  :units:		-
+	  :default:		0
+	dtzsvar - added from SFINCS v2.5.1 onwards
+	  :description:		Interval over which the water level variance for 'storehm0zs' is computed and written, independent of 'dtmapout' and 'dtmaxout'. The intervals end at tstart + k*dtzsvar, so with the default they coincide with the SnapWave updates. Only intervals ending at or after 't0out' are written, and the last one ends at 't1out'.
+	  :units:		s
+	  :default:		value of 'dtwave'
 	storevel
 	  :description:		Flag to turn on writing away velocities on 'dtmapout' interval during simulation (storevel = 1)
 	  :units:		-

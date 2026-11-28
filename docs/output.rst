@@ -236,6 +236,8 @@ The exception is the water level and depth at observation points (point_zs, poin
      - there are no infragravity waves (H_ig = 0)
    * - snapwavedepth
      - the SnapWave depth is at or below the SnapWave 'hmin'
+   * - hm0_zs, point_hm0_zs
+     - the cell or point was not wet (water depth at or below 'huthresh') during the 'dtzsvar' interval
 
 **Note for post-processing**: dry cells therefore do not contain a water depth or velocity of 0, but NaN. Use NaN-aware functions (e.g. numpy.nanmax, xarray's default skipna) when computing statistics, and fill the NaNs with 0 yourself where a zero depth or velocity is needed (e.g. ds['h'].fillna(0.0)).
 
@@ -289,6 +291,14 @@ For a quadtree model (see :ref:`quadtree`), the cell centre coordinates are 'mes
 	  :description:		Instantaneous storage volume per 'dtmapout' timestep, corresponding with netcdf variable 'time'.
 	  :standard_name:	storage_volume_in_cell	  
 	  :units:		m^3	  
+	timezsvar
+	  :description:		End time of each 'dtzsvar' interval of the water level variance output, only given if 'storehm0zs = 1'.
+	  :standard_name:	time
+	  :units:		seconds since 'tref'
+	hm0_zs
+	  :description:		Significant wave height Hm0 = 4*sqrt(variance of zs) over the 'dtzsvar' interval ending at each 'timezsvar' time, only given if 'storehm0zs = 1', corresponding with netcdf variable 'timezsvar'. Only wet time steps (water depth above 'huthresh') are used, so in cells that fall dry part of the time (e.g. the swash zone) the dry periods are left out; cells that were not wet during the interval get the fill value.
+	  :standard_name:	sea_surface_wave_significant_height
+	  :units:		m
 	timemax
 	  :description:		Time of global map output per 'dtmaxout' timestep.
 	  :standard_name:	time	  
@@ -406,8 +416,16 @@ This file is only created if at least one of the following is supplied: observat
 	  :units:		seconds since 'tref'	  
 	point_zs
 	  :description:		Instantaneous water level per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
-	  :standard_name:	sea_surface_height_above_mean_sea_level	  
+	  :standard_name:	sea_surface_height_above_mean_sea_level
 	  :units:		m above reference level
+	timezsvar
+	  :description:		End time of each 'dtzsvar' interval of the water level variance output, only given if 'storehm0zs = 1' and observation points are supplied.
+	  :standard_name:	time
+	  :units:		seconds since 'tref'
+	point_hm0_zs
+	  :description:		Significant wave height Hm0 = 4*sqrt(variance of zs) at the observation points over the 'dtzsvar' interval ending at each 'timezsvar' time, from the cell the point lies in, only given if 'storehm0zs = 1', corresponding with netcdf variable 'timezsvar'. Computed every time step, so independent of 'dthisout'; only wet time steps are used.
+	  :standard_name:	sea_surface_wave_significant_height
+	  :units:		m
 	point_h
 	  :description:		Instantaneous water depth per 'dthisout' timestep of observation points, corresponding with netcdf variable 'time'.
 	  :standard_name:	point_h	  

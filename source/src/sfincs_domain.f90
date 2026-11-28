@@ -2467,6 +2467,12 @@ contains
        allocate(twet(np))
    endif
    !
+   if (store_hm0_zs) then
+      allocate(zs_mean_window(np))
+      allocate(zs_variance(np))
+      allocate(zs_variance_time(np))
+   endif
+   !
    if (store_t_zsmax) then
        allocate(t_zsmax(np))
    endif
@@ -2520,6 +2526,12 @@ contains
    !
    if (store_twet) then
       twet = 0.0
+   endif
+   !
+   if (store_hm0_zs) then
+      zs_mean_window   = 0.0
+      zs_variance      = 0.0
+      zs_variance_time = 0.0
    endif
    !
    if (store_t_zsmax) then

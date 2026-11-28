@@ -96,12 +96,14 @@ module sfincs_lib
    integer  :: ntmapout
    integer  :: ntmaxout
    integer  :: nthisout
+   integer  :: ntzsvarout
    !
    real*8   :: t
    real*8   :: tout
    real*4   :: dt
    real*8   :: tmapout
    real*8   :: tmaxout
+   real*8   :: tzsvarout
    real*8   :: trstout
    real*8   :: thisout
    !
@@ -237,6 +239,7 @@ module sfincs_lib
    ntmapout    = 0      ! number of map time steps
    ntmaxout    = 0      ! number of max time steps
    nthisout    = 0      ! number of his time steps
+   ntzsvarout  = 0      ! number of water-level variance (Hm0) output times
    twindupd    = t0       ! time to update meteo
    twaveupd    = t0       ! time to update waves
    !
@@ -251,6 +254,17 @@ module sfincs_lib
    call write_log('Initializing output ...', 0)
    !
    call initialize_output(tmapout, tmaxout, thisout, trstout)
+   !
+   ! End of the first water-level variance window. Windows end at t0 + k * dtzsvar,
+   ! like the SnapWave updates (t0 + k * dtwave); the last one may be shorter, ending at t1out.
+   !
+   tzsvarout = 1.0e9
+   !
+   if (store_hm0_zs) then
+      !
+      tzsvarout = min(t0 + dtzsvar, 1.0d0 * t1out)
+      !
+   endif
    !
    ! Quadtree no longer needed, so deallocate (this is done in sfincs_domain.f90)
    ! 
@@ -559,6 +573,36 @@ module sfincs_lib
          ! if (.not. fixed_output_intervals) tout = t
          !
          call write_output(tout, write_map, write_his, write_max, write_rst, ntmapout, ntmaxout, nthisout)
+         !
+      endif
+      !
+      ! Water-level variance (Hm0) output at the end of each dtzsvar window,
+      ! after the continuity update so that the window includes this step.
+      ! Windows that end before t0out are not written, only restarted.
+      !
+      if (t >= tzsvarout) then
+         !
+         if (tzsvarout >= t0out) then
+            !
+            ntzsvarout = ntzsvarout + 1
+            !
+            call write_zsvar_output(tzsvarout, ntzsvarout)
+            !
+         else
+            !
+            call reset_zsvar_output()
+            !
+         endif
+         !
+         if (tzsvarout < t1out) then
+            !
+            tzsvarout = min(tzsvarout + dtzsvar, 1.0d0 * t1out)
+            !
+         else
+            !
+            tzsvarout = 1.0e9
+            !
+         endif
          !
       endif
       !      

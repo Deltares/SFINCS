@@ -222,6 +222,7 @@ module sfincs_ncoutput_helpers
       integer :: inp_varid, total_runtime_varid, average_dt_varid, status_varid
       integer :: manning_varid
       integer :: pnonh_varid
+      integer :: hm0_zs_varid, timezsvar_dimid, timezsvar_varid
       integer :: subgridslope_varid
       ! Vegetation
       integer :: nsec_dimid
@@ -261,6 +262,9 @@ module sfincs_ncoutput_helpers
       integer :: hm0_varid, hm0ig_varid, zsm_varid, tp_varid, tpig_varid, wavdir_varid
       integer :: dw_varid, df_varid, dwig_varid, dfig_varid, cg_varid, beta_varid, srcig_varid, alphaig_varid
       integer :: runup_gauge_name_varid, runup_gauge_zs_varid
+      integer :: timezsvar_dimid
+      integer :: timezsvar_varid = -1 ! -1: no water-level variance (Hm0) output in the his file
+      integer :: hm0_zs_varid
       !
    end type
    !

@@ -19,6 +19,14 @@ module sfincs_output
    !     Reset the maximum-value arrays at the start of a new maximum-output interval.
    !     Called from: sfincs_update (sfincs_lib), write_output (sfincs_output)
    !
+   !   write_zsvar_output(t, ntzsvarout)
+   !     Write Hm0 from the water-level variance over the last dtzsvar window and start a new one.
+   !     Called from: sfincs_update (sfincs_lib)
+   !
+   !   reset_zsvar_output()
+   !     Start a new water-level variance window.
+   !     Called from: sfincs_update (sfincs_lib), write_zsvar_output (sfincs_output)
+   !
    !   finalize_output(t, ntmaxout, tmaxout)
    !     Write the last maximum output if still needed and close the output files.
    !     Called from: sfincs_finalize (sfincs_lib)
@@ -424,6 +432,57 @@ module sfincs_output
    endif
    !
    end subroutine
+   !
+   !
+   subroutine write_zsvar_output(t, ntzsvarout)
+      !
+      ! Write Hm0 from the water-level variance over the dtzsvar window ending
+      ! at t to the netCDF map file, and start a new window.
+      !
+      ! Input:
+      !   t          : end time of the window [s since tref]
+      !   ntzsvarout : index of the output time on the timezsvar axis
+      !
+      ! Called from: sfincs_update (sfincs_lib)
+      !
+      use sfincs_data
+      use sfincs_timers
+      !
+      implicit none
+      !
+      real*8   :: t
+      integer  :: ntzsvarout
+      !
+      call timer_start('output')
+      !
+      !$acc update host(zs_variance, zs_variance_time)
+      !
+      call ncoutput_update_zsvar(t, ntzsvarout)
+      !
+      call reset_zsvar_output()
+      !
+      call timer_stop('output')
+      !
+   end subroutine write_zsvar_output
+   !
+   !
+   subroutine reset_zsvar_output()
+      !
+      ! Start a new water-level variance window. The first wet step of the
+      ! window overwrites the running mean and variance, so only the
+      ! accumulated wet time needs to be reset.
+      !
+      ! Called from: write_zsvar_output (sfincs_output) and sfincs_update
+      ! (sfincs_lib) for windows that end before t0out and are not written.
+      !
+      use sfincs_data
+      !
+      implicit none
+      !
+      zs_variance_time = 0.0
+      !$acc update device(zs_variance_time)
+      !
+   end subroutine reset_zsvar_output
 
 
    subroutine finalize_output(t, ntmaxout, tmaxout)

@@ -127,6 +127,7 @@ module sfincs_data
       real*4 spw_merge_frac
       real*4 tsunami_arrival_threshold
       real*4 dtwave
+      real*4 dtzsvar
       real*4 horton_kr_kd
       real*4 btrelax
       real*4 structure_relax
@@ -243,6 +244,7 @@ module sfincs_data
       logical       :: store_t_zsmax
       logical       :: store_velocity
       logical       :: store_twet
+      logical       :: store_hm0_zs
       logical       :: store_hsubgrid
       logical       :: store_hmean      
       logical       :: store_river_discharge
@@ -634,6 +636,9 @@ module sfincs_data
       real*4, dimension(:),   allocatable :: uv0
       real*8, dimension(:),   allocatable :: z_volume
       real*4, dimension(:),   allocatable :: twet
+      real*4, dimension(:),   allocatable :: zs_mean_window   ! running mean of zs over the current dtzsvar window [m] (storehm0zs)
+      real*4, dimension(:),   allocatable :: zs_variance      ! running variance of zs over the current dtzsvar window [m2] (storehm0zs)
+      real*4, dimension(:),   allocatable :: zs_variance_time ! wet time accumulated in the current dtzsvar window [s] (storehm0zs)
       real*4, dimension(:),   allocatable :: t_zsmax
       real*4, dimension(:),   allocatable :: tsunami_arrival_time
       real*4, dimension(:),   allocatable :: zs0
@@ -1044,6 +1049,9 @@ module sfincs_data
     if(allocated(uv)) deallocate(uv)
     if(allocated(uv0)) deallocate(uv0)
     if(allocated(twet)) deallocate(twet)
+    if(allocated(zs_mean_window)) deallocate(zs_mean_window)
+    if(allocated(zs_variance)) deallocate(zs_variance)
+    if(allocated(zs_variance_time)) deallocate(zs_variance_time)
     if(allocated(qext)) deallocate(qext)
     !
 !    if(allocated(huu)) deallocate(huu)
