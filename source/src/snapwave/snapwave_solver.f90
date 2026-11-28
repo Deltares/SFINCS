@@ -63,8 +63,22 @@
    !
    
    use sfincs_log
-    
+
    implicit none
+   !
+   ! Strip schedule of one ordered sweep: nodes(ptr(s):ptr(s+1)-1) are the inner nodes of strip s,
+   ! in sweep order. Strips lie side by side across the sweep direction and are swept in parallel.
+   !
+   type t_sweep_strips
+      integer, dimension(:), allocatable :: ptr
+      integer, dimension(:), allocatable :: nodes
+   end type t_sweep_strips
+   !
+   ! Maximum number of directional bins for the per-node work buffers. These are fixed-size so
+   ! they stay on the thread stack; the build uses heap arrays, which would otherwise malloc
+   ! every automatic array on each node update and serialise the threads on the heap lock.
+   !
+   integer, parameter :: ntheta_max = 1024
 
 contains
    
@@ -382,6 +396,7 @@ contains
    use snapwave_infragravity, only: determine_infragravity_source_sink_term
    use snapwave_vegetation, only: vegatt, momeqveg, swvegnonlin
    use hpsort_eps, only: hpsort_eps_epw
+   use sfincs_error,  only: stop_sfincs
    !
    implicit none
    !
@@ -462,10 +477,9 @@ contains
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_bstems               ! Width/diameter of individual vegetation stems [m]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Nstems               ! Number of vegetation stems per unit horizontal area [m-2]
    real*4, dimension(no_nodes,no_secveg), intent(in)    :: veg_Cd                   ! Bulk drag coefficient [-]     
-   real*4                                               :: Dvegk                    ! dissipation by vegetation: N.B. scalar value!
-   real*4, dimension(no_nodes)                          :: Fvw                      ! vegetation wave drag force   
-   real*4, dimension(no_nodes,50)                       :: unl                      ! non-linear wave orbital velocity time series, in 50 points per wave length
-   real*4, dimension(no_nodes,50)                       :: etaw0                    ! non-linear sea surface time series, in 50 points per wave length
+   real*4, dimension(:), allocatable                    :: Fvw                      ! vegetation wave drag force (vegetation only)
+   real*4, dimension(:,:), allocatable                  :: unl                      ! non-linear wave orbital velocity time series, in 50 points per wave length (vegetation only)
+   real*4, dimension(:,:), allocatable                  :: etaw0                    ! non-linear sea surface time series, in 50 points per wave length (vegetation only)
    !
    !
    ! Local variables and arrays
@@ -479,7 +493,6 @@ contains
    real*4                                     :: dtheta                 ! directional resolution
    real*4                                     :: eemax                  ! maximum wave energy density   
    real*4                                     :: eemax_ig               ! maximum IG wave energy density
-   real*4                                     :: uorbi
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
@@ -493,20 +506,13 @@ contains
    real*4, dimension(:,:), allocatable        :: srcig_local            ! Energy source/sink term because of IG wave energy transfer from incident waves
    real*4, dimension(:,:), allocatable        :: beta_local             ! Local bed slope based on bed level per direction      
    real*4, dimension(:,:), allocatable        :: alphaig_local          ! Local infragravity wave shoaling parameter alpha
-   real*4, dimension(:,:), allocatable        :: depthprev              ! water depth at upwind intersection point per direction     
-   real*4, dimension(:), allocatable          :: dee                    ! difference with energy previous iteration
-   real*4, dimension(:), allocatable          :: eeprev, cgprev         ! energy density and group velocity at upwind intersection point
-   real*4, dimension(:), allocatable          :: eeprev_ig, cgprev_ig   ! energy density and group velocity at upwind intersection point
-   real*4, dimension(:), allocatable          :: A,B,C,R                ! coefficients in the tridiagonal matrix solved per point
-   real*4, dimension(:), allocatable          :: B_aa,R_aa,aaprev       ! coefficients in the tridiagonal matrix solved per point
-   real*4, dimension(:), allocatable          :: A_ig,B_ig,C_ig,R_ig    ! coefficients in the tridiagonal matrix solved per point
    real*4, dimension(:), allocatable          :: DoverA                 ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: DoverE_ig              ! ratio of mean wave dissipation over mean wave energy
    real*4, dimension(:), allocatable          :: E                      ! mean wave energy
    real*4, dimension(:), allocatable          :: E_ig                   ! mean wave energy
    real*4, dimension(:), allocatable          :: diff                   ! maximum difference of wave energy relative to previous iteration
    real*4, dimension(:), allocatable          :: diff_ig                ! maximum difference of IG wave energy relative to previous iteration
-   real*4, dimension(:), allocatable          :: ra                     ! coordinate in sweep direction
+   real*4, dimension(:,:), allocatable        :: ra                     ! coordinate in sweep direction, per sweep
    real*4, dimension(:), allocatable          :: sigm_ig
    integer, dimension(4)                      :: shift
    real*4                                     :: pi = 4.0 * atan(1.0)
@@ -515,19 +521,14 @@ contains
    real*4                                     :: oneoverdt
    real*4                                     :: oneover2dtheta
    real*4                                     :: rhog8
-   real*4                                     :: Dfk
-   real*4                                     :: Dwk
    real*4                                     :: dtot                   ! sum of the dissipation terms at a node before scaling
-   real*4                                     :: Ek
-   real*4                                     :: Hk
    real*4                                     :: percok
    real*4                                     :: percok_ig              ! percentage of converged IG points   
    real*4                                     :: error
    real*4                                     :: error_ig               ! relative maximum IG wave error
-   real*4                                     :: Dfk_ig
-   real*4                                     :: Dwk_ig
-   real*4                                     :: Ek_ig
-   real*4                                     :: Hk_ig
+   real*4                                     :: eemax_new              ! maximum wave energy density in the current convergence check
+   real*4                                     :: diffmax                ! maximum difference with the previous iteration
+   integer                                    :: nok                    ! number of converged points
    real*4                                     :: alfa_ig,gamma_ig  ! coefficients in Baldock wave breaking dissipation model for IG waves
    real*4                                     :: gamma_fac_br    ! factor times gamma that is used to determine the maximum incident wave breaking point in the surf zone using local incident wave height over water depth ratio, among others used to set the IG source term to 0 shallower than this point   
    real*4                                     :: eeinc2ig          ! ratio of incident wave energy as first estimate of IG wave energy at boundary
@@ -542,11 +543,19 @@ contains
    ! Local wind source vars
    !
    real*4                                     :: Ak
-   real*4                                     :: DwT
-   real*4                                     :: DwAk
    real*4                                     :: ndissip    
-   real*4                                     :: depthlimfac
    real*4                                     :: waveps=0.0001
+   !
+   ! Strip-parallel sweeps
+   !
+   type(t_sweep_strips), dimension(4)         :: strips                 ! strip schedule per sweep
+   integer, dimension(:,:), allocatable       :: strip_of               ! strip of each node per axis (0 = not inner)
+   integer, dimension(:,:), allocatable       :: halo_nodes             ! inner nodes read by another strip, per axis
+   integer, dimension(2)                      :: halo_n                 ! number of halo nodes per axis
+   integer                                    :: nstrip                 ! number of strips used in this call
+   integer                                    :: istrip, ii, axis
+   real*4, dimension(:,:), allocatable        :: ee_s, ee_ig_s, aa_s    ! start-of-sweep copies of halo nodes
+   real*4, dimension(:), allocatable          :: cg_s                   ! start-of-sweep copy of cg of halo nodes
    !
    ! Allocate local arrays
    !
@@ -555,44 +564,27 @@ contains
    allocate(ok(no_nodes)); ok=0
    allocate(nofreeze(no_nodes)); nofreeze=0
    allocate(indx(no_nodes,4)); indx=0
-   allocate(eeold(ntheta,no_nodes)); eeold=0.0
-   allocate(dee(ntheta)); dee=0.0
-   allocate(eeprev(ntheta)); eeprev=0.0
-   allocate(cgprev(ntheta)); cgprev=0.0
-   allocate(A(ntheta)); A=0.0
-   allocate(B(ntheta)); B=0.0
-   allocate(C(ntheta)); C=0.0
-   allocate(R(ntheta)); R=0.0
+   allocate(eeold(ntheta,no_nodes)) ! set in the first sweep
    allocate(E(no_nodes)); E=waveps
    allocate(Eold(no_nodes)); Eold=0.0   
    !
    if (igwaves) then
-      allocate(A_ig(ntheta)); A_ig=0.0
-      allocate(B_ig(ntheta)); B_ig=0.0
-      allocate(C_ig(ntheta)); C_ig=0.0
-      allocate(R_ig(ntheta)); R_ig=0.0
-      allocate(eeprev_ig(ntheta)); eeprev_ig=0.0
-      allocate(cgprev_ig(ntheta)); cgprev_ig=0.0
       allocate(DoverE_ig(no_nodes)); DoverE_ig=0.0
       allocate(E_ig(no_nodes)); E_ig=waveps
       allocate(sigm_ig(no_nodes)); sigm_ig=0.0
-      allocate(depthprev(ntheta,no_nodes)); depthprev=0.0
       allocate(beta_local(ntheta,no_nodes)); beta_local=0.0
       allocate(alphaig_local(ntheta,no_nodes)); alphaig_local=0.0
-      allocate(eeold_ig(ntheta,no_nodes)); eeold_ig=0.0
+      allocate(eeold_ig(ntheta,no_nodes)) ! set in the first sweep
       allocate(diff_ig(no_nodes)); diff_ig=0.0
       allocate(ok_ig(no_nodes)); ok_ig=0
    endif
    !
    if (wind) then
-      allocate(B_aa(ntheta)); B_aa=0.0
-      allocate(R_aa(ntheta)); R_aa=0.0
       allocate(DoverA(no_nodes)); DoverA=0.0
-      allocate(aaprev(ntheta)); aaprev=0.0
    endif
    !
    allocate(diff(no_nodes)); diff=0.0
-   allocate(ra(no_nodes)); ra=0.0
+   allocate(ra(no_nodes, 4)); ra=0.0
    allocate(srcig_local(ntheta,no_nodes)); srcig_local = 0.0
    !
    ! Inverse of neumannconnected: for each inner node, the Neumann nodes connected to it
@@ -670,9 +662,14 @@ contains
    thetam         = 0.0
    !H              = 0.0 ! TODO - TL: CHeck > needed for restart for IG > set to 0 now in snapwave_domain.f90
    Dveg           = 0.0
-   Fvw            = 0.0
-   unl            = 0.0
-   etaw0          = 0.0
+   !
+   ! Vegetation work arrays (no_nodes x 50) are only needed with vegetation
+   !
+   if (vegetation) then
+      allocate(Fvw(no_nodes)); Fvw = 0.0
+      allocate(unl(no_nodes, 50)); unl = 0.0
+      allocate(etaw0(no_nodes, 50)); etaw0 = 0.0
+   endif
    !
    if (igwaves) then
       !
@@ -720,12 +717,17 @@ contains
    !
    shift = [0, 1, -1, 2]
    !
+   ! The four sorts are independent, so they run concurrently (each sort itself is serial,
+   ! so the order is the same as when they run one after the other)
+   !
+   !$omp parallel do private(sweep) schedule(static, 1)
    do sweep = 1, 4
       !
-      ra = x * cos(thetamean + 0.5 * pi * shift(sweep)) + y * sin(thetamean + 0.5 * pi * shift(sweep))
-      call hpsort_eps_epw(no_nodes, ra , indx(:, sweep), 1.0e-6)
+      ra(:, sweep) = x * cos(thetamean + 0.5 * pi * shift(sweep)) + y * sin(thetamean + 0.5 * pi * shift(sweep))
+      call hpsort_eps_epw(no_nodes, ra(:, sweep), indx(:, sweep), 1.0e-6)
       !
    enddo
+   !$omp end parallel do
    !
    ! Set inner to false for all points at grid edge
    !
@@ -750,7 +752,39 @@ contains
          endif
          !
       enddo
-   enddo  
+   enddo
+   !
+   ! DIAGNOSTIC: strip-decomposition statistics of the ordered sweeps (first call only)
+   !
+   if (ntheta > ntheta_max) then
+      write(logstr, '(a,i0,a,i0)') 'Error ! SnapWave: number of directional bins ', ntheta, ' exceeds maximum ', ntheta_max
+      call stop_sfincs(logstr, 1)
+   endif
+   !
+   if (callno == 1) call compute_sweep_strip_stats(x, y, no_nodes, ntheta, prev, w, inner, indx, depth, hmin, thetamean)
+   !
+   ! Strip schedule of the four sweeps (indx and inner are fixed during this call)
+   !
+   allocate(strip_of(no_nodes, 2), halo_nodes(no_nodes, 2))
+   call build_sweep_strips(no_nodes, ntheta, prev, inner, depth, hmin, indx, &
+                           nstrip, strips, strip_of, halo_n, halo_nodes)
+   !
+   if (callno == 1 .and. nstrip > 1) then
+      write(logstr, '(a,i0,a,i0,a,i0,a)') 'SnapWave: parallel sweep with ', nstrip, ' strips (', &
+         halo_n(1), ' + ', halo_n(2), ' halo nodes)'
+      call write_log(logstr, 0)
+   endif
+   !
+   if (nstrip > 1) then
+      allocate(ee_s(ntheta, no_nodes)); ee_s = 0.0
+      allocate(cg_s(no_nodes)); cg_s = 0.0
+      if (igwaves) then
+         allocate(ee_ig_s(ntheta, no_nodes)); ee_ig_s = 0.0
+      endif
+      if (wind) then
+         allocate(aa_s(ntheta, no_nodes)); aa_s = 0.0
+      endif
+   endif
    !
    ! Start iteration
    !
@@ -824,16 +858,11 @@ contains
       !
       if (sweep == 1) then
          !
-         eeold = ee
-         !
-         if (igwaves) then
-             !
-             eeold_ig = ee_ig
-             !
-         endif
-         !
          !$omp parallel do schedule(static)
          do k = 1, no_nodes
+            !
+            eeold(:, k) = ee(:, k)
+            if (igwaves) eeold_ig(:, k) = ee_ig(:, k)
             !
             Eold(k) = sum(eeold(:, k))
             !
@@ -862,387 +891,56 @@ contains
       !
       !  Loop over all points depending on sweep direction
       !
-      do count = 1, no_nodes
+      ! Strip-parallel Gauss-Seidel sweep. The domain is split into strips lying side by side
+      ! across the sweep direction; each strip is swept serially in sweep order by one thread.
+      ! Upwind values from the same strip are read live (as in the serial sweep); upwind values
+      ! from another strip are read from a start-of-sweep copy (lagged by one sweep), so strips
+      ! are independent. With nstrip = 1 this is exactly the serial sweep.
+      !
+      axis = 1
+      if (sweep == 2 .or. sweep == 3) axis = 2
+      !
+      if (nstrip > 1) then
          !
-         k = indx(count, sweep)
-         !
-         ! Skip non-inner (boundary) nodes
-         !
-         if (.not. inner(k)) cycle
-         !
-         ! For nodes below minimum depth: zero out energy and skip
-         !
-         if (depth(k) <= hmin) then
-            !
-            ee(:, k)    = 0.0
-            if (wind) aa(:, k) = 0.0
-            ee_ig(:, k) = 0.0
-            cycle
-            !
-         endif
-         !
-         ! Skip nodes that have already converged
-         !
-         if (ok(k) == 1) cycle
-         !
-         ! Retrieve integrated quantities computed in the start-of-sweep pre-loop
-         !
-         Ek = E(k)
-         Hk = H(k)
-         !
-         if (igwaves) then
-            !
-            Ek_ig = E_ig(k)
-            Hk_ig = H_ig(k)
-            !
-         endif
-         !
-         ! --- Step 1: Upwind energy, group velocity (and action for wind) ------------
-         !
-         do itheta = 1, ntheta
-            !
-            k1 = prev(1, itheta, k)
-            k2 = prev(2, itheta, k)
-            !
-            eeprev(itheta) = w(1, itheta, k) * ee(itheta, k1) + w(2, itheta, k) * ee(itheta, k2)
-            cgprev(itheta) = w(1, itheta, k) * cg(k1)         + w(2, itheta, k) * cg(k2)
-            !
-            if (igwaves) then
-               eeprev_ig(itheta) = w(1, itheta, k) * ee_ig(itheta, k1) + w(2, itheta, k) * ee_ig(itheta, k2)
-               cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1)         + w(2, itheta, k) * cg_ig(k2)
-            endif
-            !
-            if (wind) then
-               aaprev(itheta) = w(1, itheta, k) * aa(itheta, k1) + w(2, itheta, k) * aa(itheta, k2)
-               aaprev(itheta) = min(aaprev(itheta), eeprev(itheta) / sigmin)
-               aaprev(itheta) = max(aaprev(itheta), eeprev(itheta) / sigmax)
-            endif
-            !
+         !$omp parallel do private(ii, k) schedule(static)
+         do ii = 1, halo_n(axis)
+            k = halo_nodes(ii, axis)
+            ee_s(:, k) = ee(:, k)
+            cg_s(k)    = cg(k)
+            if (igwaves) ee_ig_s(:, k) = ee_ig(:, k)
+            if (wind)    aa_s(:, k)    = aa(:, k)
          enddo
+         !$omp end parallel do
          !
-         ! --- Step 2: Pre-solve sig and celerities from upwind Ek/Ak (wind only) ----
-         !
-         ! The upwind Ek/Ak provides the best pre-solve estimate of local sig, so that
-         ! both the ee and aa matrices are assembled with a consistent cg(k).
-         ! Post-solve, sig is updated from the solved Ek/Ak in Step 6.
-         !
-         if (wind) then
-            !
-            Ek     = sum(eeprev) * dtheta
-            Ak     = sum(aaprev) * dtheta
-            sig(k) = max(min(Ek / Ak, sigmax), sigmin)
-            Ak     = Ek / sig(k)
-            aaprev = min(aaprev, eeprev / sigmin)
-            aaprev = max(aaprev, eeprev / sigmax)
-            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
-                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
-            !
-         endif
-         !
-         ! --- Step 3: Source and sink terms ------------------------------------------
-         !
-         ! Bottom friction
-         !
-         uorbi = 0.5 * sig(k) * Hk / sinhkh(k)
-         Dfk   = 0.28 * rho * fw(k) * uorbi**3
-         !
-         ! Wave breaking (Baldock)
-         ! First check if wave breaking could occur based on Baldock criterion (Hk > baldock_ratio * Hmx(k))
-         !
-         if (Hk > baldock_ratio * Hmx(k)) then
-            !
-            call baldock(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k), baldock_exponent, Dwk, Hmx(k))
-            !
-         else
-            !
-            ! No wave breaking according to Baldock criterion
-            !
-            Dwk = 0.0
-            !
-         endif
-         !
-         ! Vegetation
-         !
-         if (vegetation) then
-            !
-            call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k, :), veg_bstems(k, :), &
-                        veg_Nstems(k, :), veg_Cd(k, :), depth(k), rho, g, Hk, Dvegk)
-            !
-         else
-            !
-            Dvegk = 0.0
-            !
-         endif
-         !
-         ! Estimate of the energy the node obtains in this sweep from its upwind inflow and the
-         ! lagged dissipation ratio. A node is cold when its lagged energy is negligible compared
-         ! to this estimate (first SnapWave call, or a wave front that has not arrived yet).
-         !
-         ek_nosink = 0.0
-         !
-         do itheta = 1, ntheta
-            !
-            ek_nosink = ek_nosink + (oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k)) &
-                                  / (oneoverdt + cg(k) / ds(itheta, k) + DoverE(k))
-            !
+      endif
+      !
+      !$omp parallel do if (nstrip > 1) schedule(dynamic, 1) private(istrip, ii)
+      do istrip = 1, nstrip
+         do ii = strips(sweep)%ptr(istrip), strips(sweep)%ptr(istrip + 1) - 1
+            call update_node(strips(sweep)%nodes(ii), strip_of(strips(sweep)%nodes(ii), axis))
          enddo
-         !
-         ek_nosink = ek_nosink * dtheta
-         !
-         ! Energy dissipation ratio (with under-relaxation)
-         !
-         dovere_target = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
-         !
-         ! Do not let the node be flagged as converged while it is cold or while the relaxed
-         ! DoverE is still far from its target. The energy change of such a node is small
-         ! compared to the global maximum (the convergence measure), e.g. a shoreline node
-         ! that collapsed after the first-sweep overshoot, but its solution is not converged.
-         !
-         if (E(k) < 0.01 * ek_nosink .or. abs(dovere_target - DoverE(k)) > 0.1 * max(dovere_target, DoverE(k))) then
-            !
-            nofreeze(k) = 1
-            !
-         else
-            !
-            nofreeze(k) = 0
-            !
-         endif
-         !
-         DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) + relax_factor_DoverE * dovere_target
-         !
-         Df(k)   = Dfk
-         Dw(k)   = Dwk
-         Dveg(k) = Dvegk
-         !
-         ! Wind source terms and action dissipation ratio DoverA (wind only)
-         !
-         if (wind) then
-            !
-            if (iter == 1) then
-               call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
-                              eeprev, aaprev, ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
-            else
-               call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
-                              ee(:, k), aa(:, k), ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
-            endif
-            !
-            DwT  = -c_dispT / (1.0 - ndissip) * (2.0 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k)
-            DwAk = 1.0 / (2.0 * pi) * (E(k) * DwT + 2.0 * pi * Ak * DoverE(k))
-            !
-            if (iter == 1) then
-               DoverA(k) = DwAk / max(Ak, 1.0e-6)
-            else
-               DoverA(k) = (1.0 - relax_factor_DoverA) * DoverA(k) &
-                         + relax_factor_DoverA * DwAk / max(Ak, 1.0e-6)
-            endif
-            !
-         endif
-         !
-         ! --- Step 4: Assemble and solve energy balance (ee) -------------------------
-         !
-         do itheta = 1, ntheta
-            !
-            R(itheta) = oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) &
-                      - srcig_local(itheta, k) * shinc2ig
-            !
-         enddo
-         !
-         do itheta = 2, ntheta - 1
-            !
-            A(itheta) = -ctheta(itheta - 1, k) * oneover2dtheta
-            B(itheta) =  oneoverdt + cg(k) / ds(itheta, k) + DoverE(k)
-            C(itheta) =  ctheta(itheta + 1, k) * oneover2dtheta
-            !
-         enddo
-         !
-         ! Directional edge BCs: first-order upwind, open at the grid ends, 
-         ! same upwind scheme as the IG (ee_ig) and action (aa) balances
-         !
-         if (ctheta(1, k) < 0.0) then
-            A(1) = 0.0
-            B(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverE(k)
-            C(1) = ctheta(2, k) / dtheta
-         else
-            A(1) = 0.0
-            B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
-            C(1) = 0.0
-         endif
-         !
-         if (ctheta(ntheta, k) > 0.0) then
-            A(ntheta) = -ctheta(ntheta - 1, k) / dtheta
-            B(ntheta) =  oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverE(k)
-            C(ntheta) =  0.0
-         else
-            A(ntheta) = 0.0
-            B(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
-            C(ntheta) = 0.0
-         endif
-         !
-         if (wind) R(:) = R(:) + WsorE(:, k)
-         !
-         call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
-         ee(:, k) = max(ee(:, k), waveps)
-         !
-         ! --- Step 5: Assemble and solve action balance (aa, wind only) ---------------
-         !
-         ! A and C are the same as for ee (refraction terms don't change).
-         ! Only B_aa differs: DoverA instead of DoverE, plus upwind BC for ctheta endpoints.
-         !
-         if (wind) then
-            !
-            do itheta = 2, ntheta - 1
-               B_aa(itheta) = oneoverdt + cg(k) / ds(itheta, k) + DoverA(k)
-               R_aa(itheta) = oneoverdt * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
-            enddo
-            !
-            if (ctheta(1, k) < 0.0) then
-               B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
-            else
-               B_aa(1) = oneoverdt + cg(k) / ds(1, k) + DoverA(k)
-            endif
-            !
-            R_aa(1) = oneoverdt * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k)
-            !
-            if (ctheta(ntheta, k) > 0.0) then
-               B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
-            else
-               B_aa(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverA(k)
-            endif
-            !
-            R_aa(ntheta) = oneoverdt * aa(ntheta, k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
-            R_aa(:) = R_aa(:) + WsorA(:, k)
-            !
-            call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
-            !
-            aa(:, k) = max(aa(:, k), waveps / sigmax)
-            aa(:, k) = max(aa(:, k), waveps / sig(k))
-            !
-         endif
-         !
-         ! --- Step 6: Depth-limit energy (and action), update sig and celerities -----
-         !
-         Ek          = sum(ee(:, k)) * dtheta
-         depthlimfac = max(1.0, (sqrt(Ek / rhog8) / (gammax * depth(k)))**2)
-         ee(:, k)    = ee(:, k) / depthlimfac
-         !
-!         if (wind) then
-!            !
-!            Ek       = Ek / depthlimfac
-!            Ak       = sum(aa(:, k)) * dtheta
-!            Ak       = Ak / depthlimfac
-!            aa(:, k) = aa(:, k) / depthlimfac
-!            sig(k)   = max(min(Ek / Ak, sigmax), sigmin)
-!            !
-!            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
-!                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
-!            !
-!         endif
-         !
-         ! --- Step 7: IG wave balance (optional) -------------------------------------
-         !
-         if (igwaves) then
-            !
-            ! Update incident Hk from post-solve ee (needed for IG bottom friction)
-            !
-            Hk     = sqrt(8.0 * sum(ee(:, k)) * dtheta / rho / g)
-            Dfk_ig = fw_ig(k) * 0.0361 * (9.81 / depth(k))**1.5 * Hk * Ek_ig
-            !
-            ! IG wave breaking (Baldock)
-            !
-            if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
-               call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_exponent, Dwk_ig, Hmx_ig(k))
-            else
-               Dwk_ig = 0.0
-            endif
-            !
-            Df_ig(k)     = Dfk_ig
-            Dw_ig(k)     = Dwk_ig
-            !
-            ! Not using underrelaxation for IG dissipation for now, but we could add this if needed (relax_factor_DoverE_ig)
-            DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6)
-            ! 
-            !
-            ! IG RHS
-            !
-            do itheta = 1, ntheta
-               R_ig(itheta) = oneoverdt * ee_ig(itheta, k) &
-                            + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) &
-                            + srcig_local(itheta, k)
-            enddo
-            !
-            ! IG matrix with directional boundary conditions
-            !
-            do itheta = 2, ntheta - 1
-               A_ig(itheta) = -ctheta_ig(itheta - 1, k) * oneover2dtheta
-               B_ig(itheta) =  oneoverdt + cg_ig(k) / ds(itheta, k) + DoverE_ig(k)
-               C_ig(itheta) =  ctheta_ig(itheta + 1, k) * oneover2dtheta
-            enddo
-            !
-            if (ctheta_ig(1, k) < 0.0) then
-               A_ig(1) = 0.0
-               B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
-               C_ig(1) = ctheta_ig(2, k) / dtheta
-            else
-               A_ig(1) = 0.0
-               B_ig(1) = oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
-               C_ig(1) = 0.0
-            endif
-            !
-            if (ctheta_ig(ntheta, k) > 0.0) then
-               A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
-               B_ig(ntheta) =  oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
-               C_ig(ntheta) =  0.0
-            else
-               A_ig(ntheta) = 0.0
-               B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
-               C_ig(ntheta) = 0.0
-            endif
-            !
-            call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
-            ee_ig(:, k) = max(ee_ig(:, k), 0.0)
-            !
-            ! Depth-limit IG energy
-            !
-            depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)))**2)
-            ee_ig(:, k) = ee_ig(:, k) / depthlimfac
-            !
-         else
-            !
-            ee_ig(:, k) = 0.0
-            !
-         endif
-         !
-         ! Copy the new energy directly to the Neumann nodes connected to this node. Energy then
-         ! travels along a Neumann boundary within one sweep, instead of one node per sweep
-         ! through the copy at the start of each sweep. With wind, cg is copied as well, since
-         ! cg(k) was updated in this sweep and the next inner node uses it as upwind group velocity.
-         !
-         do ineu = neu_start(k), neu_start(k + 1) - 1
-            !
-            kn           = neu_list(ineu)
-            ee(:, kn)    = ee(:, k)
-            ee_ig(:, kn) = ee_ig(:, k)
-            !
-            if (wind) then
-               !
-               aa(:, kn) = aa(:, k)
-               cg(kn)    = cg(k)
-               !
-            endif
-            !
-         enddo
-         !
       enddo
+      !$omp end parallel do
       !
       if (sweep==4) then
          !
          ! Check convergence after all 4 sweeps
          !
-         !$omp parallel do private(dee) schedule(static)
+         ! The maxima are reductions over all nodes (exact in any order). The test uses eemax
+         ! of the previous check, the new eemax is used from the next check on.
+         !
+         eemax_new = -huge(1.0)
+         diffmax   = -huge(1.0)
+         !
+         !$omp parallel do private(k, itheta) reduction(max:eemax_new, diffmax) schedule(static)
          do k = 1, no_nodes
             !
-            dee     = ee(:, k) - eeold(:, k)
-            diff(k) = maxval(abs(dee))
+            diff(k) = 0.0
+            do itheta = 1, ntheta
+               diff(k)   = max(diff(k), abs(ee(itheta, k) - eeold(itheta, k)))
+               eemax_new = max(eemax_new, ee(itheta, k))
+            enddo
+            diffmax = max(diffmax, diff(k))
             !
             if (diff(k) / eemax < crit .and. nofreeze(k) == 0) then
                ok(k) = 1
@@ -1264,11 +962,11 @@ contains
          ! Percentage of converged points
          !
          percok = sum(ok) / dble(no_nodes) * 100.0
-         eemax  = maxval(ee)
+         eemax  = eemax_new
          !
          ! Relative maximum error
          !
-         error = maxval(diff) / eemax
+         error = diffmax / eemax
          !
          nnofreeze = sum(nofreeze)
          !
@@ -1281,22 +979,32 @@ contains
          !
          if (igwaves) then
             !
-            !$omp parallel do private(dee) schedule(static)
+            eemax_new = -huge(1.0)
+            diffmax   = -huge(1.0)
+            nok       = 0
+            !
+            !$omp parallel do private(k, itheta) reduction(max:eemax_new, diffmax) reduction(+:nok) schedule(static)
             do k = 1, no_nodes
                !
-               dee        = ee_ig(:, k) - eeold_ig(:, k)
-               diff_ig(k) = maxval(abs(dee))
+               diff_ig(k) = 0.0
+               do itheta = 1, ntheta
+                  diff_ig(k) = max(diff_ig(k), abs(ee_ig(itheta, k) - eeold_ig(itheta, k)))
+                  eemax_new  = max(eemax_new, ee_ig(itheta, k))
+               enddo
+               diffmax = max(diffmax, diff_ig(k))
                !
                if (diff_ig(k) / eemax_ig < crit) then
                   ok_ig(k) = 1
                endif
                !
+               nok = nok + ok_ig(k)
+               !
             enddo
             !$omp end parallel do
             !
-            percok_ig = sum(ok_ig) / dble(no_nodes) * 100.0
-            eemax_ig  = maxval(ee_ig)
-            error_ig  = maxval(diff_ig) / eemax_ig
+            percok_ig = nok / dble(no_nodes) * 100.0
+            eemax_ig  = eemax_new
+            error_ig  = diffmax / eemax_ig
             !
             write(logstr,'(a,i6,a,f10.5,a,f7.2,a,f10.5,a,f7.2)')'   iteration ', iter / 4 , &
                ' error = ', error,'   %ok = ', percok,'   error_ig = ', error_ig,'   %ok_ig = ', percok_ig
@@ -1475,6 +1183,475 @@ contains
    !   
    callno = callno + 1
    !
+   contains
+   !
+   subroutine update_node(k, sk)
+   !
+   ! Node update with work buffers on the calling thread's stack (see ntheta_max).
+   !
+   ! Input:
+   !   k  : node index
+   !   sk : strip of node k for the current sweep axis
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver), strip loop
+   !
+   integer, intent(in)            :: k, sk
+   real*4, dimension(ntheta_max, 15) :: wrk
+   !
+   call update_node_body(k, sk, wrk(:, 1), wrk(:, 2), wrk(:, 3), wrk(:, 4), wrk(:, 5), &
+                         wrk(:, 6), wrk(:, 7), wrk(:, 8), wrk(:, 9), wrk(:, 10), &
+                         wrk(:, 11), wrk(:, 12), wrk(:, 13), wrk(:, 14), wrk(:, 15))
+   !
+   end subroutine update_node
+   !
+   subroutine update_node_body(k, sk, eeprev, cgprev, eeprev_ig, cgprev_ig, aaprev, &
+                               A, B, C, R, A_ig, B_ig, C_ig, R_ig, B_aa, R_aa)
+   !
+   ! Update wave energy (ee), and optionally IG energy (ee_ig) and wave action (aa), of node k in
+   ! the current sweep. Upwind values from strip sk (or from non-inner nodes) are read live,
+   ! upwind values from other strips from the start-of-sweep copies (*_s).
+   !
+   ! All per-node scalars and work arrays are local, so they live on the calling thread's stack.
+   ! Everything else is host-associated from solve_energy_balance2Dstat; only entries of node k
+   ! are written.
+   !
+   ! Input:
+   !   k  : node index
+   !   sk : strip of node k for the current sweep axis
+   !
+   ! Work arrays (explicit shape, storage provided by update_node):
+   !   eeprev .. R_aa : per-direction scratch of length ntheta
+   !
+   ! Called from: update_node (snapwave_solver)
+   !
+   integer, intent(in)       :: k, sk
+   !
+   integer                   :: k1, k2, l1, l2, itheta
+   real*4                    :: ee1, ee2, cg1, cg2, eig1, eig2, aa1, aa2
+   real*4                    :: Ek, Hk, Ek_ig, Hk_ig, Ak, uorbi, Dfk, Dwk, Dvegk, DwT, DwAk, depthlimfac, Dfk_ig, Dwk_ig
+   real*4                    :: ek_nosink, dovere_target
+   integer                   :: ineu, kneu
+   real*4, dimension(ntheta) :: eeprev, cgprev, eeprev_ig, cgprev_ig, aaprev ! explicit-shape dummies
+   real*4, dimension(ntheta) :: A, B, C, R, A_ig, B_ig, C_ig, R_ig, B_aa, R_aa
+   !
+      ! Skip non-inner (boundary) nodes
+      !
+      if (.not. inner(k)) return
+      !
+      ! For nodes below minimum depth: zero out energy and skip
+      !
+      if (depth(k) <= hmin) then
+         !
+         ee(:, k)    = 0.0
+         if (wind) aa(:, k) = 0.0
+         ee_ig(:, k) = 0.0
+         return
+         !
+      endif
+      !
+      ! Skip nodes that have already converged
+      !
+      if (ok(k) == 1) return
+      !
+      ! Retrieve integrated quantities computed in the start-of-sweep pre-loop
+      !
+      Ek = E(k)
+      Hk = H(k)
+      !
+      if (igwaves) then
+         !
+         Ek_ig = E_ig(k)
+         Hk_ig = H_ig(k)
+         !
+      endif
+      !
+      ! --- Step 1: Upwind energy, group velocity (and action for wind) ------------
+      !
+      do itheta = 1, ntheta
+         !
+         k1 = prev(1, itheta, k)
+         k2 = prev(2, itheta, k)
+         !
+         ! Upwind node in the same strip (or strip 0: not inner and not Neumann, i.e. never updated
+         ! in the sweep): live value. Upwind node in another strip: start-of-sweep copy.
+         !
+         l1 = strip_of(k1, axis)
+         l2 = strip_of(k2, axis)
+         !
+         if (l1 == sk .or. l1 == 0) then
+            ee1 = ee(itheta, k1)
+            cg1 = cg(k1)
+         else
+            ee1 = ee_s(itheta, k1)
+            cg1 = cg_s(k1)
+         endif
+         !
+         if (l2 == sk .or. l2 == 0) then
+            ee2 = ee(itheta, k2)
+            cg2 = cg(k2)
+         else
+            ee2 = ee_s(itheta, k2)
+            cg2 = cg_s(k2)
+         endif
+         !
+         eeprev(itheta) = w(1, itheta, k) * ee1 + w(2, itheta, k) * ee2
+         cgprev(itheta) = w(1, itheta, k) * cg1 + w(2, itheta, k) * cg2
+         !
+         if (igwaves) then
+            !
+            if (l1 == sk .or. l1 == 0) then
+               eig1 = ee_ig(itheta, k1)
+            else
+               eig1 = ee_ig_s(itheta, k1)
+            endif
+            !
+            if (l2 == sk .or. l2 == 0) then
+               eig2 = ee_ig(itheta, k2)
+            else
+               eig2 = ee_ig_s(itheta, k2)
+            endif
+            !
+            eeprev_ig(itheta) = w(1, itheta, k) * eig1 + w(2, itheta, k) * eig2
+            cgprev_ig(itheta) = w(1, itheta, k) * cg_ig(k1) + w(2, itheta, k) * cg_ig(k2)
+            !
+         endif
+         !
+         if (wind) then
+            !
+            if (l1 == sk .or. l1 == 0) then
+               aa1 = aa(itheta, k1)
+            else
+               aa1 = aa_s(itheta, k1)
+            endif
+            !
+            if (l2 == sk .or. l2 == 0) then
+               aa2 = aa(itheta, k2)
+            else
+               aa2 = aa_s(itheta, k2)
+            endif
+            !
+            aaprev(itheta) = w(1, itheta, k) * aa1 + w(2, itheta, k) * aa2
+            aaprev(itheta) = min(aaprev(itheta), eeprev(itheta) / sigmin)
+            aaprev(itheta) = max(aaprev(itheta), eeprev(itheta) / sigmax)
+         endif
+         !
+      enddo
+      !
+      ! --- Step 2: Pre-solve sig and celerities from upwind Ek/Ak (wind only) ----
+      !
+      ! The upwind Ek/Ak provides the best pre-solve estimate of local sig, so that
+      ! both the ee and aa matrices are assembled with a consistent cg(k).
+      ! Post-solve, sig is updated from the solved Ek/Ak in Step 6.
+      !
+      if (wind) then
+         !
+         Ek     = sum(eeprev) * dtheta
+         Ak     = sum(aaprev) * dtheta
+         sig(k) = max(min(Ek / Ak, sigmax), sigmin)
+         Ak     = Ek / sig(k)
+         aaprev = min(aaprev, eeprev / sigmin)
+         aaprev = max(aaprev, eeprev / sigmax)
+         call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+                                 dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+         !
+      endif
+      !
+      ! --- Step 3: Source and sink terms ------------------------------------------
+      !
+      ! Bottom friction
+      !
+      uorbi = 0.5 * sig(k) * Hk / sinhkh(k)
+      Dfk   = 0.28 * rho * fw(k) * uorbi**3
+      !
+      ! Wave breaking (Baldock)
+      ! First check if wave breaking could occur based on Baldock criterion (Hk > baldock_ratio * Hmx(k))
+      !
+      if (Hk > baldock_ratio * Hmx(k)) then
+         !
+         call baldock(rho, g, alfa, gamma, depth(k), Hk, 2 * pi / sig(k), baldock_exponent, Dwk, Hmx(k))
+         !
+      else
+         !
+         ! No wave breaking according to Baldock criterion
+         !
+         Dwk = 0.0
+         !
+      endif
+      !
+      ! Vegetation
+      !
+      if (vegetation) then
+         !
+         call vegatt(sig(k), no_nodes, kwav(k), no_secveg, veg_ah(k, :), veg_bstems(k, :), &
+                     veg_Nstems(k, :), veg_Cd(k, :), depth(k), rho, g, Hk, Dvegk)
+         !
+      else
+         !
+         Dvegk = 0.0
+         !
+      endif
+      !
+      ! Estimate of the energy the node obtains in this sweep from its upwind inflow and the
+      ! lagged dissipation ratio. A node is cold when its lagged energy is negligible compared
+      ! to this estimate (first SnapWave call, or a wave front that has not arrived yet).
+      !
+      ek_nosink = 0.0
+      !
+      do itheta = 1, ntheta
+         !
+         ek_nosink = ek_nosink + (oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k)) &
+                               / (oneoverdt + cg(k) / ds(itheta, k) + DoverE(k))
+         !
+      enddo
+      !
+      ek_nosink = ek_nosink * dtheta
+      !
+      ! Energy dissipation ratio (with under-relaxation)
+      !
+      dovere_target = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+      !
+      ! Do not let the node be flagged as converged while it is cold or while the relaxed
+      ! DoverE is still far from its target. The energy change of such a node is small
+      ! compared to the global maximum (the convergence measure), e.g. a shoreline node
+      ! that collapsed after the first-sweep overshoot, but its solution is not converged.
+      !
+      if (E(k) < 0.01 * ek_nosink .or. abs(dovere_target - DoverE(k)) > 0.1 * max(dovere_target, DoverE(k))) then
+         !
+         nofreeze(k) = 1
+         !
+      else
+         !
+         nofreeze(k) = 0
+         !
+      endif
+      !
+      DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) + relax_factor_DoverE * dovere_target
+      !
+      Df(k)   = Dfk
+      Dw(k)   = Dwk
+      Dveg(k) = Dvegk
+      !
+      ! Wind source terms and action dissipation ratio DoverA (wind only)
+      !
+      if (wind) then
+         !
+         if (iter == 1) then
+            call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
+                           eeprev, aaprev, ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
+         else
+            call windinput(u10(k), rho, g, depth(k), ntheta, windspreadfac(:, k), Ek, Ak, cg(k), &
+                           ee(:, k), aa(:, k), ds(:, k), WsorE(:, k), WsorA(:, k), jadcgdx)
+         endif
+         !
+         DwT  = -c_dispT / (1.0 - ndissip) * (2.0 * pi) / sig(k)**2 * cg(k) * kwav(k) * DoverE(k)
+         DwAk = 1.0 / (2.0 * pi) * (E(k) * DwT + 2.0 * pi * Ak * DoverE(k))
+         !
+         if (iter == 1) then
+            DoverA(k) = DwAk / max(Ak, 1.0e-6)
+         else
+            DoverA(k) = (1.0 - relax_factor_DoverA) * DoverA(k) &
+                      + relax_factor_DoverA * DwAk / max(Ak, 1.0e-6)
+         endif
+         !
+      endif
+      !
+      ! --- Step 4: Assemble and solve energy balance (ee) -------------------------
+      !
+      do itheta = 1, ntheta
+         !
+         R(itheta) = oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k) &
+                   - srcig_local(itheta, k) * shinc2ig
+         !
+      enddo
+      !
+      do itheta = 2, ntheta - 1
+         !
+         A(itheta) = -ctheta(itheta - 1, k) * oneover2dtheta
+         B(itheta) =  oneoverdt + cg(k) / ds(itheta, k) + DoverE(k)
+         C(itheta) =  ctheta(itheta + 1, k) * oneover2dtheta
+         !
+      enddo
+      !
+      ! Directional edge BCs: first-order upwind, open at the grid ends, 
+      ! same upwind scheme as the IG (ee_ig) and action (aa) balances
+      !
+      if (ctheta(1, k) < 0.0) then
+         A(1) = 0.0
+         B(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverE(k)
+         C(1) = ctheta(2, k) / dtheta
+      else
+         A(1) = 0.0
+         B(1) = oneoverdt + cg(k) / ds(1, k) + DoverE(k)
+         C(1) = 0.0
+      endif
+      !
+      if (ctheta(ntheta, k) > 0.0) then
+         A(ntheta) = -ctheta(ntheta - 1, k) / dtheta
+         B(ntheta) =  oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverE(k)
+         C(ntheta) =  0.0
+      else
+         A(ntheta) = 0.0
+         B(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverE(k)
+         C(ntheta) = 0.0
+      endif
+      !
+      if (wind) R(:) = R(:) + WsorE(:, k)
+      !
+      call solve_tridiag(A, B, C, R, ee(:, k), ntheta)
+      ee(:, k) = max(ee(:, k), waveps)
+      !
+      ! --- Step 5: Assemble and solve action balance (aa, wind only) ---------------
+      !
+      ! A and C are the same as for ee (refraction terms don't change).
+      ! Only B_aa differs: DoverA instead of DoverE, plus upwind BC for ctheta endpoints.
+      !
+      if (wind) then
+         !
+         do itheta = 2, ntheta - 1
+            B_aa(itheta) = oneoverdt + cg(k) / ds(itheta, k) + DoverA(k)
+            R_aa(itheta) = oneoverdt * aa(itheta, k) + cgprev(itheta) * aaprev(itheta) / ds(itheta, k)
+         enddo
+         !
+         if (ctheta(1, k) < 0.0) then
+            B_aa(1) = oneoverdt - ctheta(1, k) / dtheta + cg(k) / ds(1, k) + DoverA(k)
+         else
+            B_aa(1) = oneoverdt + cg(k) / ds(1, k) + DoverA(k)
+         endif
+         !
+         R_aa(1) = oneoverdt * aa(1, k) + cgprev(1) * aaprev(1) / ds(1, k)
+         !
+         if (ctheta(ntheta, k) > 0.0) then
+            B_aa(ntheta) = oneoverdt + ctheta(ntheta, k) / dtheta + cg(k) / ds(ntheta, k) + DoverA(k)
+         else
+            B_aa(ntheta) = oneoverdt + cg(k) / ds(ntheta, k) + DoverA(k)
+         endif
+         !
+         R_aa(ntheta) = oneoverdt * aa(ntheta, k) + cgprev(ntheta) * aaprev(ntheta) / ds(ntheta, k)
+         R_aa(:) = R_aa(:) + WsorA(:, k)
+         !
+         call solve_tridiag(A, B_aa, C, R_aa, aa(:, k), ntheta)
+         !
+         aa(:, k) = max(aa(:, k), waveps / sigmax)
+         aa(:, k) = max(aa(:, k), waveps / sig(k))
+         !
+      endif
+      !
+      ! --- Step 6: Depth-limit energy (and action), update sig and celerities -----
+      !
+      Ek          = sum(ee(:, k)) * dtheta
+      depthlimfac = max(1.0, (sqrt(Ek / rhog8) / (gammax * depth(k)))**2)
+      ee(:, k)    = ee(:, k) / depthlimfac
+      !
+!         if (wind) then
+!            !
+!            Ek       = Ek / depthlimfac
+!            Ak       = sum(aa(:, k)) * dtheta
+!            Ak       = Ak / depthlimfac
+!            aa(:, k) = aa(:, k) / depthlimfac
+!            sig(k)   = max(min(Ek / Ak, sigmax), sigmin)
+!            !
+!            call compute_celerities(depth(k), sig(k), sinth, costh, ntheta, gamma, &
+!                                    dhdx(k), dhdy(k), sinhkh(k), Hmx(k), kwav(k), cg(k), ctheta(:, k))
+!            !
+!         endif
+      !
+      ! --- Step 7: IG wave balance (optional) -------------------------------------
+      !
+      if (igwaves) then
+         !
+         ! Update incident Hk from post-solve ee (needed for IG bottom friction)
+         !
+         Hk     = sqrt(8.0 * sum(ee(:, k)) * dtheta / rho / g)
+         Dfk_ig = fw_ig(k) * 0.0361 * (9.81 / depth(k))**1.5 * Hk * Ek_ig
+         !
+         ! IG wave breaking (Baldock)
+         !
+         if (Hk_ig > baldock_ratio_ig * Hmx_ig(k)) then
+            call baldock(rho, g, alfa_ig, gamma_ig, depth(k), Hk_ig, T_ig(k), baldock_exponent, Dwk_ig, Hmx_ig(k))
+         else
+            Dwk_ig = 0.0
+         endif
+         !
+         Df_ig(k)     = Dfk_ig
+         Dw_ig(k)     = Dwk_ig
+         !
+         ! Not using underrelaxation for IG dissipation for now, but we could add this if needed (relax_factor_DoverE_ig)
+         DoverE_ig(k) = (Dwk_ig + Dfk_ig) / max(Ek_ig, 1.0e-6)
+         ! 
+         ! IG RHS
+         !
+         do itheta = 1, ntheta
+            R_ig(itheta) = oneoverdt * ee_ig(itheta, k) &
+                         + cgprev_ig(itheta) * eeprev_ig(itheta) / ds(itheta, k) &
+                         + srcig_local(itheta, k)
+         enddo
+         !
+         ! IG matrix with directional boundary conditions
+         !
+         do itheta = 2, ntheta - 1
+            A_ig(itheta) = -ctheta_ig(itheta - 1, k) * oneover2dtheta
+            B_ig(itheta) =  oneoverdt + cg_ig(k) / ds(itheta, k) + DoverE_ig(k)
+            C_ig(itheta) =  ctheta_ig(itheta + 1, k) * oneover2dtheta
+         enddo
+         !
+         if (ctheta_ig(1, k) < 0.0) then
+            A_ig(1) = 0.0
+            B_ig(1) = oneoverdt - ctheta_ig(1, k) / dtheta + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+            C_ig(1) = ctheta_ig(2, k) / dtheta
+         else
+            A_ig(1) = 0.0
+            B_ig(1) = oneoverdt + cg_ig(k) / ds(1, k) + DoverE_ig(k)
+            C_ig(1) = 0.0
+         endif
+         !
+         if (ctheta_ig(ntheta, k) > 0.0) then
+            A_ig(ntheta) = -ctheta_ig(ntheta - 1, k) / dtheta
+            B_ig(ntheta) =  oneoverdt + ctheta_ig(ntheta, k) / dtheta + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+            C_ig(ntheta) =  0.0
+         else
+            A_ig(ntheta) = 0.0
+            B_ig(ntheta) = oneoverdt + cg_ig(k) / ds(ntheta, k) + DoverE_ig(k)
+            C_ig(ntheta) = 0.0
+         endif
+         !
+         call solve_tridiag(A_ig, B_ig, C_ig, R_ig, ee_ig(:, k), ntheta)
+         ee_ig(:, k) = max(ee_ig(:, k), 0.0)
+         !
+         ! Depth-limit IG energy
+         !
+         depthlimfac = max(1.0, (sqrt(sum(ee_ig(:, k)) * dtheta / rhog8) / (gammax * depth(k)))**2)
+         ee_ig(:, k) = ee_ig(:, k) / depthlimfac
+         !
+      else
+         !
+         ee_ig(:, k) = 0.0
+         !
+      endif
+      !
+      ! Copy the new energy directly to the Neumann nodes connected to this node. Energy then
+      ! travels along a Neumann boundary within one sweep, instead of one node per sweep
+      ! through the copy at the start of each sweep. With wind, cg is copied as well, since
+      ! cg(k) was updated in this sweep and the next inner node uses it as upwind group velocity.
+      ! A Neumann node is in the strip of its inner node (build_sweep_strips), so other strips
+      ! read it from the start-of-sweep copy.
+      !
+      do ineu = neu_start(k), neu_start(k + 1) - 1
+         !
+         kneu           = neu_list(ineu)
+         ee(:, kneu)    = ee(:, k)
+         ee_ig(:, kneu) = ee_ig(:, k)
+         !
+         if (wind) then
+            !
+            aa(:, kneu) = aa(:, k)
+            cg(kneu)    = cg(k)
+            !
+         endif
+         !
+      enddo
+      !
+   end subroutine update_node_body
+   !
    end subroutine solve_energy_balance2Dstat
 
 
@@ -1506,7 +1683,7 @@ contains
    integer,intent(in) :: n
    real*4,dimension(n),intent(in) :: a, b, c, d
    real*4,dimension(n),intent(out) :: x
-   real*4,dimension(n) :: cp,dp
+   real*4,dimension(ntheta_max) :: cp,dp ! fixed size: stays on the stack (n <= ntheta_max)
    real*4 :: m
    integer i
    !
@@ -1610,5 +1787,337 @@ contains
    call system_clock (count,count_rate, count_max)
    t = real(dble(count) / dble(count_rate), 4)
    end subroutine timer
+   !
+   !
+   subroutine compute_sweep_strip_stats(x, y, no_nodes, ntheta, prev, w, inner, indx, depth, hmin, thetamean)
+   !
+   ! DIAGNOSTIC (snapwave_stripstats = 1): cost of a strip decomposition of the ordered sweeps.
+   !
+   ! For a parallel sweep, each sweep's domain would be split into nstrip strips lying side by
+   ! side across the sweep direction (equal numbers of active nodes per strip). Each strip is
+   ! swept serially in the existing sweep order; upwind values from another strip are read from
+   ! a start-of-sweep copy (lagged by one sweep).
+   !
+   ! For nstrip = 8, 24, 48 and each sweep, this logs:
+   !   - the share of "forward" upwind reads (upwind node earlier in the sweep order, i.e. read
+   !     as an updated value in the serial sweep) that would cross a strip boundary and become
+   !     lagged, both as a count and weighted with the interpolation weights w;
+   !   - the share of active nodes with at least one such lagged read;
+   !   - for reference, the share of "backward" reads, which are lagged in the serial sweep already.
+   !
+   ! Active nodes: inner and depth > hmin. Reads from non-inner nodes are never lagged (those
+   ! nodes are not updated during the sweep).
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver), first call only
+   !
+   use snapwave_data,  only: stripstats
+   use hpsort_eps,     only: hpsort_eps_epw
+   !
+   implicit none
+   !
+   integer,                                 intent(in) :: no_nodes, ntheta
+   real*8,  dimension(no_nodes),            intent(in) :: x, y
+   integer, dimension(2, ntheta, no_nodes), intent(in) :: prev
+   real*4,  dimension(2, ntheta, no_nodes), intent(in) :: w
+   logical, dimension(no_nodes),            intent(in) :: inner
+   integer, dimension(no_nodes, 4),         intent(in) :: indx
+   real*4,  dimension(no_nodes),            intent(in) :: depth
+   real*4,                                  intent(in) :: hmin
+   real*4,                                  intent(in) :: thetamean
+   !
+   integer, dimension(3), parameter   :: nstrips = [8, 24, 48]
+   integer, dimension(4), parameter   :: shift   = [0, 1, -1, 2]
+   real*4,                parameter   :: pi      = 3.14159265
+   !
+   integer, dimension(:), allocatable :: pos, strip, ind
+   real*4,  dimension(:), allocatable :: rp
+   logical, dimension(:), allocatable :: active
+   integer                            :: is, nstrip, sweep, count, k, j, i, itheta, nact, iact, nlagnode
+   integer*8                          :: nfwd, nlag, nback
+   real*8                             :: wfwd, wlag
+   logical                            :: lagged
+   real*4                             :: phi
+   !
+   if (stripstats /= 1) return
+   !
+   allocate(pos(no_nodes), strip(no_nodes), ind(no_nodes), rp(no_nodes), active(no_nodes))
+   !
+   nact = 0
+   do k = 1, no_nodes
+      active(k) = inner(k) .and. depth(k) > hmin
+      if (active(k)) nact = nact + 1
+   enddo
+   !
+   call write_log('', 0)
+   write(logstr, '(a,i0,a,i0,a,i0)') 'SnapWave strip stats: nodes = ', no_nodes, ', active = ', nact, ', ntheta = ', ntheta
+   call write_log(logstr, 0)
+   call write_log(' nstrip  sweep  nodes/strip  %fwd_reads_lagged  %fwd_weight_lagged  %nodes_with_lag  %backward_reads(serial)', 0)
+   !
+   do is = 1, size(nstrips)
+      !
+      nstrip = nstrips(is)
+      !
+      do sweep = 1, 4
+         !
+         do count = 1, no_nodes
+            pos(indx(count, sweep)) = count
+         enddo
+         !
+         ! Strips: sort on the coordinate perpendicular to the sweep direction, cut into equal shares of active nodes
+         !
+         phi = thetamean + 0.5 * pi * shift(sweep)
+         do k = 1, no_nodes
+            rp(k) = real(-x(k) * sin(phi) + y(k) * cos(phi), 4)
+         enddo
+         ind(1) = 0
+         call hpsort_eps_epw(no_nodes, rp, ind, 1.0e-6)
+         !
+         strip = 0
+         iact  = 0
+         do count = 1, no_nodes
+            k = ind(count)
+            if (.not. inner(k)) cycle
+            strip(k) = 1 + min(nstrip - 1, int(dble(iact) * nstrip / dble(max(nact, 1))))
+            if (active(k)) iact = iact + 1
+         enddo
+         !
+         nfwd     = 0
+         nlag     = 0
+         nback    = 0
+         wfwd     = 0.0d0
+         wlag     = 0.0d0
+         nlagnode = 0
+         !
+         do k = 1, no_nodes
+            !
+            if (.not. active(k)) cycle
+            !
+            lagged = .false.
+            !
+            do itheta = 1, ntheta
+               do i = 1, 2
+                  !
+                  j = prev(i, itheta, k)
+                  if (j <= 0 .or. j == k) cycle
+                  if (.not. inner(j)) cycle
+                  if (w(i, itheta, k) <= 0.0) cycle
+                  !
+                  if (pos(j) < pos(k)) then
+                     nfwd = nfwd + 1
+                     wfwd = wfwd + w(i, itheta, k)
+                     if (strip(j) /= strip(k)) then
+                        nlag   = nlag + 1
+                        wlag   = wlag + w(i, itheta, k)
+                        lagged = .true.
+                     endif
+                  else
+                     nback = nback + 1
+                  endif
+                  !
+               enddo
+            enddo
+            !
+            if (lagged) nlagnode = nlagnode + 1
+            !
+         enddo
+         !
+         write(logstr, '(i7,i7,f13.1,f19.2,f20.2,f17.2,f25.2)') nstrip, sweep, dble(nact) / nstrip, &
+            100.0d0 * dble(nlag) / dble(max(nfwd, 1_8)), 100.0d0 * wlag / max(wfwd, 1.0d-12), &
+            100.0d0 * dble(nlagnode) / dble(max(nact, 1)), 100.0d0 * dble(nback) / dble(max(nfwd + nback, 1_8))
+         call write_log(logstr, 0)
+         !
+      enddo
+      !
+   enddo
+   !
+   call write_log('', 0)
+   !
+   deallocate(pos, strip, ind, rp, active)
+   !
+   end subroutine compute_sweep_strip_stats
+   !
+   !
+   subroutine build_sweep_strips(no_nodes, ntheta, prev, inner, depth, hmin, indx, &
+                                 nstrip, strips, strip_of, halo_n, halo_nodes)
+   !
+   ! Build the strip schedule of the four ordered sweeps.
+   !
+   ! Number of strips (snapwave_nstrips): 1 = serial sweep, >1 = fixed, 0 = automatic:
+   ! min(number of OpenMP threads, active nodes * ntheta / snapwave_strip_minwork), at least 1.
+   ! The work per node scales with ntheta, so models with many directions get more strips.
+   !
+   ! For each of the two sweep axes (axis 1: sweeps 1 and 4 along thetamean; axis 2: sweeps 2
+   ! and 3, perpendicular to it), inner nodes are ordered on the coordinate perpendicular to the
+   ! sweep direction and cut into nstrip strips with equal numbers of active nodes. That order
+   ! is the sweep order of the perpendicular sweep: sweep 2 (thetamean + pi/2) for axis 1, and
+   ! sweep 4 (thetamean + pi) for axis 2, so no extra sort is needed. Per sweep,
+   ! the inner nodes of each strip are listed in sweep order (indx). A Neumann node belongs to the
+   ! strip of the inner node it is connected to, because that node writes it during the sweep;
+   ! it is not listed in the sweep itself. Halo nodes are inner or Neumann nodes that are an
+   ! upwind node of an active node in another strip; only these need a start-of-sweep copy.
+   !
+   ! Input:
+   !   no_nodes, ntheta : number of nodes and directions
+   !   prev             : two upwind nodes per direction and node
+   !   inner            : inner-node mask
+   !   depth, hmin      : water depth and minimum depth
+   !   indx             : node order per sweep
+   !
+   ! Output:
+   !   nstrip           : number of strips used
+   !   strips           : strip schedule per sweep
+   !   strip_of         : strip of each node per axis (0 = not inner and not Neumann)
+   !   halo_n           : number of halo nodes per axis
+   !   halo_nodes       : halo nodes per axis
+   !
+   ! Called from: solve_energy_balance2Dstat (snapwave_solver)
+   !
+   use snapwave_data, only: nstrips, strip_minwork, neumannconnected
+   !$ use omp_lib,    only: omp_get_max_threads
+   !
+   implicit none
+   !
+   integer,                                 intent(in)    :: no_nodes, ntheta
+   integer, dimension(2, ntheta, no_nodes), intent(in)    :: prev
+   logical, dimension(no_nodes),            intent(in)    :: inner
+   real*4,  dimension(no_nodes),            intent(in)    :: depth
+   real*4,                                  intent(in)    :: hmin
+   integer, dimension(no_nodes, 4),         intent(in)    :: indx
+   integer,                                 intent(out)   :: nstrip
+   type(t_sweep_strips), dimension(4),      intent(inout) :: strips
+   integer, dimension(no_nodes, 2),         intent(out)   :: strip_of
+   integer, dimension(2),                   intent(out)   :: halo_n
+   integer, dimension(no_nodes, 2),         intent(out)   :: halo_nodes
+   !
+   integer, dimension(2), parameter   :: axis_order = [2, 4]          ! sweep whose order runs across axis 1 and axis 2
+   integer, dimension(4), parameter   :: sweep_axis = [1, 2, 2, 1]
+   !
+   integer, dimension(:), allocatable :: next, mark
+   logical, dimension(:), allocatable :: active
+   integer                            :: nthreads, nact, nin, iact, a, sweep, count, k, j, i, itheta, s
+   !
+   allocate(active(no_nodes))
+   !
+   nact = 0
+   nin  = 0
+   do k = 1, no_nodes
+      active(k) = inner(k) .and. depth(k) > hmin
+      if (active(k)) nact = nact + 1
+      if (inner(k))  nin  = nin + 1
+   enddo
+   !
+   ! Number of strips
+   !
+   nthreads = 1
+   !$ nthreads = omp_get_max_threads()
+   !
+   if (nstrips == 0) then
+      nstrip = max(1, min(nthreads, int(dble(nact) * ntheta / dble(max(strip_minwork, 1)))))
+   else
+      nstrip = max(1, min(nstrips, max(nact, 1)))
+   endif
+   !
+   ! Strip of each node per axis
+   !
+   strip_of = 0
+   halo_n   = 0
+   !
+   if (nstrip == 1) then
+      !
+      do k = 1, no_nodes
+         if (inner(k)) strip_of(k, :) = 1
+      enddo
+      !
+   else
+      !
+      allocate(mark(no_nodes))
+      !
+      do a = 1, 2
+         !
+         iact = 0
+         do count = 1, no_nodes
+            k = indx(count, axis_order(a))
+            if (.not. inner(k)) cycle
+            strip_of(k, a) = 1 + min(nstrip - 1, int(dble(iact) * nstrip / dble(max(nact, 1))))
+            if (active(k)) iact = iact + 1
+         enddo
+         !
+         ! Neumann nodes: strip of their inner node, which updates them within the sweep
+         !
+         do k = 1, no_nodes
+            if (neumannconnected(k) > 0) strip_of(k, a) = strip_of(neumannconnected(k), a)
+         enddo
+         !
+         ! Halo nodes: inner or Neumann upwind nodes of an active node in another strip
+         !
+         mark = 0
+         !
+         !$omp parallel do private(k, itheta, i, j) schedule(static)
+         do k = 1, no_nodes
+            if (.not. active(k)) cycle
+            do itheta = 1, ntheta
+               do i = 1, 2
+                  j = prev(i, itheta, k)
+                  if (j <= 0) cycle
+                  if (strip_of(j, a) /= 0 .and. strip_of(j, a) /= strip_of(k, a)) then
+                     !$omp atomic write
+                     mark(j) = 1
+                  endif
+               enddo
+            enddo
+         enddo
+         !$omp end parallel do
+         !
+         do k = 1, no_nodes
+            if (mark(k) == 1) then
+               halo_n(a) = halo_n(a) + 1
+               halo_nodes(halo_n(a), a) = k
+            endif
+         enddo
+         !
+      enddo
+      !
+      deallocate(mark)
+      !
+   endif
+   !
+   ! Per sweep: inner nodes per strip, in sweep order (counting sort on strip)
+   !
+   allocate(next(nstrip + 1))
+   !
+   do sweep = 1, 4
+      !
+      a = sweep_axis(sweep)
+      !
+      if (allocated(strips(sweep)%ptr))   deallocate(strips(sweep)%ptr)
+      if (allocated(strips(sweep)%nodes)) deallocate(strips(sweep)%nodes)
+      allocate(strips(sweep)%ptr(nstrip + 1))
+      allocate(strips(sweep)%nodes(max(nin, 1)))
+      !
+      strips(sweep)%ptr = 0
+      do k = 1, no_nodes
+         s = strip_of(k, a)
+         if (s > 0 .and. inner(k)) strips(sweep)%ptr(s + 1) = strips(sweep)%ptr(s + 1) + 1
+      enddo
+      strips(sweep)%ptr(1) = 1
+      do s = 1, nstrip
+         strips(sweep)%ptr(s + 1) = strips(sweep)%ptr(s + 1) + strips(sweep)%ptr(s)
+      enddo
+      !
+      next = strips(sweep)%ptr
+      do count = 1, no_nodes
+         k = indx(count, sweep)
+         s = strip_of(k, a)
+         if (s > 0 .and. inner(k)) then
+            strips(sweep)%nodes(next(s)) = k
+            next(s) = next(s) + 1
+         endif
+      enddo
+      !
+   enddo
+   !
+   deallocate(next, active)
+   !
+   end subroutine build_sweep_strips
 
 end module snapwave_solver 

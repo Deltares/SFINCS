@@ -932,7 +932,7 @@ module snapwave_infragravity
     integer                                          :: k               ! counters (k is grid index)
     integer                                          :: k1,k2           ! upwind counters (k is grid index)
     real*4                                           :: gam             ! local gamma (Hinc / depth ratio)
-    real*4, dimension(ntheta,no_nodes)               :: depthprev       ! water depth at upwind intersection point
+    real*4                                           :: depthprev       ! water depth at upwind intersection point
     real*4, dimension(no_nodes)                      :: Sxx             ! radiation Stress
     real*4, dimension(ntheta)                        :: Sxxprev         ! radiation stress at upwind point
     real*4, dimension(ntheta)                        :: Hprev           ! wave height at upwind point
@@ -996,7 +996,7 @@ module snapwave_infragravity
     ! listed as private so each thread gets its own copy on the stack.
     !
     !$omp parallel do &
-    !$omp&   private(itheta, k1, k2, gam, dSxx, Sxx_cons, &
+    !$omp&   private(itheta, k1, k2, gam, dSxx, Sxx_cons, depthprev, &
     !$omp&           gamma_fac_br_transition, transition_factor, &
     !$omp&           cgprev, Eprev, Eprev_ig, Sxxprev, Hprev) &
     !$omp&   schedule(static)
@@ -1015,7 +1015,7 @@ module snapwave_infragravity
                     !
                     ! First calculate upwind direction dependent variables
                     !
-                    depthprev(itheta,k)   = w(1, itheta, k) * depth(k1) + w(2, itheta, k) * depth(k2)
+                    depthprev             = w(1, itheta, k) * depth(k1) + w(2, itheta, k) * depth(k2)
                     !
                     beta_local(itheta,k)  = max((w(1, itheta, k) * (zb(k) - zb(k1)) + w(2, itheta, k) * (zb(k) - zb(k2))) / ds(itheta, k), 0.0)
                     !
@@ -1039,7 +1039,7 @@ module snapwave_infragravity
                     !
                     ! Determine relative waterdepth 'gam'
                     !
-                    gam = max(0.5 * (Hprev(itheta) / depthprev(itheta,k) + H(k) / depth(k)), 0.0) ! mean gamma over current and upwind point
+                    gam = max(0.5 * (Hprev(itheta) / depthprev + H(k) / depth(k)), 0.0) ! mean gamma over current and upwind point
                     !
                     ! Determine dSxx and IG source/sink term 'srcig'
                     !
@@ -1080,7 +1080,7 @@ module snapwave_infragravity
                            !
                            ! Base on E_prev_ig instead of eeprev_ig(itheta) > no bins but total energy
                            ! NOTE - already here multiplied with ee(itheta,k), for direct inclusion in 'R'-term
-                           srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev(itheta,k) * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)                           
+                           srcig_local(itheta, k) = alphaigfac * alphaig_local(itheta,k) * sqrt(Eprev_ig(itheta)) * cgprev(itheta) / depthprev * dSxx / ds(itheta, k) /max(E_local(k), 1.0e-6) * ee(itheta,k)                           
                            !
                            ! Limit srcig to 0 after waves start (significantly) breaking, as defined here as gam=Hrms,inc / h > (gamma_fac_br * gamma)
                            ! Ergo, it is assumed that after this point IG waves are free, and no bound wave forcing is happening anymore, so srcig should be 0 from here on

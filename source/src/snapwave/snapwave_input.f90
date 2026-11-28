@@ -80,6 +80,9 @@ contains
    call get_keyword(500, 'snapwave_crit',                   crit,                 0.001)
    call get_keyword(500, 'snapwave_nrsweeps',               nr_sweeps,            4)
    call get_keyword(500, 'snapwave_niter',                  niter,                10)                          !TL: Old default was 40
+   call get_keyword(500, 'snapwave_stripstats',             stripstats,           0)                           ! DIAGNOSTIC: log strip-decomposition statistics of the sweeps
+   call get_keyword(500, 'snapwave_nstrips',                nstrips,              1)                           ! Strips for the parallel sweep: 1 = serial sweep (default), 0 = automatic, >1 = fixed number
+   call get_keyword(500, 'snapwave_strip_minwork',          strip_minwork,        90000)                       ! Minimum work per strip (active nodes x directions) when snapwave_nstrips = 0
    !call get_keyword(500, 'snapwave_baldock_opt',           baldock_opt,          1)
    call get_keyword(500, 'snapwave_baldock_ratio',          baldock_ratio,        0.2)
    call get_keyword(500, 'snapwave_baldock_exponent',       baldock_exponent,     2)                           ! Exponent for multiplying the Baldock dissipation with a factor 'f = (Hloc / Hmax)**iexp' to enhance breaking when H > Hmax, with iexp = 0 (means unused), 1 or 2 (default). Generally, only active for steep coastlines, where Baldock dissipation can be too low in the surf zone.
