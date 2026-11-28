@@ -438,12 +438,24 @@ contains
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'z',     net_file_qtr%z_varid))
    NF90(nf90_inq_varid(net_file_qtr%ncid, 'mask',  net_file_qtr%mask_varid))
    !
-   if (snapwave) then !only read snapwave_mask if snapwave solver turned on
+   if (snapwave) then
       !
-      NF90(nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask',  net_file_qtr%snapwave_mask_varid))
+      ! Only read snapwave_mask if the SnapWave solver is turned on; it is required then
+      !
+      status = nf90_inq_varid(net_file_qtr%ncid, 'snapwave_mask', net_file_qtr%snapwave_mask_varid)
+      !
+      if (status /= nf90_noerr) then
+         !
+         write(logstr,'(a,a,a)')'Error ! Variable snapwave_mask not found in quadtree file ', trim(qtrfile), &
+                                ', but it is required when snapwave = 1 !'
+         call stop_sfincs(trim(logstr), 1)
+         !
+      endif
       !
       allocate(quadtree_snapwave_mask(np))
-      !    
+      !
+      quadtree_snapwave_mask = 0
+      !
    endif
    !
    ! Allocate variables   
