@@ -1827,7 +1827,8 @@ contains
    ! Build the strip schedule of the four ordered sweeps.
    !
    ! Number of strips (snapwave_nstrips): 1 = serial sweep, >1 = fixed, 0 = automatic:
-   ! min(number of OpenMP threads, active nodes / snapwave_strip_minnodes), at least 1.
+   ! min(number of OpenMP threads, active nodes * ntheta / snapwave_strip_minwork), at least 1.
+   ! The work per node scales with ntheta, so models with many directions get more strips.
    !
    ! For each of the two sweep axes (axis 1: sweeps 1 and 4 along thetamean; axis 2: sweeps 2
    ! and 3, perpendicular to it), inner nodes are ordered on the coordinate perpendicular to the
@@ -1854,7 +1855,7 @@ contains
    !
    ! Called from: solve_energy_balance2Dstat (snapwave_solver)
    !
-   use snapwave_data, only: nstrips, strip_minnodes
+   use snapwave_data, only: nstrips, strip_minwork
    !$ use omp_lib,    only: omp_get_max_threads
    !
    implicit none
@@ -1894,7 +1895,7 @@ contains
    !$ nthreads = omp_get_max_threads()
    !
    if (nstrips == 0) then
-      nstrip = max(1, min(nthreads, nact / max(strip_minnodes, 1)))
+      nstrip = max(1, min(nthreads, int(dble(nact) * ntheta / dble(max(strip_minwork, 1)))))
    else
       nstrip = max(1, min(nstrips, max(nact, 1)))
    endif

@@ -312,7 +312,7 @@ module snapwave_data
    integer                                   :: nr_sweeps
    integer                                   :: stripstats      ! DIAGNOSTIC: 1 = log strip-decomposition statistics of the sweeps on first SnapWave call
    integer                                   :: nstrips         ! number of strips for the parallel sweep: 1 = serial sweep, 0 = automatic, >1 = fixed
-   integer                                   :: strip_minnodes  ! minimum number of active nodes per strip when nstrips = 0
+   integer                                   :: strip_minwork   ! minimum work per strip (active nodes x directions) when nstrips = 0
    !
    logical                                   :: restart
    logical                                   :: coupled_to_sfincs
