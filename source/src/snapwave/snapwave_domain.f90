@@ -105,12 +105,14 @@ contains
    use snapwave_boundaries
    use snapwave_ncoutput   
    use interp
-   use sfincs_error      
+   use sfincs_error
    use quadtree
+   use snapwave_ncinput, only: read_netcdf_quadtree_to_snapwave
    !
    ! Local input variables
    !
    integer                                     :: k, j, k1, k2, nzs, ntp, inout
+   character(len=256)                          :: varname
    integer*4, dimension(:),     allocatable    :: indices
    real*8,    dimension(:),     allocatable    :: theta360d0 ! wave angles,sine and cosine of wave angles
    real*8,    dimension(:,:),   allocatable    :: ds360d0
@@ -264,17 +266,54 @@ contains
    allocate(SwA   (no_nodes))
    allocate(DoverE(no_nodes))   
    !
-   ! Spatially-uniform bottom friction coefficients
+   ! Bottom friction coefficients
    !
-   fw = fw0
+   fw    = fw0
    fw_ig = fw0_ig
    !
-   do k=1,no_nodes
-      if (zb(k) > rghlevland) then     
-         fw(k) = fw0 * fwratio
-         fw_ig(k) = fw0_ig * fwigratio           
+   if (snapwave_fwfile /= 'none') then
+      !
+      ! Spatially-varying bottom friction coefficients from netCDF quadtree file
+      !
+      write(logstr,'(a,a)')'Info    : reading SnapWave friction file ', trim(snapwave_fwfile)
+      call write_log(logstr, 0)
+      !
+      exists = check_file_exists(snapwave_fwfile, 'SnapWave friction file', .true.)
+      !
+      if (fwratio /= 1.0 .or. fwigratio /= 1.0) then
+         !
+         call write_log('Info    : snapwave_fw_ratio and snapwave_fwig_ratio are not applied when snapwave_fwfile is given', 0)
+         !
       endif
-   enddo   
+      !
+      varname = 'snapwave_fw'
+      call read_netcdf_quadtree_to_snapwave(snapwave_fwfile, varname, fw)
+      !
+      if (igwaves) then
+         !
+         ! IG friction is only needed (and required in the file) when IG waves are on
+         !
+         varname = 'snapwave_fwig'
+         call read_netcdf_quadtree_to_snapwave(snapwave_fwfile, varname, fw_ig)
+         !
+      endif
+      !
+   else
+      !
+      ! Spatially-uniform bottom friction coefficients, multiplied with a ratio above rgh_lev_land
+      !
+      do k = 1, no_nodes
+         !
+         if (zb(k) > rghlevland) then
+            !
+            fw(k)    = fw0 * fwratio
+            fw_ig(k) = fw0_ig * fwigratio
+            !
+         endif
+         !
+      enddo
+      !
+   endif
    !
    ! Initialization of reference tables
    !

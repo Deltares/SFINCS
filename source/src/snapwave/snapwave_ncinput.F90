@@ -3,13 +3,19 @@ module snapwave_ncinput
    !
    ! Headers auto-generated, ask main developers in case of doubts
    !
-   ! netCDF input for SnapWave: FEWS-compatible wave boundary conditions.
+   ! netCDF input for SnapWave: FEWS-compatible wave boundary conditions and variables stored
+   ! on the quadtree mesh.
    !
    ! Subroutines / functions:
    !
    !   read_netcdf_wave_boundary_data()
    !     Read the wave boundary points and time series from a FEWS-compatible netCDF file.
    !     Called from: read_boundary_data (snapwave_boundaries)
+   !
+   !   read_netcdf_quadtree_to_snapwave(ncfile, varname, var)
+   !     Read a real*4 cell variable from a quadtree netCDF file and map it to the active
+   !     SnapWave nodes.
+   !     Called from: initialize_snapwave_domain (snapwave_domain)
    !
    !   handle_err(status, file, line)
    !     Report a netCDF error with file name and line number.
@@ -142,10 +148,53 @@ module snapwave_ncinput
    NF90(nf90_close(net_file_snapwave%ncid))       
    ! 
    end subroutine
-   
-   
-   
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !
+   !
+   subroutine read_netcdf_quadtree_to_snapwave(ncfile, varname, var)
+      !
+      ! Read a real*4 cell variable from a quadtree netCDF file and map it to the active
+      ! SnapWave nodes. Uses the same reader and file checks as read_netcdf_quadtree_to_sfincs
+      ! (sfincs_ncinput).
+      !
+      ! Input:
+      !   ncfile  : name of the netCDF file
+      !   varname : name of the variable in the file
+      !
+      ! Input/output:
+      !   var     : values in the active SnapWave nodes
+      !
+      ! Called from: initialize_snapwave_domain (snapwave_domain)
+      !
+      use sfincs_ncinput, only: read_netcdf_quadtree_values
+      use snapwave_data,  only: no_nodes, index_quadtree_in_snapwave
+      use quadtree,       only: quadtree_nr_points
+      !
+      implicit none
+      !
+      character*256, intent(in)                  :: ncfile
+      character*256, intent(in)                  :: varname
+      real*4, dimension(no_nodes), intent(inout) :: var
+      !
+      integer                                    :: k
+      real*4, dimension(:,:), allocatable        :: vartmp
+      !
+      allocate(vartmp(quadtree_nr_points, 1))
+      !
+      call read_netcdf_quadtree_values(ncfile, varname, 1, vartmp)
+      !
+      ! Map quadtree to SnapWave nodes
+      !
+      do k = 1, no_nodes
+         !
+         var(k) = vartmp(index_quadtree_in_snapwave(k), 1)
+         !
+      enddo
+      !
+      deallocate(vartmp)
+      !
+   end subroutine read_netcdf_quadtree_to_snapwave
+   !
+   !
    subroutine handle_err(status,file,line)
       !
       ! Report a netCDF error with file name and line number.

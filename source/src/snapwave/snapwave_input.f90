@@ -134,6 +134,7 @@ contains
    call get_keyword(500, 'snapwave_upwfile',                upwfile,              'snapwave.upw')
    call get_keyword(500, 'snapwave_mskfile',                mskfile,              'none')
    call get_keyword(500, 'snapwave_depfile',                depfile,              'none')
+   call get_keyword(500, 'snapwave_fwfile',                 snapwave_fwfile,      'none')                      ! netCDF quadtree file with spatially varying snapwave_fw and snapwave_fwig (overrules uniform snapwave_fw/snapwave_fwig and their ratios)
    call get_keyword(500, 'snapwave_ncfile',                 gridfile,             'snapwave_net.nc')
    call get_keyword(500, 'netsnapwavefile',                 netsnapwavefile,      'none')
    call get_keyword(500, 'storesnapwavegrid',               storesnapwavegrid,    .false.)
