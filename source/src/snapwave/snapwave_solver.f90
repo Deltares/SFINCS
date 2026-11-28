@@ -471,7 +471,11 @@ contains
    ! Local variables and arrays
    !
    integer, dimension(:), allocatable         :: ok                     ! mask for fully iterated points
-   integer, dimension(:), allocatable         :: ok_ig                  ! mask for fully iterated IG points   
+   integer, dimension(:), allocatable         :: ok_ig                  ! mask for fully iterated IG points
+   integer, dimension(:), allocatable         :: nofreeze               ! 1 if the node may not be flagged as converged yet (cold, or DoverE still relaxing)
+   integer                                    :: nnofreeze              ! number of nodes held back from the convergence flag
+   real*4                                     :: ek_nosink              ! estimate of the incident energy of the node from its inflow and the lagged DoverE [J/m2]
+   real*4                                     :: dovere_target          ! unrelaxed dissipation ratio of the node [1/s]
    real*4                                     :: dtheta                 ! directional resolution
    real*4                                     :: eemax                  ! maximum wave energy density   
    real*4                                     :: eemax_ig               ! maximum IG wave energy density
@@ -479,6 +483,10 @@ contains
    integer                                    :: sweep,iter            ! sweep number, number of iterations
    integer                                    :: k,k1,k2,count,kn,itheta ! counters (k is grid index)
    integer, dimension(:,:), allocatable       :: indx                   ! index for grid sorted per sweep direction
+   integer, dimension(:), allocatable         :: neu_start              ! first entry in neu_list for each inner node (last entry: neu_start(k + 1) - 1)
+   integer, dimension(:), allocatable         :: neu_list               ! Neumann nodes, grouped per inner node they are connected to
+   integer, dimension(:), allocatable         :: neu_next               ! next free entry in neu_list per inner node (only used to fill neu_list)
+   integer                                    :: ineu                   ! counter over neu_list
    real*4, dimension(:,:), allocatable        :: eeold               ! wave energy density, energy density previous iteration
    real*4, dimension(:,:), allocatable        :: eeold_ig            ! IG wave energy density, energy density previous iteration
    real*4, dimension(:), allocatable          :: Eold                   ! mean wave energy, previous iteration
@@ -545,6 +553,7 @@ contains
    waveps = 0.0001
    !
    allocate(ok(no_nodes)); ok=0
+   allocate(nofreeze(no_nodes)); nofreeze=0
    allocate(indx(no_nodes,4)); indx=0
    allocate(eeold(ntheta,no_nodes)); eeold=0.0
    allocate(dee(ntheta)); dee=0.0
@@ -586,6 +595,43 @@ contains
    allocate(ra(no_nodes)); ra=0.0
    allocate(srcig_local(ntheta,no_nodes)); srcig_local = 0.0
    !
+   ! Inverse of neumannconnected: for each inner node, the Neumann nodes connected to it
+   ! (entries neu_start(k) to neu_start(k + 1) - 1 of neu_list). Used to update the Neumann
+   ! nodes directly after their inner node in each sweep.
+   !
+   allocate(neu_start(no_nodes + 1)); neu_start = 0
+   allocate(neu_next(no_nodes))
+   !
+   do k = 1, no_nodes
+      !
+      if (neumannconnected(k) > 0) neu_start(neumannconnected(k) + 1) = neu_start(neumannconnected(k) + 1) + 1
+      !
+   enddo
+   !
+   neu_start(1) = 1
+   !
+   do k = 1, no_nodes
+      !
+      neu_start(k + 1) = neu_start(k + 1) + neu_start(k)
+      !
+   enddo
+   !
+   allocate(neu_list(max(neu_start(no_nodes + 1) - 1, 1))); neu_list = 0
+   neu_next = neu_start(1:no_nodes)
+   !
+   do k = 1, no_nodes
+      !
+      if (neumannconnected(k) > 0) then
+         !
+         neu_list(neu_next(neumannconnected(k))) = k
+         neu_next(neumannconnected(k))           = neu_next(neumannconnected(k)) + 1
+         !
+      endif
+      !
+   enddo
+   !
+   deallocate(neu_next)
+   !
    do itheta = 1, ntheta
       sinth(itheta) = sin(theta(itheta))
       costh(itheta) = cos(theta(itheta))
@@ -596,9 +642,10 @@ contains
    Dveg = 0.0
    F    = 0.0
    !
-   ok     = 0
-   indx   = 0
-   eemax  = maxval(ee)
+   ok       = 0
+   nofreeze = 0
+   indx     = 0
+   eemax    = maxval(ee)
    if (igwaves) then
       ok_ig   = 0
       eemax_ig = maxval(ee_ig)
@@ -927,10 +974,41 @@ contains
             !
          endif
          !
+         ! Estimate of the energy the node obtains in this sweep from its upwind inflow and the
+         ! lagged dissipation ratio. A node is cold when its lagged energy is negligible compared
+         ! to this estimate (first SnapWave call, or a wave front that has not arrived yet).
+         !
+         ek_nosink = 0.0
+         !
+         do itheta = 1, ntheta
+            !
+            ek_nosink = ek_nosink + (oneoverdt * ee(itheta, k) + cgprev(itheta) * eeprev(itheta) / ds(itheta, k)) &
+                                  / (oneoverdt + cg(k) / ds(itheta, k) + DoverE(k))
+            !
+         enddo
+         !
+         ek_nosink = ek_nosink * dtheta
+         !
          ! Energy dissipation ratio (with under-relaxation)
          !
-         DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) &
-                   + relax_factor_DoverE * (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+         dovere_target = (Dwk + Dfk + Dvegk) / max(Ek, 1.0e-6)
+         !
+         ! Do not let the node be flagged as converged while it is cold or while the relaxed
+         ! DoverE is still far from its target. The energy change of such a node is small
+         ! compared to the global maximum (the convergence measure), e.g. a shoreline node
+         ! that collapsed after the first-sweep overshoot, but its solution is not converged.
+         !
+         if (E(k) < 0.01 * ek_nosink .or. abs(dovere_target - DoverE(k)) > 0.1 * max(dovere_target, DoverE(k))) then
+            !
+            nofreeze(k) = 1
+            !
+         else
+            !
+            nofreeze(k) = 0
+            !
+         endif
+         !
+         DoverE(k) = (1.0 - relax_factor_DoverE) * DoverE(k) + relax_factor_DoverE * dovere_target
          !
          Df(k)   = Dfk
          Dw(k)   = Dwk
@@ -1134,6 +1212,26 @@ contains
             !
          endif
          !
+         ! Copy the new energy directly to the Neumann nodes connected to this node. Energy then
+         ! travels along a Neumann boundary within one sweep, instead of one node per sweep
+         ! through the copy at the start of each sweep. With wind, cg is copied as well, since
+         ! cg(k) was updated in this sweep and the next inner node uses it as upwind group velocity.
+         !
+         do ineu = neu_start(k), neu_start(k + 1) - 1
+            !
+            kn           = neu_list(ineu)
+            ee(:, kn)    = ee(:, k)
+            ee_ig(:, kn) = ee_ig(:, k)
+            !
+            if (wind) then
+               !
+               aa(:, kn) = aa(:, k)
+               cg(kn)    = cg(k)
+               !
+            endif
+            !
+         enddo
+         !
       enddo
       !
       if (sweep==4) then
@@ -1146,12 +1244,22 @@ contains
             dee     = ee(:, k) - eeold(:, k)
             diff(k) = maxval(abs(dee))
             !
-            if (diff(k) / eemax < crit) then
+            if (diff(k) / eemax < crit .and. nofreeze(k) == 0) then
                ok(k) = 1
             endif
             !
          enddo
          !$omp end parallel do
+         !
+         ! A Neumann boundary node is not solved but copies its inner node at the start of each
+         ! sweep, so it has converged only when its inner node has. Otherwise it can be flagged
+         ! while its inner node is still recovering, and it then stops copying.
+         !
+         do k = 1, no_nodes
+            !
+            if (neumannconnected(k) /= 0) ok(k) = ok(neumannconnected(k))
+            !
+         enddo
          !
          ! Percentage of converged points
          !
@@ -1161,6 +1269,13 @@ contains
          ! Relative maximum error
          !
          error = maxval(diff) / eemax
+         !
+         nnofreeze = sum(nofreeze)
+         !
+         ! Number of nodes not converged and held back per iteration (uncomment for debugging)
+         !
+         !write(logstr,'(a,i8,a,i8)')'      nodes not converged: ', no_nodes - sum(ok), '   held back: ', nnofreeze
+         !call write_log(logstr, 0)
          !
          ! Check convergence of IG waves
          !

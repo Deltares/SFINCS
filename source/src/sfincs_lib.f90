@@ -141,7 +141,7 @@ module sfincs_lib
    !
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !
-   build_revision = "$Rev: v2.5.1beta Hautacam+"
+   build_revision = "$Rev: v2.5.1beta Hautacam+branch:stable_snapwave_version"
    build_date     = "$Date: 2026-11-27"
    !
    call write_startup_log()
